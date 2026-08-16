@@ -1,0 +1,16 @@
+{
+  "name": "banksawan-yellow-relay",
+  "version": "1.0.0",
+  "description": "BANKSAWAN YELLOW signal relay",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "firebase-admin": "^13.0.2"
+  }
+}
