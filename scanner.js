@@ -1,18 +1,49 @@
 const BASE = "https://fapi.binance.com";
 
+// ==================================================
+// BANKSAWAN YELLOW SCANNER v1.3 — 4TF STABLE
+//
+// Rules locked:
+// - Binance USDⓈ-M PERPETUAL
+// - price < 30 USDT
+// - 24H change >= +1%
+// - LONG A signal on 1M / 5M / 15M / 1H
+// - closed-candle only
+// - catch every missed closed candle
+// - independent Pine-like state per symbol + TF
+// - state counters use elapsed bars, NOT local array indexes
+// - no historical notification during bootstrap
+// - dedup by symbol + TF + candle close time
+// - diagnostics + non-gating health score
+// ==================================================
+
 const PRICE_MAX = 30;
 const CHANGE_MIN = 1;
+
 const SCAN_MS = 60_000;
+const LIVE_LIMIT = 300;
+const BOOTSTRAP_LIMIT = 1000;
+
+const WORKER_CONCURRENCY = 2;
+const REQUEST_PAUSE_MS = 180;
+const MAX_RETRIES = 4;
 
 const PORT = process.env.PORT || 10000;
 const RELAY_URL =
     process.env.YELLOW_RELAY_URL ||
     `http://127.0.0.1:${PORT}/yellow`;
 
-const TIMEFRAMES = ["1m", "5m", "15m", "1h"];
+const DATA_TIMEFRAMES = ["1m", "5m", "15m", "1h"];
+const SIGNAL_TIMEFRAMES = ["1m", "5m", "15m", "1h"];
 
-// State hanya hidup selama process Railway hidup.
-// Setelah restart, scanner bootstrap ulang dari candle historis.
+const TF_LABEL = {
+    "1m": "1M",
+    "5m": "5M",
+    "15m": "15M",
+    "1h": "1H"
+};
+
+// symbol -> SymbolState
 const symbolStates = new Map();
 
 function sleep(ms) {
@@ -20,52 +51,122 @@ function sleep(ms) {
 }
 
 async function getJson(url) {
-    const r = await fetch(url, {
-        headers: {
-            "User-Agent": "banksawan-yellow-scanner/1.1"
-        }
-    });
+    let lastError = null;
 
-    if (!r.ok) {
-        throw new Error(
-            `${r.status} ${r.statusText} ${url}`
-        );
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            const r = await fetch(url, {
+                headers: {
+                    "User-Agent": "banksawan-yellow-scanner/1.3-4tf"
+                }
+            });
+
+            if (r.ok) {
+                return await r.json();
+            }
+
+            const body = await r.text().catch(() => "");
+            const error = new Error(
+                `${r.status} ${r.statusText} ${body}`.trim()
+            );
+            lastError = error;
+
+            if (r.status === 429 || r.status === 418) {
+                const retryAfterSeconds =
+                    Number(r.headers.get("retry-after")) || attempt * 3;
+
+                console.warn(
+                    `[RATE LIMIT] ${r.status} wait=${retryAfterSeconds}s attempt=${attempt}/${MAX_RETRIES}`
+                );
+
+                await sleep(retryAfterSeconds * 1000);
+                continue;
+            }
+
+            if (r.status >= 500 && attempt < MAX_RETRIES) {
+                await sleep(attempt * 1000);
+                continue;
+            }
+
+            throw error;
+        } catch (e) {
+            lastError = e;
+
+            if (attempt >= MAX_RETRIES) break;
+
+            console.warn(
+                `[HTTP RETRY] attempt=${attempt}/${MAX_RETRIES} ${e.message}`
+            );
+
+            await sleep(attempt * 1000);
+        }
     }
 
-    return r.json();
+    throw lastError || new Error(`Request failed: ${url}`);
 }
 
 async function postJson(url, body) {
-    const r = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "User-Agent": "banksawan-yellow-scanner/1.1"
-        },
-        body: JSON.stringify(body)
-    });
+    let lastError = null;
 
-    const text = await r.text();
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            const r = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "User-Agent": "banksawan-yellow-scanner/1.3-4tf"
+                },
+                body: JSON.stringify(body)
+            });
 
-    if (!r.ok) {
-        throw new Error(
-            `${r.status} ${r.statusText} ${text}`
-        );
+            const text = await r.text();
+
+            if (r.ok) {
+                try {
+                    return JSON.parse(text);
+                } catch {
+                    return { raw: text };
+                }
+            }
+
+            const error = new Error(
+                `${r.status} ${r.statusText} ${text}`.trim()
+            );
+            lastError = error;
+
+            if (
+                (r.status === 429 || r.status >= 500) &&
+                attempt < MAX_RETRIES
+            ) {
+                const retryAfterSeconds =
+                    Number(r.headers.get("retry-after")) || attempt * 2;
+
+                await sleep(retryAfterSeconds * 1000);
+                continue;
+            }
+
+            throw error;
+        } catch (e) {
+            lastError = e;
+
+            if (attempt >= MAX_RETRIES) break;
+
+            await sleep(attempt * 1000);
+        }
     }
 
-    try {
-        return JSON.parse(text);
-    } catch {
-        return { raw: text };
-    }
+    throw lastError || new Error(`POST failed: ${url}`);
 }
 
+// ==================================================
+// UNIVERSE
+// ==================================================
+
 async function loadUniverse() {
-    const [exchangeInfo, tickers] =
-        await Promise.all([
-            getJson(`${BASE}/fapi/v1/exchangeInfo`),
-            getJson(`${BASE}/fapi/v1/ticker/24hr`)
-        ]);
+    const [exchangeInfo, tickers] = await Promise.all([
+        getJson(`${BASE}/fapi/v1/exchangeInfo`),
+        getJson(`${BASE}/fapi/v1/ticker/24hr`)
+    ]);
 
     const perpetual = new Set(
         exchangeInfo.symbols
@@ -82,10 +183,8 @@ async function loadUniverse() {
         .map(t => ({
             symbol: t.symbol,
             price: Number(t.lastPrice),
-            change24h:
-                Number(t.priceChangePercent),
-            volumeQuote:
-                Number(t.quoteVolume)
+            change24h: Number(t.priceChangePercent),
+            volumeQuote: Number(t.quoteVolume)
         }))
         .filter(x =>
             Number.isFinite(x.price) &&
@@ -94,27 +193,21 @@ async function loadUniverse() {
             Number.isFinite(x.change24h) &&
             x.change24h >= CHANGE_MIN
         )
-        .sort(
-            (a, b) =>
-                b.change24h - a.change24h
-        );
+        .sort((a, b) => b.change24h - a.change24h);
 }
 
-async function loadKlines(
-    symbol,
-    interval,
-    limit = 300
-) {
+// ==================================================
+// MARKET DATA
+// ==================================================
+
+async function loadKlines(symbol, interval, limit) {
     const q = new URLSearchParams({
         symbol,
         interval,
         limit: String(limit)
     });
 
-    const rows =
-        await getJson(
-            `${BASE}/fapi/v1/klines?${q}`
-        );
+    const rows = await getJson(`${BASE}/fapi/v1/klines?${q}`);
 
     return rows.map(k => ({
         openTime: Number(k[0]),
@@ -128,46 +221,65 @@ async function loadKlines(
     }));
 }
 
-async function inspectCoin(coin) {
+async function inspectCoin(coin, limit) {
     const tf = {};
 
-    for (const interval of TIMEFRAMES) {
-        const limit =
-            interval === "1m" ? 300 : 160;
-
-        tf[interval] =
-            await loadKlines(
-                coin.symbol,
-                interval,
-                limit
-            );
+    // Sequential inside one symbol keeps Binance request bursts low.
+    for (const interval of DATA_TIMEFRAMES) {
+        tf[interval] = await loadKlines(
+            coin.symbol,
+            interval,
+            limit
+        );
     }
 
-    return {
-        ...coin,
-        tf
-    };
+    return { ...coin, tf };
+}
+
+function closedCandles(candles, now = Date.now()) {
+    return candles.filter(c => c.closeTime < now);
+}
+
+function normalizeSnapshotClosed(snapshot) {
+    const now = Date.now();
+
+    for (const tf of DATA_TIMEFRAMES) {
+        snapshot.tf[tf] = closedCandles(snapshot.tf[tf], now);
+    }
+
+    return snapshot;
 }
 
 // ==================================================
-// INDICATORS
-// TradingView-compatible basic SMA + Wilder RSI
+// INDICATORS — Pine-compatible SMA + Wilder RSI
 // ==================================================
 
 function sma(values, length) {
-    const out =
-        new Array(values.length).fill(null);
+    const out = new Array(values.length).fill(null);
 
     let sum = 0;
+    let invalidCount = 0;
 
     for (let i = 0; i < values.length; i++) {
-        sum += values[i];
+        const add = values[i];
 
-        if (i >= length) {
-            sum -= values[i - length];
+        if (Number.isFinite(add)) {
+            sum += add;
+        } else {
+            invalidCount++;
         }
 
-        if (i >= length - 1) {
+        if (i >= length) {
+            const remove = values[i - length];
+
+            if (Number.isFinite(remove)) {
+                sum -= remove;
+            } else {
+                invalidCount--;
+            }
+        }
+
+        if (i >= length - 1 && invalidCount === 0) {
             out[i] = sum / length;
         }
     }
@@ -175,9 +287,16 @@ function sma(values, length) {
     return out;
 }
 
+function rsiFromAverages(avgGain, avgLoss) {
+    if (avgGain === 0 && avgLoss === 0) return 50;
+    if (avgLoss === 0) return 100;
+    if (avgGain === 0) return 0;
+
+    return 100 - 100 / (1 + avgGain / avgLoss);
+}
+
 function rsi(values, length = 14) {
-    const out =
-        new Array(values.length).fill(null);
+    const out = new Array(values.length).fill(null);
 
     if (values.length <= length) {
         return out;
@@ -187,8 +306,7 @@ function rsi(values, length = 14) {
     let lossSum = 0;
 
     for (let i = 1; i <= length; i++) {
-        const change =
-            values[i] - values[i - 1];
+        const change = values[i] - values[i - 1];
 
         gainSum += Math.max(change, 0);
         lossSum += Math.max(-change, 0);
@@ -198,19 +316,15 @@ function rsi(values, length = 14) {
     let avgLoss = lossSum / length;
 
     out[length] =
-        avgLoss === 0
-            ? 100
-            : 100 -
-              100 /
-                  (1 + avgGain / avgLoss);
+        rsiFromAverages(
+            avgGain,
+            avgLoss
+        );
 
-    for (
-        let i = length + 1;
-        i < values.length;
-        i++
-    ) {
+    for (let i = length + 1; i < values.length; i++) {
         const change =
-            values[i] - values[i - 1];
+            values[i] -
+            values[i - 1];
 
         const gain =
             Math.max(change, 0);
@@ -220,25 +334,25 @@ function rsi(values, length = 14) {
 
         avgGain =
             (
-                avgGain * (length - 1) +
+                avgGain *
+                (length - 1) +
                 gain
-            ) / length;
+            ) /
+            length;
 
         avgLoss =
             (
-                avgLoss * (length - 1) +
+                avgLoss *
+                (length - 1) +
                 loss
-            ) / length;
+            ) /
+            length;
 
         out[i] =
-            avgLoss === 0
-                ? 100
-                : 100 -
-                  100 /
-                      (
-                          1 +
-                          avgGain / avgLoss
-                      );
+            rsiFromAverages(
+                avgGain,
+                avgLoss
+            );
     }
 
     return out;
@@ -251,61 +365,58 @@ function buildIndicators(candles) {
     const volumes =
         candles.map(c => c.volume);
 
-    const ma7 =
-        sma(closes, 7);
-
-    const ma25 =
-        sma(closes, 25);
-
-    const ma99 =
-        sma(closes, 99);
-
     const rsi14 =
-        rsi(closes, 14);
-
-    const rsiAvg =
-        sma(
-            rsi14.map(v =>
-                v == null ? 0 : v
-            ),
+        rsi(
+            closes,
             14
         );
 
-    const volumeAvg =
-        sma(volumes, 20);
-
     return {
-        ma7,
-        ma25,
-        ma99,
+        ma7:
+            sma(
+                closes,
+                7
+            ),
+
+        ma25:
+            sma(
+                closes,
+                25
+            ),
+
+        ma99:
+            sma(
+                closes,
+                99
+            ),
+
         rsi14,
-        rsiAvg,
-        volumeAvg
+
+        rsiAvg:
+            sma(
+                rsi14,
+                14
+            ),
+
+        volumeAvg:
+            sma(
+                volumes,
+                20
+            )
     };
 }
 
-function lastCompletedIndexBefore(
-    candles,
-    timestamp
-) {
-    let result = -1;
+function buildAllIndicators(snapshot) {
+    const out = {};
 
-    for (
-        let i = 0;
-        i < candles.length;
-        i++
-    ) {
-        if (
-            candles[i].closeTime <
-            timestamp
-        ) {
-            result = i;
-        } else {
-            break;
-        }
+    for (const tf of DATA_TIMEFRAMES) {
+        out[tf] =
+            buildIndicators(
+                snapshot.tf[tf]
+            );
     }
 
-    return result;
+    return out;
 }
 
 function validNumber(...values) {
@@ -316,44 +427,264 @@ function validNumber(...values) {
     );
 }
 
+// Pine semantics used by the deterministic companion script:
+//
+// - Equal/Higher TF request:
+//   request.security(..., close[1], lookahead_on)
+//
+// - Lower TF request:
+//   request.security(..., close[1], lookahead_off)
+//
+// Both resolve to the most recent requested-TF candle whose closeTime is
+// STRICTLY earlier than the base candle's closeTime.
+
+function lastCompletedIndexBefore(
+    candles,
+    timestamp
+) {
+    let lo = 0;
+    let hi =
+        candles.length - 1;
+
+    let result = -1;
+
+    while (lo <= hi) {
+        const mid =
+            Math.floor(
+                (lo + hi) / 2
+            );
+
+        if (
+            candles[mid].closeTime <
+            timestamp
+        ) {
+            result = mid;
+            lo = mid + 1;
+
+        } else {
+            hi = mid - 1;
+        }
+    }
+
+    return result;
+}
+
 // ==================================================
-// BANKSAWAN LONG v1.3 STATE ENGINE — TF1M
+// STATE
+//
+// Important:
+// Never save local array indexes across scans.
+// LIVE_LIMIT changes the array origin on every request.
+// Therefore pullback/protect windows are tracked as ELAPSED BARS.
 // ==================================================
 
-function createState() {
+function createTfState() {
     return {
         lastProcessedCloseTime: 0,
 
         tradeState: 0,
-        protectBarIndex: null,
+
+        // 0 = waiting
+        // 1 = LONG active
+        // 2 = protected
 
         countDown: 0,
-        pullbackBarIndex: null,
 
-        initialized: false
+        barsSincePullback: null,
+
+        protectBarsElapsed: null,
+
+        lastEventId: null
     };
 }
 
-function evaluateOneMinuteBar(
+function createSymbolState() {
+    const tfStates =
+        new Map();
+
+    for (
+        const tf of
+        SIGNAL_TIMEFRAMES
+    ) {
+        tfStates.set(
+            tf,
+            createTfState()
+        );
+    }
+
+    return {
+        initialized: false,
+        tfStates
+    };
+}
+
+// ==================================================
+// QUALITY
+//
+// Diagnostic only.
+// NEVER blocks a valid YELLOW.
+//
+// YELLOW must remain formula-parity with TradingView.
+// ==================================================
+
+function healthScore(diagnostics) {
+    let score = 70;
+
+    if (
+        diagnostics.volumeRatio >=
+        1.0
+    ) {
+        score += 8;
+    }
+
+    if (
+        diagnostics.volumeRatio >=
+        1.5
+    ) {
+        score += 5;
+    }
+
+    if (
+        diagnostics.distanceFromMA7 <=
+        1.5
+    ) {
+        score += 7;
+    }
+
+    if (
+        diagnostics.distanceFromMA7 <=
+        0.8
+    ) {
+        score += 4;
+    }
+
+    if (
+        diagnostics.rsiValue <=
+        68
+    ) {
+        score += 6;
+    }
+
+    return Math.max(
+        0,
+        Math.min(
+            100,
+            score
+        )
+    );
+}
+
+function healthLabel(score) {
+    if (score >= 92) {
+        return "STRONG";
+    }
+
+    if (score >= 84) {
+        return "HEALTHY";
+    }
+
+    return "VALID";
+}
+
+// ==================================================
+// BANKSAWAN LONG v1.3 DETERMINISTIC
+// GENERIC 4TF
+// ==================================================
+
+function evaluateBaseBar(
     snapshot,
-    data,
-    state,
+    indicators,
+    tfState,
+    baseTf,
     i
 ) {
-    const one = snapshot.tf["1m"];
-    const five = snapshot.tf["5m"];
-    const fifteen = snapshot.tf["15m"];
-    const hour = snapshot.tf["1h"];
+    const base =
+        snapshot.tf[baseTf];
 
-    const candle = one[i];
+    const candle =
+        base[i];
 
-    const m1 = data["1m"];
-    const m5 = data["5m"];
-    const m15 = data["15m"];
-    const m60 = data["1h"];
+    if (!candle) {
+        return null;
+    }
 
-    // Higher TF: gunakan candle yang SUDAH selesai
-    // sebelum candle 1M ini tutup.
+    // Advance cross-scan windows by one real processed bar.
+
+    if (
+        tfState.barsSincePullback !=
+        null
+    ) {
+        tfState.barsSincePullback++;
+    }
+
+    if (
+        tfState.tradeState === 2 &&
+        tfState.protectBarsElapsed !=
+        null
+    ) {
+        tfState.protectBarsElapsed++;
+    }
+
+    // Pine:
+    // priceDown = close < close[4]
+
+    const priceDown =
+        i >= 4 &&
+        candle.close <
+        base[i - 4].close;
+
+    tfState.countDown =
+        priceDown
+            ? tfState.countDown + 1
+            : 0;
+
+    const pullbackCount =
+        tfState.countDown === 9 ||
+        tfState.countDown === 13 ||
+        tfState.countDown === 14 ||
+        tfState.countDown === 15 ||
+        tfState.countDown === 16;
+
+    if (pullbackCount) {
+        tfState.barsSincePullback = 0;
+    }
+
+    const pullbackWindowActive =
+        tfState.barsSincePullback !=
+        null &&
+        tfState.barsSincePullback <=
+        30;
+
+    const mBase =
+        indicators[baseTf];
+
+    const ma7 =
+        mBase.ma7[i];
+
+    const ma25 =
+        mBase.ma25[i];
+
+    const ma99 =
+        mBase.ma99[i];
+
+    const rsiValue =
+        mBase.rsi14[i];
+
+    const rsiAverage =
+        mBase.rsiAvg[i];
+
+    const avgVolume =
+        mBase.volumeAvg[i];
+
+    const five =
+        snapshot.tf["5m"];
+
+    const fifteen =
+        snapshot.tf["15m"];
+
+    const hour =
+        snapshot.tf["1h"];
+
     const i5 =
         lastCompletedIndexBefore(
             five,
@@ -373,71 +704,21 @@ function evaluateOneMinuteBar(
         );
 
     if (
-        i < 99 ||
-        i5 < 99 ||
-        i15 < 99 ||
-        i60 < 99
+        i5 < 0 ||
+        i15 < 0 ||
+        i60 < 0
     ) {
         return null;
     }
 
-    const close = candle.close;
+    const m5 =
+        indicators["5m"];
 
-    const ma7 = m1.ma7[i];
-    const ma25 = m1.ma25[i];
-    const ma99 = m1.ma99[i];
-    const rsiValue = m1.rsi14[i];
-    const rsiAverage = m1.rsiAvg[i];
-    const avgVolume = m1.volumeAvg[i];
+    const m15 =
+        indicators["15m"];
 
-    if (
-        !validNumber(
-            close,
-            ma7,
-            ma25,
-            ma99,
-            rsiValue,
-            rsiAverage,
-            avgVolume
-        ) ||
-        avgVolume <= 0
-    ) {
-        return null;
-    }
-
-    const volumeRatio =
-        candle.volume / avgVolume;
-
-    const distanceFromMA7 =
-        Math.abs(close - ma7) /
-        ma7 *
-        100;
-
-    // Pine:
-    // priceDown = close < close[4]
-    const priceDown =
-        i >= 4 &&
-        close < one[i - 4].close;
-
-    state.countDown =
-        priceDown
-            ? state.countDown + 1
-            : 0;
-
-    const pullbackCount =
-        state.countDown === 9 ||
-        state.countDown === 13 ||
-        state.countDown === 14 ||
-        state.countDown === 15 ||
-        state.countDown === 16;
-
-    if (pullbackCount) {
-        state.pullbackBarIndex = i;
-    }
-
-    const pullbackWindowActive =
-        state.pullbackBarIndex != null &&
-        i - state.pullbackBarIndex <= 30;
+    const m60 =
+        indicators["1h"];
 
     const close5 =
         five[i5].close;
@@ -489,18 +770,30 @@ function evaluateOneMinuteBar(
 
     if (
         !validNumber(
+            candle.close,
+
+            ma7,
+            ma25,
+            ma99,
+
+            rsiValue,
+            rsiAverage,
+            avgVolume,
+
             close5,
-            close15,
-            close60,
             ma7Five,
             ma25Five,
             ma99Five,
             rsiFive,
             rsiAverageFive,
+
+            close15,
             ma7Fifteen,
             ma25Fifteen,
             ma99Fifteen,
             rsiFifteen,
+
+            close60,
             ma7Sixty,
             ma25Sixty,
             ma99Sixty,
@@ -510,69 +803,181 @@ function evaluateOneMinuteBar(
         return null;
     }
 
+    if (
+        avgVolume <= 0 ||
+        ma7 <= 0
+    ) {
+        return null;
+    }
+
+    const volumeRatio =
+        candle.volume /
+        avgVolume;
+
+    const distanceFromMA7 =
+        Math.abs(
+            candle.close -
+            ma7
+        ) /
+        ma7 *
+        100;
+
+    // ==================================================
+    // 1H PERMISSION
+    // ==================================================
+
     const oneHourPermission =
-        close60 > ma99Sixty &&
-        ma7Sixty >= ma25Sixty &&
-        rsiSixty >= 48;
+        close60 >
+        ma99Sixty &&
+
+        ma7Sixty >=
+        ma25Sixty &&
+
+        rsiSixty >=
+        48;
+
+    // ==================================================
+    // 15M SUPPORT
+    // ==================================================
 
     const fifteenMinuteSupport =
-        close15 > ma99Fifteen &&
-        ma7Fifteen >= ma25Fifteen &&
-        rsiFifteen >= 48;
+        close15 >
+        ma99Fifteen &&
+
+        ma7Fifteen >=
+        ma25Fifteen &&
+
+        rsiFifteen >=
+        48;
+
+    // ==================================================
+    // 5M MOMENTUM
+    // ==================================================
 
     const fiveMinuteMomentum =
-        close5 > ma7Five &&
-        close5 > ma25Five &&
-        ma7Five >= ma25Five &&
-        rsiFive > 50 &&
-        rsiFive >= rsiAverageFive;
+        close5 >
+        ma7Five &&
 
-    const oneMinuteTrigger =
-        close > ma7 &&
-        close > ma25 &&
-        close > ma99 &&
-        ma7 > ma25 &&
-        rsiValue > 50 &&
-        rsiValue > rsiAverage &&
-        rsiValue < 75 &&
-        volumeRatio >= 0.75 &&
-        distanceFromMA7 <= 2.5 &&
-        close < PRICE_MAX;
+        close5 >
+        ma25Five &&
+
+        ma7Five >=
+        ma25Five &&
+
+        rsiFive >
+        50 &&
+
+        rsiFive >=
+        rsiAverageFive;
+
+    // ==================================================
+    // CURRENT TF TRIGGER
+    //
+    // In Pine v1.3 this expression uses CURRENT chart timeframe.
+    // Therefore generic for:
+    // 1M / 5M / 15M / 1H
+    // ==================================================
+
+    const currentTfTrigger =
+        candle.close >
+        ma7 &&
+
+        candle.close >
+        ma25 &&
+
+        candle.close >
+        ma99 &&
+
+        ma7 >
+        ma25 &&
+
+        rsiValue >
+        50 &&
+
+        rsiValue >
+        rsiAverage &&
+
+        rsiValue <
+        75 &&
+
+        volumeRatio >=
+        0.75 &&
+
+        distanceFromMA7 <=
+        2.5 &&
+
+        candle.close <
+        PRICE_MAX;
+
+    // ==================================================
+    // LONG A
+    // ==================================================
 
     const longASetup =
         pullbackWindowActive &&
         oneHourPermission &&
         fifteenMinuteSupport &&
         fiveMinuteMomentum &&
-        oneMinuteTrigger;
+        currentTfTrigger;
 
-    const oneMinuteWeak =
-        close < ma7 &&
-        rsiValue < rsiAverage &&
-        rsiValue < 50;
+    // ==================================================
+    // PROTECT
+    // ==================================================
+
+    const currentTfWeak =
+        candle.close <
+        ma7 &&
+
+        rsiValue <
+        rsiAverage &&
+
+        rsiValue <
+        50;
 
     const fiveMinuteWeak =
-        close5 < ma7Five &&
-        rsiFive < rsiAverageFive;
+        close5 <
+        ma7Five &&
+
+        rsiFive <
+        rsiAverageFive;
 
     const protectCondition =
-        oneMinuteWeak &&
+        currentTfWeak &&
         fiveMinuteWeak;
 
+    // ==================================================
+    // FINAL FAILURE
+    // ==================================================
+
     const fifteenMinuteFailure =
-        close15 < ma25Fifteen &&
-        ma7Fifteen < ma25Fifteen &&
-        rsiFifteen < 45;
+        close15 <
+        ma25Fifteen &&
+
+        ma7Fifteen <
+        ma25Fifteen &&
+
+        rsiFifteen <
+        45;
 
     const fiveMinuteMajorFailure =
-        close5 < ma99Five &&
-        ma7Five < ma25Five &&
-        rsiFive < 45;
+        close5 <
+        ma99Five &&
+
+        ma7Five <
+        ma25Five &&
+
+        rsiFive <
+        45;
 
     const hardFailure =
-        close < ma99 &&
-        close5 < ma99Five &&
-        rsiFive < 45;
+        candle.close <
+        ma99 &&
+
+        close5 <
+        ma99Five &&
+
+        rsiFive <
+        45;
 
     const finalExitCondition =
         fifteenMinuteFailure ||
@@ -581,84 +986,202 @@ function evaluateOneMinuteBar(
 
     let yellow = false;
 
-    // Sama dengan POSITION STATE Pine v1.3
+    // ==================================================
+    // POSITION STATE
+    //
+    // Same order as Pine v1.3
+    // ==================================================
+
     if (
-        state.tradeState !== 0 &&
+        tfState.tradeState !== 0 &&
         finalExitCondition
     ) {
-        state.tradeState = 0;
-        state.protectBarIndex = null;
+        tfState.tradeState = 0;
+
+        tfState.protectBarsElapsed =
+            null;
+
     } else if (
-        state.tradeState === 0 &&
+        tfState.tradeState === 0 &&
         longASetup
     ) {
         yellow = true;
-        state.tradeState = 1;
+
+        tfState.tradeState = 1;
+
     } else if (
-        state.tradeState === 1 &&
+        tfState.tradeState === 1 &&
         protectCondition
     ) {
-        state.tradeState = 2;
-        state.protectBarIndex = i;
+        tfState.tradeState = 2;
+
+        tfState.protectBarsElapsed =
+            0;
+
     } else if (
-        state.tradeState === 2
+        tfState.tradeState === 2
     ) {
         const reclaimWindowActive =
-            state.protectBarIndex != null &&
-            i - state.protectBarIndex <= 90;
+            tfState.protectBarsElapsed !=
+            null &&
 
-        const oneMinuteReclaim =
-            close > ma7 &&
-            close > ma25 &&
-            close > ma99 &&
-            ma7 > ma25 &&
-            rsiValue > 50 &&
-            rsiValue > rsiAverage &&
-            rsiValue < 75 &&
-            volumeRatio >= 0.75 &&
-            distanceFromMA7 <= 2.5;
+            tfState.protectBarsElapsed <=
+            90;
+
+        const currentTfReclaim =
+            candle.close >
+            ma7 &&
+
+            candle.close >
+            ma25 &&
+
+            candle.close >
+            ma99 &&
+
+            ma7 >
+            ma25 &&
+
+            rsiValue >
+            50 &&
+
+            rsiValue >
+            rsiAverage &&
+
+            rsiValue <
+            75 &&
+
+            volumeRatio >=
+            0.75 &&
+
+            distanceFromMA7 <=
+            2.5;
 
         const fiveMinuteReclaim =
-            close5 > ma7Five &&
-            close5 > ma25Five &&
-            ma7Five >= ma25Five &&
-            rsiFive > 50;
+            close5 >
+            ma7Five &&
+
+            close5 >
+            ma25Five &&
+
+            ma7Five >=
+            ma25Five &&
+
+            rsiFive >
+            50;
 
         if (
             reclaimWindowActive &&
             oneHourPermission &&
             fifteenMinuteSupport &&
             fiveMinuteReclaim &&
-            oneMinuteReclaim
+            currentTfReclaim
         ) {
-            state.tradeState = 1;
+            tfState.tradeState = 1;
+
+            tfState.protectBarsElapsed =
+                null;
         }
     }
 
+    const diagnostics = {
+        pullbackWindowActive,
+        oneHourPermission,
+        fifteenMinuteSupport,
+        fiveMinuteMomentum,
+        currentTfTrigger,
+        volumeRatio,
+        distanceFromMA7,
+        rsiValue,
+        rsiAverage,
+        tradeStateAfter:
+            tfState.tradeState
+    };
+
+    const score =
+        healthScore(
+            diagnostics
+        );
+
     return {
         yellow,
-        price: close,
-        closeTime: candle.closeTime
+
+        price:
+            candle.close,
+
+        closeTime:
+            candle.closeTime,
+
+        diagnostics,
+
+        healthScore:
+            score,
+
+        health:
+            healthLabel(score)
     };
 }
 
+// ==================================================
+// DELIVERY
+// ==================================================
+
 async function sendYellow(
     coin,
-    signal
+    tf,
+    signal,
+    tfState
 ) {
+    const label =
+        TF_LABEL[tf];
+
     const eventId =
-        `${coin.symbol}_1M_${signal.closeTime}`;
+        `${coin.symbol}_${label}_${signal.closeTime}`;
+
+    if (
+        tfState.lastEventId ===
+        eventId
+    ) {
+        return;
+    }
 
     const payload = {
-        event: "YELLOW",
-        symbol: coin.symbol,
-        tf: "1M",
-        price: String(signal.price),
+        event:
+            "YELLOW",
+
+        symbol:
+            coin.symbol,
+
+        tf:
+            label,
+
+        price:
+            String(
+                signal.price
+            ),
+
         binance_change:
-            String(coin.change24h),
+            String(
+                coin.change24h
+            ),
+
         event_at:
-            String(signal.closeTime),
-        event_id: eventId
+            String(
+                signal.closeTime
+            ),
+
+        event_id:
+            eventId,
+
+        // server/APK may ignore these extras;
+        // safe for diagnostics.
+
+        health:
+            signal.health,
+
+        health_score:
+            String(
+                signal.healthScore
+            )
     };
 
     const result =
@@ -667,136 +1190,221 @@ async function sendYellow(
             payload
         );
 
+    tfState.lastEventId =
+        eventId;
+
     console.log(
-        `[PUSH] ${coin.symbol} 1M event=${eventId}`,
+        `[PUSH] ${coin.symbol} ${label} event=${eventId}`,
         result
     );
 }
 
-async function processSnapshot(snapshot) {
-    const now = Date.now();
+// ==================================================
+// BOOTSTRAP / LIVE
+// ==================================================
 
-    // Jangan evaluasi candle Binance yang masih forming.
-    const closed1m =
-        snapshot.tf["1m"].filter(
-            c => c.closeTime < now
-        );
-
-    if (closed1m.length === 0) {
-        return;
+function needsRebootstrap(
+    snapshot,
+    symbolState
+) {
+    if (
+        !symbolState ||
+        !symbolState.initialized
+    ) {
+        return true;
     }
 
-    // pakai versi closed di snapshot
-    snapshot.tf["1m"] = closed1m;
+    for (
+        const tf of
+        SIGNAL_TIMEFRAMES
+    ) {
+        const candles =
+            snapshot.tf[tf];
 
-    const indicators = {
-        "1m":
-            buildIndicators(
-                snapshot.tf["1m"]
-            ),
+        const tfState =
+            symbolState
+                .tfStates
+                .get(tf);
 
-        "5m":
-            buildIndicators(
-                snapshot.tf["5m"]
-            ),
+        if (
+            !candles.length ||
+            !tfState
+        ) {
+            return true;
+        }
 
-        "15m":
-            buildIndicators(
-                snapshot.tf["15m"]
-            ),
+        const firstClose =
+            candles[0].closeTime;
 
-        "1h":
-            buildIndicators(
-                snapshot.tf["1h"]
-            )
-    };
+        if (
+            tfState.lastProcessedCloseTime >
+            0 &&
 
-    let state =
-        symbolStates.get(snapshot.symbol);
-
-    if (!state) {
-        state = createState();
-        symbolStates.set(
-            snapshot.symbol,
-            state
-        );
+            tfState.lastProcessedCloseTime <
+            firstClose
+        ) {
+            return true;
+        }
     }
 
-    const candles =
-        snapshot.tf["1m"];
+    return false;
+}
 
-    // BOOTSTRAP:
-    // replay histori untuk membangun state Pine,
-    // tetapi jangan kirim sinyal lama.
-    if (!state.initialized) {
+function bootstrapSymbol(
+    snapshot,
+    symbolState
+) {
+    const indicators =
+        buildAllIndicators(
+            snapshot
+        );
+
+    for (
+        const tf of
+        SIGNAL_TIMEFRAMES
+    ) {
+        const state =
+            createTfState();
+
+        symbolState
+            .tfStates
+            .set(
+                tf,
+                state
+            );
+
+        const candles =
+            snapshot.tf[tf];
+
+        // Replay to reconstruct state.
+        // IMPORTANT:
+        // no notification is sent here.
+
         for (
             let i = 0;
             i < candles.length;
             i++
         ) {
-            evaluateOneMinuteBar(
+            evaluateBaseBar(
                 snapshot,
                 indicators,
                 state,
+                tf,
                 i
             );
         }
 
-        state.lastProcessedCloseTime =
-            candles[
-                candles.length - 1
-            ].closeTime;
-
-        state.initialized = true;
+        if (candles.length) {
+            state.lastProcessedCloseTime =
+                candles[
+                    candles.length - 1
+                ].closeTime;
+        }
 
         console.log(
-            `[BOOTSTRAP] ${snapshot.symbol} lastClosed=${state.lastProcessedCloseTime}`
+            `[BOOTSTRAP] ${snapshot.symbol} ${TF_LABEL[tf]} ` +
+            `lastClosed=${state.lastProcessedCloseTime} ` +
+            `state=${state.tradeState} ` +
+            `PBbars=${state.barsSincePullback ?? "-"} ` +
+            `ProtectBars=${state.protectBarsElapsed ?? "-"}`
         );
-
-        return;
     }
 
-    // FIX CANDLE GAP:
-    // proses SEMUA closed candle yang belum pernah
-    // diproses, bukan hanya candle terakhir.
+    symbolState.initialized =
+        true;
+}
+
+async function processLiveSymbol(
+    snapshot,
+    symbolState
+) {
+    const indicators =
+        buildAllIndicators(
+            snapshot
+        );
+
     for (
-        let i = 0;
-        i < candles.length;
-        i++
+        const tf of
+        SIGNAL_TIMEFRAMES
     ) {
-        const candle = candles[i];
+        const candles =
+            snapshot.tf[tf];
+
+        const state =
+            symbolState
+                .tfStates
+                .get(tf);
 
         if (
-            candle.closeTime <=
-            state.lastProcessedCloseTime
+            !state ||
+            !candles.length
         ) {
             continue;
         }
 
-        const signal =
-            evaluateOneMinuteBar(
-                snapshot,
-                indicators,
-                state,
-                i
-            );
+        for (
+            let i = 0;
+            i < candles.length;
+            i++
+        ) {
+            const candle =
+                candles[i];
 
-        state.lastProcessedCloseTime =
-            candle.closeTime;
+            if (
+                candle.closeTime <=
+                state.lastProcessedCloseTime
+            ) {
+                continue;
+            }
 
-        if (signal?.yellow) {
+            const signal =
+                evaluateBaseBar(
+                    snapshot,
+                    indicators,
+                    state,
+                    tf,
+                    i
+                );
+
+            state.lastProcessedCloseTime =
+                candle.closeTime;
+
+            if (
+                !signal?.yellow
+            ) {
+                continue;
+            }
+
+            const d =
+                signal.diagnostics;
+
             console.log(
-                `[YELLOW] ${snapshot.symbol} TF1M price=${signal.price} change=${snapshot.change24h.toFixed(2)}% candleClose=${signal.closeTime}`
+                `[YELLOW] ${snapshot.symbol} ${TF_LABEL[tf]} ` +
+                `price=${signal.price} ` +
+                `change=${snapshot.change24h.toFixed(2)}% ` +
+                `close=${signal.closeTime} ` +
+                `PB=${Number(d.pullbackWindowActive)} ` +
+                `H1=${Number(d.oneHourPermission)} ` +
+                `M15=${Number(d.fifteenMinuteSupport)} ` +
+                `M5=${Number(d.fiveMinuteMomentum)} ` +
+                `TRIG=${Number(d.currentTfTrigger)} ` +
+                `RSI=${d.rsiValue.toFixed(2)} ` +
+                `VR=${d.volumeRatio.toFixed(2)} ` +
+                `DIST=${d.distanceFromMA7.toFixed(2)}% ` +
+                `HEALTH=${signal.health}:${signal.healthScore}`
             );
 
             try {
                 await sendYellow(
                     snapshot,
-                    signal
+                    tf,
+                    signal,
+                    state
                 );
+
             } catch (e) {
                 console.error(
-                    `[PUSH ERROR] ${snapshot.symbol}:`,
+                    `[PUSH ERROR] ${snapshot.symbol} ${TF_LABEL[tf]}:`,
                     e.message
                 );
             }
@@ -804,8 +1412,190 @@ async function processSnapshot(snapshot) {
     }
 }
 
+async function processCoin(coin) {
+    let symbolState =
+        symbolStates.get(
+            coin.symbol
+        );
+
+    let bootstrap =
+        !symbolState ||
+        !symbolState.initialized;
+
+    if (!symbolState) {
+        symbolState =
+            createSymbolState();
+
+        symbolStates.set(
+            coin.symbol,
+            symbolState
+        );
+    }
+
+    let snapshot =
+        normalizeSnapshotClosed(
+            await inspectCoin(
+                coin,
+                bootstrap
+                    ? BOOTSTRAP_LIMIT
+                    : LIVE_LIMIT
+            )
+        );
+
+    if (
+        !bootstrap &&
+        needsRebootstrap(
+            snapshot,
+            symbolState
+        )
+    ) {
+        console.log(
+            `[REBOOTSTRAP] ${coin.symbol} gap detected`
+        );
+
+        symbolState =
+            createSymbolState();
+
+        symbolStates.set(
+            coin.symbol,
+            symbolState
+        );
+
+        snapshot =
+            normalizeSnapshotClosed(
+                await inspectCoin(
+                    coin,
+                    BOOTSTRAP_LIMIT
+                )
+            );
+
+        bootstrap = true;
+    }
+
+    if (bootstrap) {
+        bootstrapSymbol(
+            snapshot,
+            symbolState
+        );
+
+        return;
+    }
+
+    await processLiveSymbol(
+        snapshot,
+        symbolState
+    );
+}
+
+function pruneStatesToUniverse(
+    universe
+) {
+    const active =
+        new Set(
+            universe.map(
+                x => x.symbol
+            )
+        );
+
+    for (
+        const symbol of
+        symbolStates.keys()
+    ) {
+        if (
+            !active.has(symbol)
+        ) {
+            // Deliberately drop stale state.
+            //
+            // If coin later returns to >= +1%,
+            // bootstrap silently.
+            //
+            // Prevent sending signals that happened
+            // while coin was ineligible.
+
+            symbolStates.delete(
+                symbol
+            );
+
+            console.log(
+                `[STATE DROP] ${symbol} left universe`
+            );
+        }
+    }
+}
+
+// ==================================================
+// CONCURRENT SCAN
+// small fixed worker pool
+// ==================================================
+
+async function scanUniverse(
+    universe
+) {
+    let cursor = 0;
+
+    async function worker(
+        workerId
+    ) {
+        while (true) {
+            const index =
+                cursor++;
+
+            if (
+                index >=
+                universe.length
+            ) {
+                return;
+            }
+
+            const coin =
+                universe[index];
+
+            try {
+                console.log(
+                    `[CHECK] ${coin.symbol} ${coin.change24h.toFixed(2)}% worker=${workerId}`
+                );
+
+                await processCoin(
+                    coin
+                );
+
+            } catch (e) {
+                console.error(
+                    `[ERROR] ${coin.symbol}:`,
+                    e.message
+                );
+            }
+
+            await sleep(
+                REQUEST_PAUSE_MS
+            );
+        }
+    }
+
+    const workers = [];
+
+    for (
+        let i = 0;
+        i < WORKER_CONCURRENCY;
+        i++
+    ) {
+        workers.push(
+            worker(i + 1)
+        );
+    }
+
+    await Promise.all(
+        workers
+    );
+}
+
+// ==================================================
+// LOOP
+// ==================================================
+
 async function scanOnce() {
-    const started = new Date();
+    const started =
+        new Date();
 
     console.log(
         `[SCANNER] start ${started.toISOString()}`
@@ -815,29 +1605,18 @@ async function scanOnce() {
         await loadUniverse();
 
     console.log(
-        `[SCANNER] universe=${universe.length}`
+        `[SCANNER] universe=${universe.length} ` +
+        `filter=change>=${CHANGE_MIN}% price<${PRICE_MAX} ` +
+        `TF=1M/5M/15M/1H`
     );
 
-    for (const coin of universe) {
-        try {
-            console.log(
-                `[CHECK] ${coin.symbol} ${coin.change24h.toFixed(2)}%`
-            );
+    pruneStatesToUniverse(
+        universe
+    );
 
-            const snapshot =
-                await inspectCoin(coin);
-
-            await processSnapshot(snapshot);
-        } catch (e) {
-            console.error(
-                `[ERROR] ${coin.symbol}:`,
-                e.message
-            );
-        }
-
-        // Hindari request burst.
-        await sleep(120);
-    }
+    await scanUniverse(
+        universe
+    );
 
     console.log(
         `[SCANNER] done ${new Date().toISOString()}`
@@ -848,6 +1627,10 @@ let running = false;
 
 async function loop() {
     if (running) {
+        console.log(
+            "[SCANNER] skip overlapping tick"
+        );
+
         return;
     }
 
@@ -855,19 +1638,30 @@ async function loop() {
 
     try {
         await scanOnce();
+
     } catch (e) {
         console.error(
             "[SCANNER FATAL]",
             e
         );
+
     } finally {
         running = false;
     }
 }
 
 console.log(
-    "BANKSAWAN YELLOW SCANNER v1.1 BOOT"
+    "BANKSAWAN YELLOW SCANNER v1.3 4TF STABLE BOOT"
+);
+
+console.log(
+    `Universe: +${CHANGE_MIN}% up | price < ${PRICE_MAX} | ` +
+    `TF: 1M/5M/15M/1H | closed candle only`
 );
 
 loop();
-setInterval(loop, SCAN_MS);
+
+setInterval(
+    loop,
+    SCAN_MS
+);
