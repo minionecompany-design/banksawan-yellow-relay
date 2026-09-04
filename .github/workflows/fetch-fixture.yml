@@ -1,86 +1,806 @@
-name: Fetch Regression Fixtures
+"use strict";
 
-on:
-  push:
-    branches:
-      - early-engine-v2
-    paths:
-      - ".github/workflows/fetch-fixture.yml"
+const fs = require("node:fs/promises");
+const path = require("node:path");
+const os = require("node:os");
+const {
+    execFile
+} = require("node:child_process");
+const {
+    promisify
+} = require("node:util");
 
-permissions:
-  contents: write
+const execFileAsync =
+    promisify(execFile);
 
-jobs:
-  fetch:
-    runs-on: ubuntu-latest
+const ARCHIVE_BASE =
+    "https://data.binance.vision/data/futures/um/daily/klines";
 
-    steps:
-      - name: Checkout early-engine-v2
-        uses: actions/checkout@v4
-        with:
-          ref: early-engine-v2
-          fetch-depth: 0
+const OUTPUT_DIR =
+    path.join(
+        process.cwd(),
+        "test",
+        "fixtures"
+    );
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
+const TIMEFRAMES = [
+    "1m",
+    "5m",
+    "15m",
+    "1h"
+];
 
-      - name: Fetch Binance historical candles
-        run: node scripts/fetch-regression-fixtures.js
+const REQUEST_PAUSE_MS = 120;
+const MAX_RETRIES = 4;
 
-      - name: Verify generated fixtures
-        run: |
-          node - <<'NODE'
-          const fs = require("node:fs");
+// ============================================================
+// FIXTURE WINDOWS
+//
+// UTC, end date exclusive.
+//
+// Expected EARLY prices DO NOT live here.
+// These windows select raw historical candles only.
+// ============================================================
 
-          for (const name of ["apr", "useless", "btr"]) {
-            const file = `test/fixtures/${name}.json`;
+const FIXTURES = Object.freeze({
+    APR: {
+        symbol: "APRUSDT",
 
-            if (!fs.existsSync(file)) {
-              throw new Error(`Missing ${file}`);
+        windows: {
+            "1m": [
+                "2026-06-09",
+                "2026-06-14"
+            ],
+
+            "5m": [
+                "2026-06-09",
+                "2026-06-14"
+            ],
+
+            "15m": [
+                "2026-06-09",
+                "2026-06-14"
+            ],
+
+            "1h": [
+                "2026-06-02",
+                "2026-06-14"
+            ]
+        }
+    },
+
+    BTR: {
+        symbol: "BTRUSDT",
+
+        windows: {
+            "1m": [
+                "2026-08-24",
+                "2026-08-30"
+            ],
+
+            "5m": [
+                "2026-08-24",
+                "2026-08-30"
+            ],
+
+            "15m": [
+                "2026-08-24",
+                "2026-08-30"
+            ],
+
+            "1h": [
+                "2026-08-12",
+                "2026-08-30"
+            ]
+        }
+    },
+
+    USELESS: {
+        symbol: "USELESSUSDT",
+
+        windows: {
+            "1m": [
+                "2026-08-28",
+                "2026-09-05"
+            ],
+
+            "5m": [
+                "2026-08-28",
+                "2026-09-05"
+            ],
+
+            "15m": [
+                "2026-08-28",
+                "2026-09-05"
+            ],
+
+            "1h": [
+                "2026-08-06",
+                "2026-09-05"
+            ]
+        }
+    }
+});
+
+function sleep(ms) {
+    return new Promise(resolve =>
+        setTimeout(resolve, ms)
+    );
+}
+
+function parseUtcDate(value) {
+    const ms =
+        Date.parse(
+            `${value}T00:00:00Z`
+        );
+
+    if (!Number.isFinite(ms)) {
+        throw new Error(
+            `Invalid UTC date: ${value}`
+        );
+    }
+
+    return ms;
+}
+
+function formatUtcDate(ms) {
+    return new Date(ms)
+        .toISOString()
+        .slice(0, 10);
+}
+
+function enumerateDates(
+    startDate,
+    endDateExclusive
+) {
+    const start =
+        parseUtcDate(startDate);
+
+    const end =
+        parseUtcDate(
+            endDateExclusive
+        );
+
+    if (end <= start) {
+        throw new Error(
+            `Invalid date range: ${startDate} -> ${endDateExclusive}`
+        );
+    }
+
+    const dates = [];
+
+    for (
+        let cursor = start;
+        cursor < end;
+        cursor += 86_400_000
+    ) {
+        dates.push(
+            formatUtcDate(cursor)
+        );
+    }
+
+    return dates;
+}
+
+async function downloadBuffer(
+    url
+) {
+    let lastError = null;
+
+    for (
+        let attempt = 1;
+        attempt <= MAX_RETRIES;
+        attempt++
+    ) {
+        try {
+            const response =
+                await fetch(url, {
+                    headers: {
+                        "User-Agent":
+                            "banksawan-yellow-regression-archive/1.0"
+                    }
+                });
+
+            if (response.status === 404) {
+                return null;
             }
 
-            const data = JSON.parse(
-              fs.readFileSync(file, "utf8")
+            if (!response.ok) {
+                throw new Error(
+                    `${response.status} ${response.statusText}`
+                );
+            }
+
+            return Buffer.from(
+                await response.arrayBuffer()
             );
 
-            console.log(`\n=== ${data.symbol} ===`);
+        } catch (error) {
+            lastError = error;
 
-            for (const tf of ["1m", "5m", "15m", "1h"]) {
-              const candles = data.tf?.[tf];
-
-              if (
-                !Array.isArray(candles) ||
-                candles.length === 0
-              ) {
-                throw new Error(
-                  `${data.symbol}: missing ${tf}`
-                );
-              }
-
-              const lows = candles.map(c => c.low);
-              const highs = candles.map(c => c.high);
-
-              console.log(
-                `${tf}: candles=${candles.length} ` +
-                `min=${Math.min(...lows)} ` +
-                `max=${Math.max(...highs)}`
-              );
+            if (
+                attempt >= MAX_RETRIES
+            ) {
+                break;
             }
-          }
-          NODE
 
-      - name: Commit generated fixtures
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            const waitMs =
+                attempt * 1000;
 
-          git add test/fixtures/
+            console.warn(
+                `[DOWNLOAD RETRY] ` +
+                `attempt=${attempt}/${MAX_RETRIES} ` +
+                `${url} ` +
+                `${error.message}`
+            );
 
-          if git diff --cached --quiet; then
-            echo "No fixture changes to commit."
-          else
-            git commit -m "Add Binance regression fixtures"
-            git push origin HEAD:early-engine-v2
-          fi
+            await sleep(waitMs);
+        }
+    }
+
+    throw (
+        lastError ||
+        new Error(
+            `Download failed: ${url}`
+        )
+    );
+}
+
+async function unzipCsv(
+    buffer,
+    label
+) {
+    const tempDir =
+        await fs.mkdtemp(
+            path.join(
+                os.tmpdir(),
+                "banksawan-fixture-"
+            )
+        );
+
+    const zipPath =
+        path.join(
+            tempDir,
+            `${label}.zip`
+        );
+
+    try {
+        await fs.writeFile(
+            zipPath,
+            buffer
+        );
+
+        const {
+            stdout
+        } =
+            await execFileAsync(
+                "unzip",
+                [
+                    "-p",
+                    zipPath
+                ],
+                {
+                    maxBuffer:
+                        64 * 1024 * 1024
+                }
+            );
+
+        return stdout;
+
+    } finally {
+        await fs.rm(
+            tempDir,
+            {
+                recursive: true,
+                force: true
+            }
+        );
+    }
+}
+
+function number(value) {
+    const out =
+        Number(value);
+
+    return Number.isFinite(out)
+        ? out
+        : null;
+}
+
+function mapCsvLine(line) {
+    const columns =
+        line
+            .trim()
+            .split(",");
+
+    if (
+        columns.length < 11
+    ) {
+        return null;
+    }
+
+    // Some archive files may include a header.
+    if (
+        !Number.isFinite(
+            Number(columns[0])
+        )
+    ) {
+        return null;
+    }
+
+    const candle = {
+        openTime:
+            number(columns[0]),
+
+        open:
+            number(columns[1]),
+
+        high:
+            number(columns[2]),
+
+        low:
+            number(columns[3]),
+
+        close:
+            number(columns[4]),
+
+        volume:
+            number(columns[5]),
+
+        closeTime:
+            number(columns[6]),
+
+        quoteVolume:
+            number(columns[7]),
+
+        trades:
+            number(columns[8]),
+
+        takerBuyBase:
+            number(columns[9]),
+
+        takerBuyQuote:
+            number(columns[10])
+    };
+
+    const values =
+        Object.values(
+            candle
+        );
+
+    if (
+        !values.every(
+            Number.isFinite
+        )
+    ) {
+        return null;
+    }
+
+    return candle;
+}
+
+function parseCsv(csv) {
+    return csv
+        .split(/\r?\n/)
+        .map(mapCsvLine)
+        .filter(Boolean);
+}
+
+function intervalMs(interval) {
+    const values = {
+        "1m": 60_000,
+        "5m": 300_000,
+        "15m": 900_000,
+        "1h": 3_600_000
+    };
+
+    const value =
+        values[interval];
+
+    if (!value) {
+        throw new Error(
+            `Unsupported interval ${interval}`
+        );
+    }
+
+    return value;
+}
+
+function validateCandles(
+    symbol,
+    interval,
+    candles
+) {
+    if (!candles.length) {
+        throw new Error(
+            `${symbol} ${interval}: no candles`
+        );
+    }
+
+    const expected =
+        intervalMs(interval);
+
+    for (
+        let i = 0;
+        i < candles.length;
+        i++
+    ) {
+        const candle =
+            candles[i];
+
+        if (
+            candle.high <
+            candle.low
+        ) {
+            throw new Error(
+                `${symbol} ${interval}: high < low at ${i}`
+            );
+        }
+
+        if (i === 0) {
+            continue;
+        }
+
+        const previous =
+            candles[i - 1];
+
+        if (
+            candle.openTime <=
+            previous.openTime
+        ) {
+            throw new Error(
+                `${symbol} ${interval}: timestamps not ascending`
+            );
+        }
+
+        const delta =
+            candle.openTime -
+            previous.openTime;
+
+        if (delta !== expected) {
+            console.warn(
+                `[GAP] ${symbol} ${interval} ` +
+                `${new Date(
+                    previous.openTime
+                ).toISOString()} -> ` +
+                `${new Date(
+                    candle.openTime
+                ).toISOString()}`
+            );
+        }
+    }
+}
+
+async function fetchDailyArchive({
+    symbol,
+    interval,
+    date
+}) {
+    const filename =
+        `${symbol}-${interval}-${date}.zip`;
+
+    const url =
+        `${ARCHIVE_BASE}/` +
+        `${symbol}/${interval}/${filename}`;
+
+    console.log(
+        `[ARCHIVE] ${symbol} ${interval} ${date}`
+    );
+
+    const buffer =
+        await downloadBuffer(
+            url
+        );
+
+    if (!buffer) {
+        console.warn(
+            `[MISSING] ${url}`
+        );
+
+        return [];
+    }
+
+    const csv =
+        await unzipCsv(
+            buffer,
+            `${symbol}-${interval}-${date}`
+        );
+
+    const candles =
+        parseCsv(csv);
+
+    console.log(
+        `[ARCHIVE OK] ${symbol} ${interval} ` +
+        `${date} candles=${candles.length}`
+    );
+
+    return candles;
+}
+
+async function fetchRange({
+    symbol,
+    interval,
+    start,
+    end
+}) {
+    const dates =
+        enumerateDates(
+            start,
+            end
+        );
+
+    const candles = [];
+
+    for (
+        const date of dates
+    ) {
+        const daily =
+            await fetchDailyArchive({
+                symbol,
+                interval,
+                date
+            });
+
+        candles.push(
+            ...daily
+        );
+
+        await sleep(
+            REQUEST_PAUSE_MS
+        );
+    }
+
+    const unique =
+        [
+            ...new Map(
+                candles.map(
+                    candle => [
+                        candle.openTime,
+                        candle
+                    ]
+                )
+            ).values()
+        ].sort(
+            (a, b) =>
+                a.openTime -
+                b.openTime
+        );
+
+    validateCandles(
+        symbol,
+        interval,
+        unique
+    );
+
+    return unique;
+}
+
+function summarize(
+    candles
+) {
+    return {
+        candles:
+            candles.length,
+
+        firstOpenIso:
+            candles.length
+                ? new Date(
+                    candles[0].openTime
+                ).toISOString()
+                : null,
+
+        lastOpenIso:
+            candles.length
+                ? new Date(
+                    candles[
+                        candles.length - 1
+                    ].openTime
+                ).toISOString()
+                : null,
+
+        minLow:
+            Math.min(
+                ...candles.map(
+                    candle =>
+                        candle.low
+                )
+            ),
+
+        maxHigh:
+            Math.max(
+                ...candles.map(
+                    candle =>
+                        candle.high
+                )
+            )
+    };
+}
+
+async function buildFixture(
+    key,
+    definition
+) {
+    const tf = {};
+    const summary = {};
+
+    console.log(
+        `\n=== ${key} ${definition.symbol} ===`
+    );
+
+    for (
+        const interval of
+        TIMEFRAMES
+    ) {
+        const [
+            start,
+            end
+        ] =
+            definition
+                .windows[
+                    interval
+                ];
+
+        console.log(
+            `[START] ${definition.symbol} ${interval} ` +
+            `${start} -> ${end}`
+        );
+
+        tf[interval] =
+            await fetchRange({
+                symbol:
+                    definition.symbol,
+
+                interval,
+
+                start,
+
+                end
+            });
+
+        summary[interval] =
+            summarize(
+                tf[interval]
+            );
+
+        console.log(
+            `[DONE] ${definition.symbol} ${interval}`,
+            summary[interval]
+        );
+    }
+
+    return {
+        schemaVersion: 2,
+
+        source:
+            "Binance Public Data - USD-M Futures daily klines",
+
+        symbol:
+            definition.symbol,
+
+        timestamps:
+            "Unix milliseconds UTC",
+
+        windows:
+            definition.windows,
+
+        summary,
+
+        tf
+    };
+}
+
+async function writeFixture(
+    key,
+    fixture
+) {
+    await fs.mkdir(
+        OUTPUT_DIR,
+        {
+            recursive: true
+        }
+    );
+
+    const outputPath =
+        path.join(
+            OUTPUT_DIR,
+            `${key.toLowerCase()}.json`
+        );
+
+    await fs.writeFile(
+        outputPath,
+        JSON.stringify(
+            fixture,
+            null,
+            2
+        ) + "\n",
+        "utf8"
+    );
+
+    console.log(
+        `[WRITE] ${outputPath}`
+    );
+}
+
+async function main() {
+    const requested =
+        process.argv[2]
+            ?.trim()
+            .toUpperCase();
+
+    let entries =
+        Object.entries(
+            FIXTURES
+        );
+
+    if (requested) {
+        const definition =
+            FIXTURES[
+                requested
+            ];
+
+        if (!definition) {
+            throw new Error(
+                `Unknown fixture ${requested}`
+            );
+        }
+
+        entries = [
+            [
+                requested,
+                definition
+            ]
+        ];
+    }
+
+    console.log(
+        "BANKSAWAN YELLOW — Binance Public Data fixture fetcher"
+    );
+
+    console.log(
+        `targets=${entries
+            .map(([key]) => key)
+            .join(",")}`
+    );
+
+    for (
+        const [
+            key,
+            definition
+        ] of entries
+    ) {
+        const fixture =
+            await buildFixture(
+                key,
+                definition
+            );
+
+        await writeFixture(
+            key,
+            fixture
+        );
+    }
+
+    console.log(
+        "\nFixture generation complete."
+    );
+}
+
+if (require.main === module) {
+    main().catch(error => {
+        console.error(
+            "[FIXTURE ERROR]",
+            error
+        );
+
+        process.exitCode = 1;
+    });
+}
+
+module.exports = {
+    FIXTURES,
+    TIMEFRAMES,
+    enumerateDates,
+    fetchRange,
+    buildFixture,
+    validateCandles
+};
