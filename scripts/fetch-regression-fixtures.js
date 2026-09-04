@@ -2,6 +2,10 @@
 
 const fs = require("node:fs/promises");
 const path = require("node:path");
+const zlib = require("node:zlib");
+const { promisify } = require("node:util");
+
+const gzip = promisify(zlib.gzip);
 
 const BASE =
     "https://fapi.binance.com";
@@ -40,23 +44,23 @@ const FIXTURES = Object.freeze({
 
         windows: {
             "1m": [
-                "2026-06-09T00:00:00Z",
-                "2026-06-14T00:00:00Z"
+                "2026-06-04T00:00:00Z",
+                "2026-06-09T00:00:00Z"
             ],
 
             "5m": [
-                "2026-06-09T00:00:00Z",
-                "2026-06-14T00:00:00Z"
+                "2026-06-04T00:00:00Z",
+                "2026-06-09T00:00:00Z"
             ],
 
             "15m": [
-                "2026-06-09T00:00:00Z",
-                "2026-06-14T00:00:00Z"
+                "2026-06-04T00:00:00Z",
+                "2026-06-09T00:00:00Z"
             ],
 
             "1h": [
-                "2026-06-02T00:00:00Z",
-                "2026-06-14T00:00:00Z"
+                "2026-05-24T00:00:00Z",
+                "2026-06-09T00:00:00Z"
             ]
         }
     },
@@ -92,23 +96,23 @@ const FIXTURES = Object.freeze({
 
         windows: {
             "1m": [
-                "2026-08-28T00:00:00Z",
-                "2026-09-04T10:00:00Z"
+                "2026-08-26T00:00:00Z",
+                "2026-08-29T00:00:00Z"
             ],
 
             "5m": [
-                "2026-08-28T00:00:00Z",
-                "2026-09-04T10:00:00Z"
+                "2026-08-26T00:00:00Z",
+                "2026-08-29T00:00:00Z"
             ],
 
             "15m": [
-                "2026-08-28T00:00:00Z",
-                "2026-09-04T10:00:00Z"
+                "2026-08-26T00:00:00Z",
+                "2026-08-29T00:00:00Z"
             ],
 
             "1h": [
                 "2026-08-06T00:00:00Z",
-                "2026-09-04T10:00:00Z"
+                "2026-08-29T00:00:00Z"
             ]
         }
     }
@@ -664,7 +668,7 @@ async function writeFixture(
     );
 
     const filename =
-        `${key.toLowerCase()}.json`;
+        `${key.toLowerCase()}.json.gz`;
 
     const outputPath =
         path.join(
@@ -672,14 +676,20 @@ async function writeFixture(
             filename
         );
 
-    await fs.writeFile(
-        outputPath,
+    const serialized = Buffer.from(
         JSON.stringify(
             fixture,
             null,
             2
         ) + "\n",
         "utf8"
+    );
+
+    await fs.writeFile(
+        outputPath,
+        await gzip(serialized, {
+            level: 9
+        })
     );
 
     console.log(

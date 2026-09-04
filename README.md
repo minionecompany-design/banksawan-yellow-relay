@@ -37,3 +37,34 @@ Run the deterministic tests with:
 ```bash
 node --test test/*.test.js
 ```
+
+## Early Engine v2 regression foundation
+
+`early-engine.js` evaluates a raw, closed-candle LONG A event without changing
+the LONG A detector. It checks the requested `<30 USDT` and `24h >= 0%`
+universe, rolling 24-hour quote liquidity, ATR-normalized extension, quote
+volume, transaction count, taker-buy share, breakout structure, and candle
+close strength.
+
+The committed APR, BTR, and USELESS fixtures are chronological Binance USD-M
+Futures candles. Regression replay currently produces the first `EARLY`
+decision at:
+
+```text
+APRUSDT      1M   0.23083   EARLY_BASE
+BTRUSDT     15M   0.03415   BREAKOUT_CONFIRMATION
+USELESSUSDT  5M   0.07081   BREAKOUT_CONFIRMATION
+```
+
+Acceptance prices exist only in the regression test. The engine contains no
+benchmark symbol or target price and reads no candle after the evaluated
+signal. Refresh fixture artifacts manually with the `Refresh Early Engine
+Fixtures` GitHub workflow or locally with:
+
+```bash
+npm run fixtures
+```
+
+Early Engine v2 is not wired into live delivery yet. Merge and live-scanner
+integration must remain shadow-only until broader positive and negative replay
+sets are labelled.

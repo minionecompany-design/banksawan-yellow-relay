@@ -86,6 +86,13 @@ const TF_LABEL = {
     "1h": "1H"
 };
 
+function shouldDeliverQuality(config, quality) {
+    return (
+        config?.mode !== "enforce" ||
+        quality?.decision === "READY"
+    );
+}
+
 // ==================================================
 // TF ELIGIBILITY HELPERS
 // ==================================================
@@ -1945,12 +1952,7 @@ async function processLiveSymbol(
                 })
             );
 
-            if (
-                QUALITY_CONFIG.mode ===
-                    "enforce" &&
-                quality.decision !==
-                    "READY"
-            ) {
+            if (!shouldDeliverQuality(QUALITY_CONFIG, quality)) {
                 console.log(
                     `[QUALITY BLOCK] ${snapshot.symbol} ` +
                     `${TF_LABEL[tf]} decision=${quality.decision} ` +
@@ -2310,7 +2312,9 @@ module.exports = {
     loadKlines,
     normalizeSnapshotClosed,
     buildAllIndicators,
+    createTfState,
     evaluateBaseBar,
     evaluateQuality,
-    createQualityConfig
+    createQualityConfig,
+    shouldDeliverQuality
 };
