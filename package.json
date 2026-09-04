@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js & node scanner.js",
-    "test": "node --test"
+    "test": "node --test",
+    "fixtures": "node scripts/fetch-regression-fixtures.js"
   },
   "engines": {
     "node": ">=18"
