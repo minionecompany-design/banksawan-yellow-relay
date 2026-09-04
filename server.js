@@ -144,12 +144,12 @@ app.post("/yellow", async (req, res) => {
       }
     };
 
-    const ttlSeconds = Number.isFinite(expiresAtMs)
-      ? Math.floor((expiresAtMs - Date.now()) / 1000)
+    const ttlMs = Number.isFinite(expiresAtMs)
+      ? Math.floor(expiresAtMs - Date.now())
       : null;
 
-    if (ttlSeconds && ttlSeconds > 0) {
-      message.android.ttl = `${ttlSeconds}s`;
+    if (ttlMs && ttlMs > 0) {
+      message.android.ttl = ttlMs;
     }
 
     const messageId = await messaging.send(message);
