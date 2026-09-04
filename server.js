@@ -14,6 +14,16 @@ admin.initializeApp({
 const messaging = admin.messaging();
 
 const TOPIC = "banksawan-yellow";
+const RELAY_ENFORCE_EXPIRY = [
+  "1",
+  "true",
+  "yes",
+  "on"
+].includes(
+  String(process.env.RELAY_ENFORCE_EXPIRY || "")
+    .trim()
+    .toLowerCase()
+);
 
 app.get("/", (req, res) => {
   res.json({
@@ -27,6 +37,8 @@ app.get("/health", (req, res) => {
     ok: true,
     firebase: true,
     topic: TOPIC,
+    quality_gate_mode: process.env.QUALITY_GATE_MODE || "shadow",
+    enforce_expiry: RELAY_ENFORCE_EXPIRY,
     time: Date.now()
   });
 });
@@ -40,6 +52,21 @@ app.post("/yellow", async (req, res) => {
     const tf = String(body.tf || "").trim().toUpperCase();
     const price = String(body.price || "").trim();
     const binanceChange = String(body.binance_change || "").trim();
+    const qualityStage = String(
+      body.quality_stage || "UNKNOWN"
+    ).trim().toUpperCase();
+    const qualityScore = String(
+      body.quality_score || ""
+    ).trim();
+    const qualityPhase = String(
+      body.quality_phase || "UNKNOWN"
+    ).trim().toUpperCase();
+    const qualityReasonCodes = String(
+      body.quality_reason_codes || "[]"
+    ).trim();
+    const detectedAt = String(
+      body.detected_at || Date.now()
+    ).trim();
 
     if (event !== "YELLOW") {
       return res.status(400).json({
@@ -63,11 +90,34 @@ app.post("/yellow", async (req, res) => {
     }
 
     const eventAt = String(body.event_at || Date.now());
+    const eventAtMs = Number(eventAt);
 
     const eventId = String(
       body.event_id ||
       `${symbol}_${tf}_${eventAt}`
     );
+
+    const expiresAt = String(
+      body.expires_at ||
+      (
+        Number.isFinite(eventAtMs)
+          ? eventAtMs + 5 * 60 * 1000
+          : Date.now() + 5 * 60 * 1000
+      )
+    );
+    const expiresAtMs = Number(expiresAt);
+
+    if (
+      RELAY_ENFORCE_EXPIRY &&
+      Number.isFinite(expiresAtMs) &&
+      expiresAtMs <= Date.now()
+    ) {
+      return res.status(410).json({
+        ok: false,
+        error: "event expired",
+        event_id: eventId
+      });
+    }
 
     const message = {
       topic: TOPIC,
@@ -80,13 +130,27 @@ app.post("/yellow", async (req, res) => {
         price,
         binance_change: binanceChange,
         event_at: eventAt,
-        event_id: eventId
+        event_id: eventId,
+        expires_at: expiresAt,
+        detected_at: detectedAt,
+        quality_stage: qualityStage,
+        quality_score: qualityScore,
+        quality_phase: qualityPhase,
+        quality_reason_codes: qualityReasonCodes
       },
 
       android: {
         priority: "high"
       }
     };
+
+    const ttlSeconds = Number.isFinite(expiresAtMs)
+      ? Math.floor((expiresAtMs - Date.now()) / 1000)
+      : null;
+
+    if (ttlSeconds && ttlSeconds > 0) {
+      message.android.ttl = `${ttlSeconds}s`;
+    }
 
     const messageId = await messaging.send(message);
 

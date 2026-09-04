@@ -1,5 +1,14 @@
 const BASE = "https://fapi.binance.com";
 
+const {
+    createQualityConfig,
+    evaluateQuality
+} = require("./quality-engine");
+
+const {
+    createOutcomeLogger
+} = require("./outcome-logger");
+
 // ==================================================
 // BANKSAWAN YELLOW SCANNER v1.4 — 4TF SPLIT ELIGIBILITY
 //
@@ -46,6 +55,9 @@ const BOOTSTRAP_LIMIT = 1000;
 const WORKER_CONCURRENCY = 2;
 const REQUEST_PAUSE_MS = 180;
 const MAX_RETRIES = 4;
+
+const QUALITY_CONFIG = createQualityConfig();
+const OUTCOME_LOGGER = createOutcomeLogger();
 
 const PORT = process.env.PORT || 10000;
 
@@ -433,7 +445,16 @@ async function loadKlines(
             Number(k[6]),
 
         quoteVolume:
-            Number(k[7])
+            Number(k[7]),
+
+        trades:
+            Number(k[8]),
+
+        takerBuyBase:
+            Number(k[9]),
+
+        takerBuyQuote:
+            Number(k[10])
     }));
 }
 
@@ -1563,7 +1584,8 @@ async function sendYellow(
     coin,
     tf,
     signal,
-    tfState
+    tfState,
+    quality
 ) {
     const label =
         TF_LABEL[tf];
@@ -1615,6 +1637,38 @@ async function sendYellow(
         health_score:
             String(
                 signal.healthScore
+            ),
+
+        quality_stage:
+            quality?.decision ||
+            "UNKNOWN",
+
+        quality_score:
+            String(
+                quality?.score ??
+                ""
+            ),
+
+        quality_phase:
+            quality?.phase ||
+            "UNKNOWN",
+
+        quality_reason_codes:
+            JSON.stringify(
+                quality?.reasonCodes ||
+                []
+            ),
+
+        detected_at:
+            String(
+                quality?.features?.detectedAt ||
+                Date.now()
+            ),
+
+        expires_at:
+            String(
+                signal.closeTime +
+                5 * 60 * 1000
             )
     };
 
@@ -1850,6 +1904,63 @@ async function processLiveSymbol(
             const d =
                 signal.diagnostics;
 
+            const quality =
+                evaluateQuality({
+                    snapshot,
+                    indicators,
+                    signal,
+                    tf,
+                    index: i,
+                    now: Date.now(),
+                    config: QUALITY_CONFIG
+                });
+
+            const eventId =
+                `${snapshot.symbol}_${TF_LABEL[tf]}_${signal.closeTime}`;
+
+            OUTCOME_LOGGER.recordSignal({
+                eventId,
+                symbol: snapshot.symbol,
+                tf: TF_LABEL[tf],
+                eventAt: signal.closeTime,
+                entryPrice: signal.price,
+                quality
+            });
+
+            console.log(
+                JSON.stringify({
+                    telemetry: "banksawan-yellow",
+                    type: "quality_decision",
+                    event_id: eventId,
+                    symbol: snapshot.symbol,
+                    tf: TF_LABEL[tf],
+                    event_at: signal.closeTime,
+                    detected_at: quality.features.detectedAt,
+                    latency_ms: quality.features.latencyMs,
+                    decision: quality.decision,
+                    phase: quality.phase,
+                    score: quality.score,
+                    components: quality.components,
+                    reason_codes: quality.reasonCodes
+                })
+            );
+
+            if (
+                QUALITY_CONFIG.mode ===
+                    "enforce" &&
+                quality.decision !==
+                    "READY"
+            ) {
+                console.log(
+                    `[QUALITY BLOCK] ${snapshot.symbol} ` +
+                    `${TF_LABEL[tf]} decision=${quality.decision} ` +
+                    `phase=${quality.phase} score=${quality.score} ` +
+                    `reasons=${quality.reasonCodes.join(",")}`
+                );
+
+                continue;
+            }
+
             console.log(
                 `[YELLOW] ${snapshot.symbol} ${TF_LABEL[tf]} ` +
                 `price=${signal.price} ` +
@@ -1871,7 +1982,8 @@ async function processLiveSymbol(
                     snapshot,
                     tf,
                     signal,
-                    state
+                    state,
+                    quality
                 );
 
             } catch (e) {
@@ -1949,6 +2061,11 @@ async function processCoin(
 
         bootstrap = true;
     }
+
+    OUTCOME_LOGGER.observeSnapshot({
+        symbol: snapshot.symbol,
+        oneMinuteCandles: snapshot.tf["1m"]
+    });
 
     if (
         bootstrap
@@ -2146,23 +2263,54 @@ async function loop() {
 // BOOT
 // ==================================================
 
-console.log(
-    "BANKSAWAN YELLOW SCANNER v1.4 4TF SPLIT ELIGIBILITY BOOT"
-);
+function boot() {
+    console.log(
+        "BANKSAWAN YELLOW SCANNER v1.4 4TF SPLIT ELIGIBILITY BOOT"
+    );
 
-console.log(
-    `Universe: >=${UNIVERSE_CHANGE_MIN}% | ` +
-    `price < ${PRICE_MAX} | ` +
-    `1M>=${TF_CHANGE_MIN["1m"]}% | ` +
-    `5M>=${TF_CHANGE_MIN["5m"]}% | ` +
-    `15M>=${TF_CHANGE_MIN["15m"]}% | ` +
-    `1H>=${TF_CHANGE_MIN["1h"]}% | ` +
-    `closed candle only`
-);
+    console.log(
+        `Universe: >=${UNIVERSE_CHANGE_MIN}% | ` +
+        `price < ${PRICE_MAX} | ` +
+        `1M>=${TF_CHANGE_MIN["1m"]}% | ` +
+        `5M>=${TF_CHANGE_MIN["5m"]}% | ` +
+        `15M>=${TF_CHANGE_MIN["15m"]}% | ` +
+        `1H>=${TF_CHANGE_MIN["1h"]}% | ` +
+        `closed candle only`
+    );
 
-loop();
+    console.log(
+        `[QUALITY] mode=${QUALITY_CONFIG.mode} ` +
+        `minScore=${QUALITY_CONFIG.minScore} ` +
+        `maxLatencyMs=${QUALITY_CONFIG.maxLatencyMs} ` +
+        `lateRsi=${QUALITY_CONFIG.lateRsi} ` +
+        `lateRunupPct=${QUALITY_CONFIG.lateRunupPct} ` +
+        `lateRoomPct=${QUALITY_CONFIG.lateRoomPct}`
+    );
 
-setInterval(
-    loop,
-    SCAN_MS
-);
+    loop();
+
+    return setInterval(
+        loop,
+        SCAN_MS
+    );
+}
+
+if (require.main === module) {
+    boot();
+}
+
+module.exports = {
+    boot,
+    scanOnce,
+    scanUniverse,
+    processCoin,
+    processLiveSymbol,
+    bootstrapSymbol,
+    loadUniverse,
+    loadKlines,
+    normalizeSnapshotClosed,
+    buildAllIndicators,
+    evaluateBaseBar,
+    evaluateQuality,
+    createQualityConfig
+};

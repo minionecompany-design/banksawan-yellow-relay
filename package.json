@@ -4,7 +4,8 @@
   "description": "BANKSAWAN YELLOW signal relay",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js & node scanner.js"
+    "start": "node server.js & node scanner.js",
+    "test": "node --test"
   },
   "engines": {
     "node": ">=18"
