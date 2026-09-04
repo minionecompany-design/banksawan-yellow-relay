@@ -1,0 +1,78 @@
+name: Fetch Regression Fixture
+
+on:
+  workflow_dispatch:
+    inputs:
+      fixture:
+        description: Fixture to fetch
+        required: true
+        default: APR
+        type: choice
+        options:
+          - APR
+          - USELESS
+          - BTR
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+
+    env:
+      FIXTURE: ${{ inputs.fixture }}
+
+    steps:
+      - name: Checkout early-engine-v2
+        uses: actions/checkout@v4
+        with:
+          ref: early-engine-v2
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Fetch Binance historical candles
+        run: node scripts/fetch-regression-fixtures.js "$FIXTURE"
+
+      - name: Verify generated fixture
+        run: |
+          FILE="test/fixtures/$(echo "$FIXTURE" | tr '[:upper:]' '[:lower:]').json"
+
+          test -s "$FILE"
+
+          node -e "
+          const fs = require('node:fs');
+          const file = '$FILE';
+          const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+
+          for (const tf of ['1m', '5m', '15m', '1h']) {
+            if (!Array.isArray(data.tf?.[tf]) || data.tf[tf].length === 0) {
+              throw new Error('Missing candle data for ' + tf);
+            }
+          }
+
+          console.log('symbol=', data.symbol);
+          console.log('1m=', data.tf['1m'].length);
+          console.log('5m=', data.tf['5m'].length);
+          console.log('15m=', data.tf['15m'].length);
+          console.log('1h=', data.tf['1h'].length);
+          console.log('summary=', data.summary);
+          "
+
+      - name: Commit generated fixture
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add test/fixtures/
+
+          if git diff --cached --quiet; then
+            echo "No fixture changes to commit."
+          else
+            git commit -m "Add ${FIXTURE} regression fixture"
+            git push origin HEAD:early-engine-v2
+          fi
