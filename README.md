@@ -1,6 +1,21 @@
 # banksawan-yellow-relay
 BANKSAWAN YELLOW signal relay
 
+## Scanner data plane v1.5
+
+The BANKSAWAN LONG MTF v1.3 formula remains frozen. A cold start loads 499
+closed candles for 1M/5M/15M/1H and reconstructs independent Pine-like state.
+After bootstrap, each symbol makes only one lightweight 1M request. Complete
+1M candles are cached and deterministically aggregated into 5M, 15M, and 1H.
+This reduces live kline request count by 75% and request weight by 87.5%
+relative to the previous `limit=300` four-timeframe poll.
+
+Only complete and contiguous minute buckets may form a higher-timeframe bar.
+A gap inside the fresh window, or a gap between the cache and fresh window,
+forces a full rebootstrap instead of fabricating candles. A cold restart also
+replays only events whose five-minute product TTL is still alive; older
+historical Yellow events remain silent.
+
 ## Quality Gate v0
 
 The LONG A detector remains the parity source. `quality-engine.js` runs after a
@@ -65,6 +80,16 @@ Fixtures` GitHub workflow or locally with:
 npm run fixtures
 ```
 
-Early Engine v2 is not wired into live delivery yet. Merge and live-scanner
-integration must remain shadow-only until broader positive and negative replay
-sets are labelled.
+Early Engine v2 is wired into the scanner as telemetry only. Its safe modes in
+this wave are:
+
+```text
+EARLY_ENGINE_MODE=shadow
+EARLY_ENGINE_MODE=off
+```
+
+Any other value, including `enforce`, resolves back to `shadow`. Every raw
+Yellow event in the `>=0%` universe can therefore produce an `early_decision`
+log, including the 1M 0%–1% observation cohort, while the existing notification
+path remains unchanged. Early Engine must not gate live delivery until broader
+positive and negative replay sets are labelled.

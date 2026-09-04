@@ -9,8 +9,13 @@ const {
     createOutcomeLogger
 } = require("./outcome-logger");
 
+const {
+    createEarlyConfig,
+    evaluateEarlySnapshot
+} = require("./early-engine");
+
 // ==================================================
-// BANKSAWAN YELLOW SCANNER v1.4 — 4TF SPLIT ELIGIBILITY
+// BANKSAWAN YELLOW SCANNER v1.5 — CACHED 1M LIVE DATA
 //
 // Rules locked:
 // - Binance USDⓈ-M PERPETUAL
@@ -49,15 +54,38 @@ const TF_CHANGE_MIN = {
 const UNIVERSE_CHANGE_MIN = 0;
 
 const SCAN_MS = 60_000;
-const LIVE_LIMIT = 300;
-const BOOTSTRAP_LIMIT = 1000;
+const LIVE_1M_LIMIT = 70;
+const BOOTSTRAP_LIMIT = 499;
+const CANDLE_CACHE_LIMIT = 300;
+const BOOTSTRAP_CATCHUP_MS = 5 * 60 * 1000;
 
-const WORKER_CONCURRENCY = 2;
-const REQUEST_PAUSE_MS = 180;
+const WORKER_CONCURRENCY = 4;
+const REQUEST_PAUSE_MS = 60;
 const MAX_RETRIES = 4;
+
+// Stay below Binance's rolling request-weight ceiling even during a full
+// cold bootstrap.  Live scans use one lightweight 1M request per symbol.
+const REQUEST_WEIGHT_BUDGET = 1800;
+const REQUEST_WEIGHT_WINDOW_MS = 60_000;
+const requestWeightHistory = [];
 
 const QUALITY_CONFIG = createQualityConfig();
 const OUTCOME_LOGGER = createOutcomeLogger();
+const EARLY_CONFIG = createEarlyConfig();
+
+// Early Engine cannot gate delivery in this wave. Any value except "off"
+// resolves to shadow, including an accidental "enforce" value.
+function resolveEarlyEngineMode(value) {
+    return String(value || "shadow")
+        .trim()
+        .toLowerCase() === "off"
+        ? "off"
+        : "shadow";
+}
+
+const EARLY_ENGINE_MODE = resolveEarlyEngineMode(
+    process.env.EARLY_ENGINE_MODE
+);
 
 const PORT = process.env.PORT || 10000;
 
@@ -86,13 +114,6 @@ const TF_LABEL = {
     "1h": "1H"
 };
 
-function shouldDeliverQuality(config, quality) {
-    return (
-        config?.mode !== "enforce" ||
-        quality?.decision === "READY"
-    );
-}
-
 // ==================================================
 // TF ELIGIBILITY HELPERS
 // ==================================================
@@ -108,6 +129,40 @@ function isTfEligible(coin, tf) {
     );
 }
 
+function shouldDeliverQuality(config, quality) {
+    return config?.mode !== "enforce" ||
+        quality?.decision === "READY";
+}
+
+function evaluateEarlySignal({
+    snapshot,
+    tf,
+    candles,
+    index,
+    signal,
+    mode = EARLY_ENGINE_MODE
+}) {
+    if (mode === "off") {
+        return null;
+    }
+
+    return evaluateEarlySnapshot({
+        symbol: snapshot.symbol,
+        timeframe: tf,
+        candles,
+        index,
+        signal,
+        market: {
+            change24hPct: snapshot.change24h,
+            quoteVolume24h: snapshot.volumeQuote,
+            spreadBps: Number.isFinite(snapshot.spreadBps)
+                ? snapshot.spreadBps
+                : null
+        },
+        config: EARLY_CONFIG
+    });
+}
+
 // symbol -> SymbolState
 const symbolStates = new Map();
 
@@ -121,7 +176,61 @@ function sleep(ms) {
 // HTTP
 // ==================================================
 
-async function getJson(url) {
+function pruneRequestWeightHistory(now = Date.now()) {
+    while (
+        requestWeightHistory.length &&
+        now - requestWeightHistory[0].at >= REQUEST_WEIGHT_WINDOW_MS
+    ) {
+        requestWeightHistory.shift();
+    }
+}
+
+function usedRequestWeight(now = Date.now()) {
+    pruneRequestWeightHistory(now);
+    return requestWeightHistory.reduce(
+        (sum, item) => sum + item.weight,
+        0
+    );
+}
+
+async function reserveRequestWeight(weight = 1) {
+    const safeWeight = Math.max(1, Number(weight) || 1);
+
+    while (true) {
+        const now = Date.now();
+        const used = usedRequestWeight(now);
+
+        if (used + safeWeight <= REQUEST_WEIGHT_BUDGET) {
+            requestWeightHistory.push({
+                at: now,
+                weight: safeWeight
+            });
+            return;
+        }
+
+        const oldest = requestWeightHistory[0];
+        const waitMs = Math.max(
+            50,
+            REQUEST_WEIGHT_WINDOW_MS - (now - oldest.at) + 50
+        );
+
+        console.log(
+            `[WEIGHT LIMIT] used=${used}/${REQUEST_WEIGHT_BUDGET} ` +
+            `waitMs=${waitMs}`
+        );
+
+        await sleep(waitMs);
+    }
+}
+
+function klineRequestWeight(limit) {
+    if (limit < 100) return 1;
+    if (limit < 500) return 2;
+    if (limit <= 1000) return 5;
+    return 10;
+}
+
+async function getJson(url, requestWeight = 1) {
     let lastError = null;
 
     for (
@@ -130,10 +239,12 @@ async function getJson(url) {
         attempt++
     ) {
         try {
+            await reserveRequestWeight(requestWeight);
+
             const r = await fetch(url, {
                 headers: {
                     "User-Agent":
-                        "banksawan-yellow-scanner/1.4-4tf"
+                        "banksawan-yellow-scanner/1.5-cached-live"
                 }
             });
 
@@ -239,7 +350,7 @@ async function postJson(url, body) {
                         "application/json",
 
                     "User-Agent":
-                        "banksawan-yellow-scanner/1.4-4tf"
+                        "banksawan-yellow-scanner/1.5-cached-live"
                 },
 
                 body:
@@ -328,11 +439,13 @@ async function loadUniverse() {
         tickers
     ] = await Promise.all([
         getJson(
-            `${BASE}/fapi/v1/exchangeInfo`
+            `${BASE}/fapi/v1/exchangeInfo`,
+            1
         ),
 
         getJson(
-            `${BASE}/fapi/v1/ticker/24hr`
+            `${BASE}/fapi/v1/ticker/24hr`,
+            40
         )
     ]);
 
@@ -426,7 +539,8 @@ async function loadKlines(
 
     const rows =
         await getJson(
-            `${BASE}/fapi/v1/klines?${q}`
+            `${BASE}/fapi/v1/klines?${q}`,
+            klineRequestWeight(limit)
         );
 
     return rows.map(k => ({
@@ -484,6 +598,167 @@ async function inspectCoin(
                 interval,
                 limit
             );
+    }
+
+    return {
+        ...coin,
+        tf
+    };
+}
+
+function mergeCandles(
+    existing,
+    incoming,
+    limit = CANDLE_CACHE_LIMIT
+) {
+    const byOpenTime = new Map();
+
+    for (const candle of [
+        ...(Array.isArray(existing) ? existing : []),
+        ...(Array.isArray(incoming) ? incoming : [])
+    ]) {
+        if (Number.isFinite(candle?.openTime)) {
+            byOpenTime.set(candle.openTime, candle);
+        }
+    }
+
+    return [...byOpenTime.values()]
+        .sort((a, b) => a.openTime - b.openTime)
+        .slice(-limit);
+}
+
+function aggregateOneMinuteCandles(
+    oneMinuteCandles,
+    interval
+) {
+    const intervalMs = {
+        "5m": 5 * 60_000,
+        "15m": 15 * 60_000,
+        "1h": 60 * 60_000
+    }[interval];
+
+    if (!intervalMs) {
+        throw new Error(`Unsupported aggregate interval: ${interval}`);
+    }
+
+    const expectedCount = intervalMs / 60_000;
+    const groups = new Map();
+
+    for (const candle of oneMinuteCandles || []) {
+        if (!Number.isFinite(candle?.openTime)) continue;
+
+        const bucketOpen = Math.floor(candle.openTime / intervalMs) * intervalMs;
+        const group = groups.get(bucketOpen) || [];
+        group.push(candle);
+        groups.set(bucketOpen, group);
+    }
+
+    const aggregated = [];
+
+    for (const [bucketOpen, rawGroup] of groups) {
+        const group = rawGroup.sort((a, b) => a.openTime - b.openTime);
+        if (group.length !== expectedCount) continue;
+
+        const contiguous = group.every(
+            (candle, index) =>
+                candle.openTime === bucketOpen + index * 60_000
+        );
+
+        if (!contiguous) continue;
+
+        const first = group[0];
+        const last = group.at(-1);
+
+        aggregated.push({
+            openTime: bucketOpen,
+            open: first.open,
+            high: Math.max(...group.map(candle => candle.high)),
+            low: Math.min(...group.map(candle => candle.low)),
+            close: last.close,
+            volume: group.reduce((sum, candle) => sum + candle.volume, 0),
+            closeTime: bucketOpen + intervalMs - 1,
+            quoteVolume: group.reduce(
+                (sum, candle) => sum + candle.quoteVolume,
+                0
+            ),
+            trades: group.reduce((sum, candle) => sum + candle.trades, 0),
+            takerBuyBase: group.reduce(
+                (sum, candle) => sum + candle.takerBuyBase,
+                0
+            ),
+            takerBuyQuote: group.reduce(
+                (sum, candle) => sum + candle.takerBuyQuote,
+                0
+            )
+        });
+    }
+
+    return aggregated.sort((a, b) => a.openTime - b.openTime);
+}
+
+function hasRecentOneMinuteGap(candles) {
+    if (!Array.isArray(candles) || candles.length < 2) return true;
+
+    for (let i = 1; i < candles.length; i++) {
+        if (candles[i].openTime - candles[i - 1].openTime !== 60_000) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function hasOneMinuteBridgeGap(
+    cachedCandles,
+    recentCandles
+) {
+    const cachedLast = cachedCandles?.at?.(-1);
+    const recentFirst = recentCandles?.[0];
+
+    if (!cachedLast || !recentFirst) return false;
+
+    return recentFirst.openTime > cachedLast.openTime + 60_000;
+}
+
+function saveSnapshotToCache(symbolState, snapshot) {
+    for (const tf of DATA_TIMEFRAMES) {
+        symbolState.candleCache[tf] = mergeCandles(
+            [],
+            snapshot.tf[tf],
+            CANDLE_CACHE_LIMIT
+        );
+    }
+}
+
+function updateCacheFromOneMinute(
+    symbolState,
+    oneMinuteCandles
+) {
+    symbolState.candleCache["1m"] = mergeCandles(
+        symbolState.candleCache["1m"],
+        oneMinuteCandles,
+        CANDLE_CACHE_LIMIT
+    );
+
+    for (const tf of ["5m", "15m", "1h"]) {
+        const aggregated = aggregateOneMinuteCandles(
+            symbolState.candleCache["1m"],
+            tf
+        );
+
+        symbolState.candleCache[tf] = mergeCandles(
+            symbolState.candleCache[tf],
+            aggregated,
+            CANDLE_CACHE_LIMIT
+        );
+    }
+}
+
+function snapshotFromCache(coin, symbolState) {
+    const tf = {};
+
+    for (const interval of DATA_TIMEFRAMES) {
+        tf[interval] = symbolState.candleCache[interval].slice();
     }
 
     return {
@@ -868,8 +1143,8 @@ function lastCompletedIndexBefore(
 // IMPORTANT:
 // Never save local array indexes across scans.
 //
-// LIVE_LIMIT changes array origin
-// on every request.
+// Candle-cache windows change array origin
+// whenever old bars are trimmed.
 //
 // Pullback/protect windows therefore use
 // ELAPSED BARS.
@@ -919,7 +1194,14 @@ function createSymbolState() {
         initialized:
             false,
 
-        tfStates
+        tfStates,
+
+        candleCache:
+            Object.fromEntries(
+                DATA_TIMEFRAMES.map(
+                    tf => [tf, []]
+                )
+            )
     };
 }
 
@@ -1751,12 +2033,16 @@ function needsRebootstrap(
 
 function bootstrapSymbol(
     snapshot,
-    symbolState
+    symbolState,
+    now = Date.now()
 ) {
     const indicators =
         buildAllIndicators(
             snapshot
         );
+
+    const catchupCutoff =
+        now - BOOTSTRAP_CATCHUP_MS;
 
     for (
         const tf of
@@ -1775,17 +2061,25 @@ function bootstrapSymbol(
         const candles =
             snapshot.tf[tf];
 
-        // Replay entire history
-        // to reconstruct state.
-        //
-        // IMPORTANT:
-        // no notification during bootstrap.
+        // Reconstruct historical state, but leave candles whose five-minute
+        // product TTL is still alive for the normal live path.  This catches
+        // a genuine Yellow that closed while the container was restarting
+        // without replaying stale historical notifications.
+
+        let lastReplayedCloseTime = 0;
 
         for (
             let i = 0;
             i < candles.length;
             i++
         ) {
+            if (
+                candles[i].closeTime >=
+                catchupCutoff
+            ) {
+                break;
+            }
+
             evaluateBaseBar(
                 snapshot,
                 indicators,
@@ -1793,23 +2087,28 @@ function bootstrapSymbol(
                 tf,
                 i
             );
+
+            lastReplayedCloseTime =
+                candles[i].closeTime;
         }
 
-        if (
-            candles.length
-        ) {
-            state.lastProcessedCloseTime =
-                candles[
-                    candles.length - 1
-                ].closeTime;
-        }
+        state.lastProcessedCloseTime =
+            lastReplayedCloseTime;
+
+        const catchupPending =
+            candles.filter(
+                candle =>
+                    candle.closeTime >
+                    lastReplayedCloseTime
+            ).length;
 
         console.log(
             `[BOOTSTRAP] ${snapshot.symbol} ${TF_LABEL[tf]} ` +
             `lastClosed=${state.lastProcessedCloseTime} ` +
             `state=${state.tradeState} ` +
             `PBbars=${state.barsSincePullback ?? "-"} ` +
-            `ProtectBars=${state.protectBarsElapsed ?? "-"}`
+            `ProtectBars=${state.protectBarsElapsed ?? "-"} ` +
+            `Catchup=${catchupPending}`
         );
     }
 
@@ -1879,6 +2178,49 @@ async function processLiveSymbol(
                 continue;
             }
 
+            const eventId =
+                `${snapshot.symbol}_${TF_LABEL[tf]}_${signal.closeTime}`;
+
+            // Early Engine is observation-only. It runs before the legacy
+            // per-TF delivery threshold so the 0%–1% 1M cohort is measured,
+            // but it never blocks or enables a push in this wave.
+            try {
+                const early = evaluateEarlySignal({
+                    snapshot,
+                    tf,
+                    candles,
+                    index: i,
+                    signal
+                });
+
+                if (early) {
+                    console.log(
+                        JSON.stringify({
+                            telemetry: "banksawan-yellow",
+                            type: "early_decision",
+                            mode: EARLY_ENGINE_MODE,
+                            event_id: eventId,
+                            symbol: snapshot.symbol,
+                            tf: TF_LABEL[tf],
+                            event_at: signal.closeTime,
+                            signal_price: early.signalPrice,
+                            decision: early.decision,
+                            phase: early.phase,
+                            path: early.path,
+                            extended: early.extended,
+                            reason_codes: early.reasonCodes,
+                            features: early.features
+                        })
+                    );
+                }
+
+            } catch (error) {
+                console.error(
+                    `[EARLY ERROR] ${snapshot.symbol} ${TF_LABEL[tf]}:`,
+                    error.message
+                );
+            }
+
             // ==================================================
             // PER-TF 24H ELIGIBILITY
             //
@@ -1922,9 +2264,6 @@ async function processLiveSymbol(
                     config: QUALITY_CONFIG
                 });
 
-            const eventId =
-                `${snapshot.symbol}_${TF_LABEL[tf]}_${signal.closeTime}`;
-
             OUTCOME_LOGGER.recordSignal({
                 eventId,
                 symbol: snapshot.symbol,
@@ -1952,7 +2291,12 @@ async function processLiveSymbol(
                 })
             );
 
-            if (!shouldDeliverQuality(QUALITY_CONFIG, quality)) {
+            if (
+                !shouldDeliverQuality(
+                    QUALITY_CONFIG,
+                    quality
+                )
+            ) {
                 console.log(
                     `[QUALITY BLOCK] ${snapshot.symbol} ` +
                     `${TF_LABEL[tf]} decision=${quality.decision} ` +
@@ -2023,16 +2367,83 @@ async function processCoin(
         );
     }
 
-    let snapshot =
-        normalizeSnapshotClosed(
-            await inspectCoin(
-                coin,
+    let snapshot;
 
-                bootstrap
-                    ? BOOTSTRAP_LIMIT
-                    : LIVE_LIMIT
-            )
+    if (
+        bootstrap
+    ) {
+        snapshot =
+            normalizeSnapshotClosed(
+                await inspectCoin(
+                    coin,
+                    BOOTSTRAP_LIMIT
+                )
+            );
+
+        saveSnapshotToCache(
+            symbolState,
+            snapshot
         );
+
+    } else {
+        const recentOneMinute =
+            closedCandles(
+                await loadKlines(
+                    coin.symbol,
+                    "1m",
+                    LIVE_1M_LIMIT
+                )
+            );
+
+        if (
+            hasRecentOneMinuteGap(
+                recentOneMinute
+            ) ||
+            hasOneMinuteBridgeGap(
+                symbolState.candleCache["1m"],
+                recentOneMinute
+            )
+        ) {
+            console.warn(
+                `[LIVE GAP] ${coin.symbol} rebootstrap`
+            );
+
+            symbolState =
+                createSymbolState();
+
+            symbolStates.set(
+                coin.symbol,
+                symbolState
+            );
+
+            snapshot =
+                normalizeSnapshotClosed(
+                    await inspectCoin(
+                        coin,
+                        BOOTSTRAP_LIMIT
+                    )
+                );
+
+            saveSnapshotToCache(
+                symbolState,
+                snapshot
+            );
+
+            bootstrap = true;
+
+        } else {
+            updateCacheFromOneMinute(
+                symbolState,
+                recentOneMinute
+            );
+
+            snapshot =
+                snapshotFromCache(
+                    coin,
+                    symbolState
+                );
+        }
+    }
 
     if (
         !bootstrap &&
@@ -2061,6 +2472,11 @@ async function processCoin(
                 )
             );
 
+        saveSnapshotToCache(
+            symbolState,
+            snapshot
+        );
+
         bootstrap = true;
     }
 
@@ -2073,6 +2489,11 @@ async function processCoin(
         bootstrap
     ) {
         bootstrapSymbol(
+            snapshot,
+            symbolState
+        );
+
+        await processLiveSymbol(
             snapshot,
             symbolState
         );
@@ -2261,13 +2682,37 @@ async function loop() {
     }
 }
 
+async function runScheduler() {
+    while (true) {
+        const cycleStartedAt =
+            Date.now();
+
+        await loop();
+
+        const elapsed =
+            Date.now() - cycleStartedAt;
+
+        const waitMs =
+            Math.max(
+                1_000,
+                SCAN_MS - elapsed
+            );
+
+        console.log(
+            `[SCHEDULER] elapsedMs=${elapsed} nextInMs=${waitMs}`
+        );
+
+        await sleep(waitMs);
+    }
+}
+
 // ==================================================
 // BOOT
 // ==================================================
 
 function boot() {
     console.log(
-        "BANKSAWAN YELLOW SCANNER v1.4 4TF SPLIT ELIGIBILITY BOOT"
+        "BANKSAWAN YELLOW SCANNER v1.5 CACHED 1M LIVE BOOT"
     );
 
     console.log(
@@ -2281,20 +2726,32 @@ function boot() {
     );
 
     console.log(
+        `[DATA PLANE] bootstrap4TF=${BOOTSTRAP_LIMIT} ` +
+        `live1M=${LIVE_1M_LIMIT} ` +
+        `cache=${CANDLE_CACHE_LIMIT} ` +
+        `workers=${WORKER_CONCURRENCY} ` +
+        `weightBudget=${REQUEST_WEIGHT_BUDGET}/min ` +
+        `catchupMs=${BOOTSTRAP_CATCHUP_MS}`
+    );
+
+    console.log(
         `[QUALITY] mode=${QUALITY_CONFIG.mode} ` +
         `minScore=${QUALITY_CONFIG.minScore} ` +
         `maxLatencyMs=${QUALITY_CONFIG.maxLatencyMs} ` +
         `lateRsi=${QUALITY_CONFIG.lateRsi} ` +
         `lateRunupPct=${QUALITY_CONFIG.lateRunupPct} ` +
-        `lateRoomPct=${QUALITY_CONFIG.lateRoomPct}`
+            `lateRoomPct=${QUALITY_CONFIG.lateRoomPct}`
     );
 
-    loop();
-
-    return setInterval(
-        loop,
-        SCAN_MS
+    console.log(
+        `[EARLY] mode=${EARLY_ENGINE_MODE} ` +
+        `deliveryGate=false ` +
+        `priceMax=${EARLY_CONFIG.priceMax} ` +
+        `change24hMin=${EARLY_CONFIG.minChange24hPct}% ` +
+        `quoteVolume24hMin=${EARLY_CONFIG.minQuoteVolume24h}`
     );
+
+    return runScheduler();
 }
 
 if (require.main === module) {
@@ -2303,6 +2760,7 @@ if (require.main === module) {
 
 module.exports = {
     boot,
+    runScheduler,
     scanOnce,
     scanUniverse,
     processCoin,
@@ -2310,11 +2768,21 @@ module.exports = {
     bootstrapSymbol,
     loadUniverse,
     loadKlines,
+    klineRequestWeight,
     normalizeSnapshotClosed,
+    mergeCandles,
+    aggregateOneMinuteCandles,
+    hasRecentOneMinuteGap,
+    hasOneMinuteBridgeGap,
+    saveSnapshotToCache,
+    updateCacheFromOneMinute,
+    snapshotFromCache,
     buildAllIndicators,
     createTfState,
     evaluateBaseBar,
     evaluateQuality,
     createQualityConfig,
-    shouldDeliverQuality
+    shouldDeliverQuality,
+    evaluateEarlySignal,
+    resolveEarlyEngineMode
 };

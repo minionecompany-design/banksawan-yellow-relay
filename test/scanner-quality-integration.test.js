@@ -39,3 +39,21 @@ test("shadow mode never blocks a raw LONG A benchmark signal", () => {
     );
 });
 
+test("Early Engine is locked to shadow or off in this wave", () => {
+    assert.equal(
+        scanner.resolveEarlyEngineMode(undefined),
+        "shadow"
+    );
+    assert.equal(
+        scanner.resolveEarlyEngineMode("shadow"),
+        "shadow"
+    );
+    assert.equal(
+        scanner.resolveEarlyEngineMode("enforce"),
+        "shadow"
+    );
+    assert.equal(
+        scanner.resolveEarlyEngineMode("off"),
+        "off"
+    );
+});
