@@ -1,17 +1,11 @@
-name: Fetch Regression Fixture
+name: Fetch Regression Fixtures
 
 on:
-  workflow_dispatch:
-    inputs:
-      fixture:
-        description: Fixture to fetch
-        required: true
-        default: APR
-        type: choice
-        options:
-          - APR
-          - USELESS
-          - BTR
+  push:
+    branches:
+      - early-engine-v2
+    paths:
+      - ".github/workflows/fetch-fixture.yml"
 
 permissions:
   contents: write
@@ -19,9 +13,6 @@ permissions:
 jobs:
   fetch:
     runs-on: ubuntu-latest
-
-    env:
-      FIXTURE: ${{ inputs.fixture }}
 
     steps:
       - name: Checkout early-engine-v2
@@ -36,34 +27,51 @@ jobs:
           node-version: "20"
 
       - name: Fetch Binance historical candles
-        run: node scripts/fetch-regression-fixtures.js "$FIXTURE"
+        run: node scripts/fetch-regression-fixtures.js
 
-      - name: Verify generated fixture
+      - name: Verify generated fixtures
         run: |
-          FILE="test/fixtures/$(echo "$FIXTURE" | tr '[:upper:]' '[:lower:]').json"
+          node - <<'NODE'
+          const fs = require("node:fs");
 
-          test -s "$FILE"
+          for (const name of ["apr", "useless", "btr"]) {
+            const file = `test/fixtures/${name}.json`;
 
-          node -e "
-          const fs = require('node:fs');
-          const file = '$FILE';
-          const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+            if (!fs.existsSync(file)) {
+              throw new Error(`Missing ${file}`);
+            }
 
-          for (const tf of ['1m', '5m', '15m', '1h']) {
-            if (!Array.isArray(data.tf?.[tf]) || data.tf[tf].length === 0) {
-              throw new Error('Missing candle data for ' + tf);
+            const data = JSON.parse(
+              fs.readFileSync(file, "utf8")
+            );
+
+            console.log(`\n=== ${data.symbol} ===`);
+
+            for (const tf of ["1m", "5m", "15m", "1h"]) {
+              const candles = data.tf?.[tf];
+
+              if (
+                !Array.isArray(candles) ||
+                candles.length === 0
+              ) {
+                throw new Error(
+                  `${data.symbol}: missing ${tf}`
+                );
+              }
+
+              const lows = candles.map(c => c.low);
+              const highs = candles.map(c => c.high);
+
+              console.log(
+                `${tf}: candles=${candles.length} ` +
+                `min=${Math.min(...lows)} ` +
+                `max=${Math.max(...highs)}`
+              );
             }
           }
+          NODE
 
-          console.log('symbol=', data.symbol);
-          console.log('1m=', data.tf['1m'].length);
-          console.log('5m=', data.tf['5m'].length);
-          console.log('15m=', data.tf['15m'].length);
-          console.log('1h=', data.tf['1h'].length);
-          console.log('summary=', data.summary);
-          "
-
-      - name: Commit generated fixture
+      - name: Commit generated fixtures
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -73,6 +81,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No fixture changes to commit."
           else
-            git commit -m "Add ${FIXTURE} regression fixture"
+            git commit -m "Add Binance regression fixtures"
             git push origin HEAD:early-engine-v2
           fi
