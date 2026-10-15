@@ -160,6 +160,68 @@ export class YellowLiveMarket {
       `${symbol.toLowerCase()}@kline_${tf}`),id:this.subscriptionId()}));}
   recordFault(reason){this.recentFaults.push({at:this.clock(),reason});if(this.recentFaults.length>40)this.recentFaults.shift();
     this.log('YELLOW_FAULT',reason);}
+
+  // A delayed 5m/15m/1h close must not permanently lock the 1m lane.
+  // Never invent a candle or ticker. Hold the exact target bar until all
+  // CONFIRMED contexts are available; on bounded timeout recycle this symbol.
+  retireSymbol(symbol,reason){
+    if(!this.covered.has(symbol))return;
+    this.covered.delete(symbol);
+    this.retryAfter.set(symbol,this.clock()+10*60_000);
+    this.unsubscribe(symbol);
+    this.recordFault('SAFE_REBOOTSTRAP_'+symbol+'_'+reason);
+  }
+  async flushTracked(symbol,tracked){
+    if(this.isHalted||this.covered.get(symbol)!==tracked)return;
+    const snapshot=tracked.book.snapshot();
+    for(const tf of frames){
+      const key=KEYS[tf],bars=snapshot[key];
+      if(!bars?.length)continue;
+      // Each timeframe has an independent Pine state and catch-up cursor.
+      for(let iteration=0;iteration<190;iteration++){
+        if(this.isHalted||this.covered.get(symbol)!==tracked)return;
+        const state=tracked.states[tf];
+        const nextEnd=state.lastProcessedEndMs+PERIODS[tf];
+        const latest=bars.at(-1).endMs;
+        if(nextEnd>latest)break;
+        if(!bars.some(bar=>bar.endMs===nextEnd)){
+          this.retireSymbol(symbol,'TARGET_SEQUENCE_GAP_'+tf);return;
+        }
+        // No optimistic decisions if a completed MTF candle is slow to arrive.
+        // 120s is a maximum lag budget, not a forward-looking candle shortcut.
+        if(this.clock()-nextEnd>120_000){
+          this.retireSymbol(symbol,'PENDING_CANDLE_TIMEOUT_'+tf);return;
+        }
+        const target=bars.filter(bar=>bar.endMs<=nextEnd);
+        const result=stepLongAOnTimeframe(symbol,tf,{
+          ...snapshot,[key]:target,nowMs:this.clock(),
+          ticker24h:this.getTickerAsOf(symbol,nextEnd),
+          contextMode:'CAUSAL_REALTIME'
+        },state);
+        if(result.reason?.startsWith('CONTEXT_STALE_OR_INCOMPLETE_')||
+           result.reason?.startsWith('CONTEXT_MISSING_')){
+          // Next WebSocket context close triggers this drain again.
+          break;
+        }
+        if(result.reason==='STALE_BINANCE_TICKER'||
+           result.reason==='INVALID_BINANCE_USDM_24H_TICKER'||
+           result.reason==='TARGET_DATA_GAP_REBOOTSTRAP_REQUIRED'||
+           result.reason==='TARGET_CANDLES_GAPPED_OR_INSUFFICIENT'||
+           result.reason==='ALREADY_PROCESSED'){
+          this.retireSymbol(symbol,'UNTRUSTWORTHY_EVALUATION_'+tf+'_'+result.reason);
+          return;
+        }
+        tracked.states[tf]=result.state;
+        if(result.event?.signal==='LONG_A'){
+          const accepted=await this.ledger.accept(result.event);
+          if(accepted.accepted){this.eventsEmitted++;await this.sendEvent(accepted.event);}
+        }
+        if(result.reason&&result.reason!=='NO_CONFIRMED_SIGNAL'&&
+           result.reason!=='BINANCE_24H_FILTER')
+          this.recordFault('EVAL_'+symbol+'_'+tf+'_'+result.reason);
+      }
+    }
+  }
   async bootstrap(symbol){
     if(this.isHalted||this.covered.has(symbol)||this.inProgress.has(symbol)||
       (this.retryAfter.get(symbol)||0)>this.clock())return;
@@ -238,20 +300,12 @@ export class YellowLiveMarket {
     catch(e){this.covered.delete(symbol);this.unsubscribe(symbol);this.retryAfter.set(symbol,this.clock()+10*60_000);
       this.recordFault('CANDLE_GAP_'+symbol+'_'+e.message);return;}
     if(applied.status!=='APPENDED')return;
-    const tf=applied.timeframe,endMs=applied.endMs;
-    this.lastClosedCandleMs=Math.max(this.lastClosedCandleMs,endMs);
-    const data=tracked.book.snapshot();
-    const result=stepLongAOnTimeframe(symbol,tf,{
-      ...data,nowMs:this.clock(),ticker24h:this.getTickerAsOf(symbol,endMs),
-      contextMode:'CAUSAL_REALTIME'
-    },tracked.states[tf]);
-    tracked.states[tf]=result.state;
-    if(result.event?.signal==='LONG_A'){
-      const accepted=await this.ledger.accept(result.event);
-      if(accepted.accepted){this.eventsEmitted++;await this.sendEvent(accepted.event);}
-    }
-    if(result.reason&&result.reason!=='NO_CONFIRMED_SIGNAL'&&result.reason!=='BINANCE_24H_FILTER')
-      this.recordFault(`EVAL_${symbol}_${tf}_${result.reason}`);
+    this.lastClosedCandleMs=Math.max(this.lastClosedCandleMs,applied.endMs);
+    // Serial symbol-local evaluation: a late 5m bar may unblock queued 1m
+    // candles, and overlapping WebSocket callbacks must never duplicate them.
+    const job=(tracked.drain||Promise.resolve()).then(()=>this.flushTracked(symbol,tracked));
+    tracked.drain=job.catch(err=>this.recordFault('DRAIN_'+symbol+'_'+err.message));
+    await job;
   }
   home(){return this.ledger.home();}
   events(afterMs){return this.ledger.eventsSince(afterMs);}
