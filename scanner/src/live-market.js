@@ -2,7 +2,7 @@
  * connection, and one strictly budgeted REST gateway. No proxy or IP evasion.
  * Deliberate coverage cap is visible in /api/status (never claim full-universe).
  */
-import {RequestGuard,klineWeight,CircuitOpen} from './live-request-guard.js';
+import {RequestGuard,klineWeight,CircuitOpen,RestPaused} from './live-request-guard.js';
 import {CandleBook,CandleGap,KEYS} from './live-candle-book.js';
 import {LiveHomeLedger} from './live-home-ledger.js';
 import {newParallelState,stepLongAOnTimeframe,PERIODS} from './parallel-long-a.js';
@@ -40,8 +40,15 @@ export class YellowLiveMarket {
     await this.guard.restore();await this.ledger.restore();
     if(this.guard.closedReason){this.halt('PERSISTENT_'+this.guard.closedReason);return;}
     this.isRunning=true;
-    try{await this.refreshUniverse();this.connectWebsockets();
-      this.loopPromise=this.workLoop();
+    try{
+      try{await this.refreshUniverse();}
+      catch(e){
+        if(!(e instanceof RestPaused))throw e;
+        // On cold start, an IP-weight pause after exchangeInfo is temporary.
+        // Open the existing WS data plane; retry REST only after the pause.
+        this.recordFault('STARTUP_REST_DEFERRED');
+      }
+      this.connectWebsockets();this.loopPromise=this.workLoop();
     }catch(e){this.halt('STARTUP_'+e.message);throw e;}
   }
   halt(reason){this.isHalted=true;this.haltReason=reason;this.isRunning=false;
@@ -51,8 +58,12 @@ export class YellowLiveMarket {
   stop(){this.halt('OPERATOR_STOP');}
   async rest(pathname,{weight=1}={}){
     try{return await this.guard.getJson(API+pathname,{weight});}
-    catch(e){if(e instanceof CircuitOpen || this.guard.closedReason)this.halt(this.guard.closedReason||e.message);
-      throw e;}
+    catch(e){
+      // High IP weight is a soft REST-only pause; existing kline WS continues.
+      if(e instanceof RestPaused)throw e;
+      if(e instanceof CircuitOpen || this.guard.closedReason)this.halt(this.guard.closedReason||e.message);
+      throw e;
+    }
   }
   async refreshUniverse(){
     if(this.isHalted)throw new Error('HALTED');
@@ -241,15 +252,25 @@ export class YellowLiveMarket {
       if(!this.isHalted){this.covered.set(symbol,{book,states,startedAtMs:this.clock(),readyAfterFreshPullback:true});
         if(!this.firstTrackedAtMs)this.firstTrackedAtMs=this.clock();
         this.subscribe(symbol);}
-    }catch(e){this.retryAfter.set(symbol,this.clock()+10*60_000);
-      this.recordFault('BOOTSTRAP_'+symbol+'_'+e.message);
-      if(this.guard.closedReason)this.halt('BINANCE_CIRCUIT_OPEN');
+    }catch(e){
+      if(e instanceof RestPaused){
+        // Incomplete 4TF bootstrap is discarded; never promote it into coverage.
+        this.retryAfter.set(symbol,Math.max(this.clock(),e.untilMs));
+        this.recordFault('BOOTSTRAP_REST_DEFERRED_'+symbol);
+      }else{
+        this.retryAfter.set(symbol,this.clock()+10*60_000);
+        this.recordFault('BOOTSTRAP_'+symbol+'_'+e.message);
+        if(this.guard.closedReason)this.halt('BINANCE_CIRCUIT_OPEN');
+      }
     }finally{this.inProgress.delete(symbol);}
   }
   async workLoop(){
     while(this.isRunning&&!this.isHalted){
       try{
-        if(this.clock()>=this.nextRefresh)await this.refreshUniverse();
+        // Remote IP-weight headroom affects REST only: preserve WS and tracked TFs.
+        // Never probe during the pause; one guarded REST after expiry is sufficient.
+        if(this.clock()>=this.nextRefresh && !this.guard.isRemotePaused?.())
+          await this.refreshUniverse();
         // Never report healthy scanning if market data silently stopped arriving.
         if(this.tickerConnected && this.lastTickerDataAtMs &&
           this.clock()-this.lastTickerDataAtMs>180_000){
@@ -271,14 +292,18 @@ export class YellowLiveMarket {
           }
           // Priority +5% first, then all +1% as slots become available.
           for(const item of universe){
-            if(this.covered.size>=this.maxTracked||this.isHalted)break;
+            if(this.covered.size>=this.maxTracked||this.isHalted||this.guard.isRemotePaused?.())break;
             if(this.covered.has(item.symbol)||this.inProgress.has(item.symbol)||
               (this.retryAfter.get(item.symbol)||0)>this.clock())continue;
             await this.bootstrap(item.symbol);
             break; // one bootstrap each scheduler pass
           }
         }
-      }catch(e){this.recordFault('LOOP_'+e.message);if(this.guard.closedReason)this.halt('CIRCUIT_OPEN');}
+      }catch(e){
+        if(e instanceof RestPaused)this.recordFault('LOOP_REST_DEFERRED');
+        else this.recordFault('LOOP_'+e.message);
+        if(this.guard.closedReason)this.halt('CIRCUIT_OPEN');
+      }
       if(this.isRunning&&!this.isHalted)await wait(1200);
     }
   }
