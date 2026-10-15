@@ -35,9 +35,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * BANKSAWAN YELLOW V2 — read-only native Android UI, two tabs only.
- * Default APK is OFFLINE DEMO. It does NOT trade, query Binance, or push alerts.
- * A future backend URL can be injected at build time via YELLOW_API_BASE_URL.
+ * BANKSAWAN YELLOW V6 — HOME + Binance-style UNIVERSE.
+ * Never fetches Binance itself. LIVE mode reads only the separate YELLOW API.
+ * Long A foreground polling and YELLOW-only background FCM share one claim ledger.
+ * Without a YELLOW_API_BASE_URL configured, the APK remains an explicit demo.
  */
 public class MainActivity extends Activity {
     private final int BG=Color.rgb(9,17,28), CARD=Color.rgb(21,32,47);
@@ -46,18 +47,69 @@ public class MainActivity extends Activity {
     private LinearLayout list, root, bottom, header;
     private TextView status, banner;
     private long lastRefreshMs = 0L;
-    private boolean connectionHealthy = false;
+    private volatile long lastEventCursorMs = 0L;
+    private final String notificationChannelId = "yellow_long_a_live";
+    private volatile boolean connectionHealthy = false;
+    private int lastCovered = 0;
+    private int lastEligible = 0;
     private String tab="home";
     private JSONArray home=new JSONArray(), universe=new JSONArray();
     private final Handler handler=new Handler(Looper.getMainLooper());
     private final ExecutorService io=Executors.newSingleThreadExecutor();
     private final Runnable refreshTask=new Runnable(){@Override public void run(){refresh();handler.postDelayed(this,60_000);}};
+    private final Runnable eventsTask=new Runnable(){@Override public void run(){pollLongAEvents();handler.postDelayed(this,10_000);}};
 
     @Override public void onCreate(Bundle state){super.onCreate(state);getWindow().setStatusBarColor(BG);
-        getWindow().setNavigationBarColor(BG);buildShell();}
-    @Override protected void onResume(){super.onResume();handler.post(refreshTask);}
-    @Override protected void onPause(){handler.removeCallbacks(refreshTask);super.onPause();}
-    @Override protected void onDestroy(){handler.removeCallbacks(refreshTask);io.shutdownNow();super.onDestroy();}
+        getWindow().setNavigationBarColor(BG);YellowNotifier.channel(this);buildShell();
+        if(BuildConfig.FCM_ENABLED){
+            com.google.firebase.messaging.FirebaseMessaging.getInstance().subscribeToTopic(YellowNotifier.TOPIC);
+        }
+    }
+    @Override protected void onResume(){super.onResume();
+        // Seed cursor at open: never replay an old event as a fresh notification.
+        lastEventCursorMs=System.currentTimeMillis();
+        handler.post(refreshTask);
+        if(!BuildConfig.DEMO_MODE){handler.post(eventsTask);requestNotificationPermission();}
+    }
+    @Override protected void onPause(){handler.removeCallbacks(refreshTask);handler.removeCallbacks(eventsTask);super.onPause();}
+    @Override protected void onDestroy(){handler.removeCallbacks(refreshTask);handler.removeCallbacks(eventsTask);io.shutdownNow();super.onDestroy();}
+    private void requestNotificationPermission(){
+        if(Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=android.content.pm.PackageManager.PERMISSION_GRANTED){
+            requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"},1107);
+        }
+    }
+    private void pollLongAEvents(){
+        if(BuildConfig.DEMO_MODE || !connectionHealthy || lastEventCursorMs<=0) return;
+        final long cursor=lastEventCursorMs;
+        io.execute(()->{
+            try{
+                JSONArray events=load("/api/events?afterMs="+cursor,"events");
+                long maxSeen=cursor;
+                for(int i=0;i<events.length();i++){
+                    JSONObject e=events.optJSONObject(i);if(e==null)continue;
+                    long detected=e.optLong("detectedAtMs",0);
+                    if(detected>maxSeen)maxSeen=detected;
+                    long now=System.currentTimeMillis();
+                    if(!"LONG_A".equals(e.optString("signal"))||
+                      e.optLong("expiresAtMs",0)<=now||detected<=cursor)continue;
+                    String symbol=e.optString("symbol","");
+                    String tf=e.optString("timeframe","");
+                    String id=e.optString("id","");
+                    if(!symbol.matches("[A-Z0-9]{2,25}USDT") ||
+                       !(tf.equals("1m")||tf.equals("5m")||tf.equals("15m")||tf.equals("1h"))||
+                       !id.equals(symbol+":"+tf+":"+e.optLong("barClosedAtMs",-1)+":LONG_A")) continue;
+                    YellowNotifier.claimAndNotify(this,id,symbol,tf,
+                      e.optLong("barClosedAtMs",-1),e.optLong("expiresAtMs",0),
+                      e.optDouble("price",0),e.optDouble("binance24hChangePct",0));
+                }
+                // Subtract 1ms to accommodate events with identical server timestamps;
+                // the durable local event-id claim prevents duplicates.
+                final long next=Math.max(cursor,maxSeen-1);
+                runOnUiThread(()->lastEventCursorMs=Math.max(lastEventCursorMs,next));
+            }catch(Exception ignored){/* Never transform a connection error into a signal. */}
+        });
+    }
     private int dp(int n){return Math.round(getResources().getDisplayMetrics().density*n);}
     private GradientDrawable shape(int color,int stroke){GradientDrawable g=new GradientDrawable();g.setColor(color);
         g.setCornerRadius(dp(16));if(stroke!=0)g.setStroke(dp(1),stroke);return g;}
@@ -173,8 +225,10 @@ public class MainActivity extends Activity {
             // Do not present previously fetched rows as fresh when the server is down.
             boolean fresh = connectionHealthy && lastRefreshMs > 0
                 && System.currentTimeMillis() - lastRefreshMs < 180_000L;
-            TextView health = text(fresh ? "SERVER TERHUBUNG" : "SERVER OFFLINE • DATA TIDAK TERBARU",
-                11, fresh ? GREEN : YELLOW, true);
+            String detail = fresh
+                ? "LIVE • " + lastCovered + "/" + lastEligible + " DIPINDAI • PILOT MTF"
+                : "SERVER OFFLINE • DATA TIDAK TERBARU";
+            TextView health = text(detail, 11, fresh ? GREEN : YELLOW, true);
             health.setPadding(0, dp(5), 0, dp(8));
             list.addView(health);
         }
@@ -286,19 +340,29 @@ public class MainActivity extends Activity {
     private void refresh(){
       if(BuildConfig.DEMO_MODE){setDemo();return;}
       io.execute(()->{
-        try{JSONArray newHome=load("/api/home","home"),newUniverse=load("/api/universe","universe");
-            runOnUiThread(()->{home=newHome;universe=newUniverse;lastRefreshMs=System.currentTimeMillis();connectionHealthy=true;status.setText("TERHUBUNG • "+universe.length()+" KOIN");render();});
+        try{JSONArray newHome=load("/api/home","home");
+            JSONObject universeResponse=loadJson("/api/universe");
+            JSONArray newUniverse=universeResponse.getJSONArray("universe");
+            JSONObject coverage=universeResponse.optJSONObject("coverage");
+            int covered=coverage==null?0:coverage.optInt("covered",0);
+            int eligible=coverage==null?0:coverage.optInt("eligible",0);
+            runOnUiThread(()->{home=newHome;universe=newUniverse;
+                lastCovered=covered;lastEligible=eligible;lastRefreshMs=System.currentTimeMillis();
+                connectionHealthy=true;status.setText("LIVE SHADOW • "+covered+"/"+eligible+" DIPINDAI");render();});
         }catch(Exception err){runOnUiThread(()->{connectionHealthy=false;status.setText("SERVER BELUM TERHUBUNG");render();});}
       });
     }
     private JSONArray load(String route,String field)throws Exception {
+      return loadJson(route).getJSONArray(field);
+    }
+    private JSONObject loadJson(String route)throws Exception {
       HttpURLConnection c=(HttpURLConnection)new URL(BuildConfig.API_BASE_URL+route).openConnection();
       c.setConnectTimeout(5000);c.setReadTimeout(5000);c.setRequestMethod("GET");
       try{if(c.getResponseCode()!=200)throw new IllegalStateException("HTTP "+c.getResponseCode());
         StringBuilder b=new StringBuilder();try(BufferedReader reader=new BufferedReader(new InputStreamReader(c.getInputStream(),StandardCharsets.UTF_8))){
           String line;while((line=reader.readLine())!=null)b.append(line);}
         JSONObject response=new JSONObject(b.toString());if(response.optBoolean("simulation",false))throw new IllegalStateException("Simulation endpoint");
-        return response.getJSONArray(field);
+        return response;
       }finally{c.disconnect();}
     }
     private void setDemo(){long now=System.currentTimeMillis();

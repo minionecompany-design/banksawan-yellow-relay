@@ -1,6 +1,6 @@
 {
   "name": "banksawan-yellow-scanner",
-  "version": "0.2.0-offline-acceptance",
+  "version": "0.6.0-live-shadow",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,9 @@
     "demo": "node src/server.js",
     "replay": "node src/replay-cli.js",
     "proof": "node scripts/generate-proof.js",
-    "acceptance": "node scripts/run-offline-acceptance.js"
+    "acceptance": "node scripts/run-offline-acceptance.js",
+    "live": "node src/live-main.js",
+    "test:live": "node --test test/live-*.test.js"
   },
   "engines": {
     "node": ">=22"
