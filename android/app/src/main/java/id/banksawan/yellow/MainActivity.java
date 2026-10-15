@@ -35,7 +35,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * BANKSAWAN YELLOW V6 — HOME + Binance-style UNIVERSE.
+ * BANKSAWAN YELLOW V7 — LIVE SHADOW HOME + Binance-style UNIVERSE.
  * Never fetches Binance itself. LIVE mode reads only the separate YELLOW API.
  * Long A foreground polling and YELLOW-only background FCM share one claim ledger.
  * Without a YELLOW_API_BASE_URL configured, the APK remains an explicit demo.
@@ -48,7 +48,6 @@ public class MainActivity extends Activity {
     private TextView status, banner;
     private long lastRefreshMs = 0L;
     private volatile long lastEventCursorMs = 0L;
-    private final String notificationChannelId = "yellow_long_a_live";
     private volatile boolean connectionHealthy = false;
     private int lastCovered = 0;
     private int lastEligible = 0;
@@ -69,7 +68,10 @@ public class MainActivity extends Activity {
         // Seed cursor at open: never replay an old event as a fresh notification.
         lastEventCursorMs=System.currentTimeMillis();
         handler.post(refreshTask);
-        if(!BuildConfig.DEMO_MODE){handler.post(eventsTask);requestNotificationPermission();}
+        // LIVE SHADOW pilot does not notify until TradingView parity and user acceptance.
+        if(!BuildConfig.DEMO_MODE && BuildConfig.ALERTS_ENABLED){
+            handler.post(eventsTask);requestNotificationPermission();
+        }
     }
     @Override protected void onPause(){handler.removeCallbacks(refreshTask);handler.removeCallbacks(eventsTask);super.onPause();}
     @Override protected void onDestroy(){handler.removeCallbacks(refreshTask);handler.removeCallbacks(eventsTask);io.shutdownNow();super.onDestroy();}
@@ -80,7 +82,7 @@ public class MainActivity extends Activity {
         }
     }
     private void pollLongAEvents(){
-        if(BuildConfig.DEMO_MODE || !connectionHealthy || lastEventCursorMs<=0) return;
+        if(BuildConfig.DEMO_MODE || !BuildConfig.ALERTS_ENABLED || !connectionHealthy || lastEventCursorMs<=0) return;
         final long cursor=lastEventCursorMs;
         io.execute(()->{
             try{
@@ -135,7 +137,7 @@ public class MainActivity extends Activity {
         titleBlock.addView(text("LONG A MTF • Scanner independen",12,MUTED,false));
         header.addView(titleBlock);root.addView(header);
         banner=text("DEMO OFFLINE • BUKAN SINYAL ENTRY",13,YELLOW,true);
-        banner.setText(BuildConfig.DEMO_MODE ? "DEMO OFFLINE • BUKAN SINYAL ENTRY" : "LONG A • BUKAN PERINTAH TRANSAKSI");
+        banner.setText(BuildConfig.DEMO_MODE ? "DEMO OFFLINE • BUKAN SINYAL ENTRY" : "LIVE SHADOW • PENELITIAN, BUKAN SINYAL ENTRY");
         banner.setGravity(Gravity.CENTER);banner.setPadding(dp(12),dp(15),dp(12),dp(15));
         banner.setBackground(shape(Color.rgb(57,41,12),YELLOW));
         LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);bp.setMargins(0,dp(18),0,dp(14));root.addView(banner,bp);
@@ -226,7 +228,7 @@ public class MainActivity extends Activity {
             boolean fresh = connectionHealthy && lastRefreshMs > 0
                 && System.currentTimeMillis() - lastRefreshMs < 180_000L;
             String detail = fresh
-                ? "LIVE • " + lastCovered + "/" + lastEligible + " DIPINDAI • PILOT MTF"
+                ? "LIVE SHADOW • " + lastCovered + "/" + lastEligible + " DIPINDAI • PILOT MTF"
                 : "SERVER OFFLINE • DATA TIDAK TERBARU";
             TextView health = text(detail, 11, fresh ? GREEN : YELLOW, true);
             health.setPadding(0, dp(5), 0, dp(8));
@@ -319,7 +321,7 @@ public class MainActivity extends Activity {
         TextView heading = text("HOME", 26, Color.WHITE, true);
         heading.setPadding(0, 0, 0, dp(8));
         list.addView(heading);
-        TextView subtitle = text("LONG A • 24 jam per simbol", 13, MUTED, false);
+        TextView subtitle = text(BuildConfig.DEMO_MODE ? "LONG A • DEMO 24 jam" : "LONG A TERAMATI • RISET 24 jam per simbol", 13, MUTED, false);
         subtitle.setPadding(0, 0, 0, dp(17));
         list.addView(subtitle);
 
@@ -330,6 +332,12 @@ public class MainActivity extends Activity {
                 continue;
             String symbol = item.optString("symbol", "");
             if (!symbol.matches("[A-Z0-9]{2,25}USDT")) continue;
+            double price = item.optDouble("price", Double.NaN);
+            double pct = item.optDouble("binance24hChangePct", Double.NaN);
+            String tf = item.optString("timeframe", "");
+            if (!Double.isFinite(price) || price <= 0 || price >= 10
+                || !Double.isFinite(pct) || pct < 1
+                || !(tf.equals("1m") || tf.equals("5m") || tf.equals("15m") || tf.equals("1h"))) continue;
             card(symbol, item, true);
             count++;
         }
@@ -337,23 +345,67 @@ public class MainActivity extends Activity {
             list.addView(text("Belum ada LONG A yang dapat ditampilkan", 14, MUTED, false));
         }
     }
+    /** Fail closed on disconnected or stale YELLOW market data; never fall back to demo. */
     private void refresh(){
-      if(BuildConfig.DEMO_MODE){setDemo();return;}
-      io.execute(()->{
-        try{JSONArray newHome=load("/api/home","home");
-            JSONObject universeResponse=loadJson("/api/universe");
-            JSONArray newUniverse=universeResponse.getJSONArray("universe");
-            JSONObject coverage=universeResponse.optJSONObject("coverage");
-            int covered=coverage==null?0:coverage.optInt("covered",0);
-            int eligible=coverage==null?0:coverage.optInt("eligible",0);
-            runOnUiThread(()->{home=newHome;universe=newUniverse;
-                lastCovered=covered;lastEligible=eligible;lastRefreshMs=System.currentTimeMillis();
-                connectionHealthy=true;status.setText("LIVE SHADOW • "+covered+"/"+eligible+" DIPINDAI");render();});
-        }catch(Exception err){runOnUiThread(()->{connectionHealthy=false;status.setText("SERVER BELUM TERHUBUNG");render();});}
-      });
+        if(BuildConfig.DEMO_MODE){setDemo();return;}
+        io.execute(()->{
+            try{
+                JSONObject statusReply=loadJson("/api/status");
+                JSONObject guard=statusReply.optJSONObject("requestGuard");
+                long now=System.currentTimeMillis();
+                long tickerAt=statusReply.optLong("lastTickerDataAtMs",0);
+                long klineAt=statusReply.optLong("lastKlineDataAtMs",0);
+                int covered=statusReply.optInt("covered",-1);
+                int eligible=statusReply.optInt("eligible",-1);
+                int maximum=statusReply.optInt("maxTracked",-1);
+                boolean tickerFresh=tickerAt>0 && tickerAt<=now+10_000L
+                    && now-tickerAt<180_000L;
+                boolean klineFresh=covered==0 || (klineAt>0 && klineAt<=now+10_000L
+                    && now-klineAt<300_000L);
+                if(!statusReply.optBoolean("ok",false)
+                    || !"LIVE_SHADOW".equals(statusReply.optString("mode",""))
+                    || !statusReply.optBoolean("tickerConnected",false)
+                    || !statusReply.optBoolean("klineConnected",false)
+                    || guard==null || guard.optBoolean("circuitOpen",true)
+                    || covered<0 || eligible<0 || maximum<1 || maximum>24 || covered>maximum
+                    || !tickerFresh || !klineFresh){
+                    throw new IllegalStateException("YELLOW_MARKET_NOT_READY_OR_STALE");
+                }
+                JSONObject homeReply=loadJson("/api/home");
+                JSONObject universeReply=loadJson("/api/universe");
+                verifyLive(homeReply);
+                verifyLive(universeReply);
+                JSONArray newHome=homeReply.getJSONArray("home");
+                JSONArray newUniverse=universeReply.getJSONArray("universe");
+                JSONObject coverage=universeReply.getJSONObject("coverage");
+                int newCovered=coverage.getInt("covered");
+                int newEligible=coverage.getInt("eligible");
+                if(newCovered<0||newCovered>24||newEligible<0)
+                    throw new IllegalStateException("INVALID_SCANNER_COVERAGE");
+                runOnUiThread(()->{
+                    home=newHome;universe=newUniverse;
+                    lastCovered=newCovered;lastEligible=newEligible;
+                    lastRefreshMs=System.currentTimeMillis();
+                    connectionHealthy=true;
+                    status.setText("LIVE SHADOW • "+newCovered+"/"+newEligible+" DIPINDAI");
+                    render();
+                });
+            }catch(Exception err){
+                runOnUiThread(()->{
+                    // Clear all last-known prices and signals. Never display stale data as LIVE.
+                    connectionHealthy=false;
+                    home=new JSONArray();universe=new JSONArray();
+                    lastCovered=0;lastEligible=0;lastRefreshMs=0;
+                    status.setText("SERVER / FEED TIDAK SIAP • TANPA DATA LIVE");
+                    render();
+                });
+            }
+        });
     }
-    private JSONArray load(String route,String field)throws Exception {
-      return loadJson(route).getJSONArray(field);
+    private void verifyLive(JSONObject response)throws Exception {
+        if(response.optBoolean("simulation",true)
+            || !"LIVE_SHADOW".equals(response.optString("mode","")))
+            throw new IllegalStateException("REJECT_NON_LIVE_API_PAYLOAD");
     }
     private JSONObject loadJson(String route)throws Exception {
       HttpURLConnection c=(HttpURLConnection)new URL(BuildConfig.API_BASE_URL+route).openConnection();
