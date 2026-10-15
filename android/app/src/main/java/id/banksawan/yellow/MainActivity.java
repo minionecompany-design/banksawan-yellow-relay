@@ -18,6 +18,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
+import android.content.pm.PackageManager;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -35,7 +37,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * BANKSAWAN YELLOW V7 — LIVE SHADOW HOME + Binance-style UNIVERSE.
+ * BANKSAWAN YELLOW V8 — RESEARCH NOTIFICATION PROOF, LIVE SHADOW.
  * Never fetches Binance itself. LIVE mode reads only the separate YELLOW API.
  * Long A foreground polling and YELLOW-only background FCM share one claim ledger.
  * Without a YELLOW_API_BASE_URL configured, the APK remains an explicit demo.
@@ -49,6 +51,7 @@ public class MainActivity extends Activity {
     private long lastRefreshMs = 0L;
     private volatile long lastEventCursorMs = 0L;
     private volatile boolean connectionHealthy = false;
+    private boolean pendingSoundSelfTest = false;
     private int lastCovered = 0;
     private int lastEligible = 0;
     private String tab="home";
@@ -81,6 +84,32 @@ public class MainActivity extends Activity {
             requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"},1107);
         }
     }
+    /** Test only Android sound / permission; never creates a LONG A event or HOME card. */
+    private void testNotificationSound(){
+        if(BuildConfig.DEMO_MODE || !BuildConfig.ALERTS_ENABLED){
+            Toast.makeText(this,"Tes suara tersedia pada APK V8 LIVE",Toast.LENGTH_LONG).show();return;
+        }
+        if(Build.VERSION.SDK_INT>=33 &&
+            checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=PackageManager.PERMISSION_GRANTED){
+            pendingSoundSelfTest=true;
+            requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"},1107);
+            return;
+        }
+        boolean posted=YellowNotifier.testSound(this);
+        Toast.makeText(this,posted?
+            "Tes notifikasi dikirim. Periksa volume dan mode senyap HP.":
+            "Tes gagal: izinkan notifikasi YELLOW pada pengaturan HP.",Toast.LENGTH_LONG).show();
+    }
+    @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] results){
+        super.onRequestPermissionsResult(code,permissions,results);
+        if(code==1107 && pendingSoundSelfTest){
+            pendingSoundSelfTest=false;
+            if(results.length>0 && results[0]==PackageManager.PERMISSION_GRANTED){
+                testNotificationSound();
+            }else Toast.makeText(this,"Izin notifikasi belum diberikan.",Toast.LENGTH_LONG).show();
+        }
+    }
+
     private void pollLongAEvents(){
         if(BuildConfig.DEMO_MODE || !BuildConfig.ALERTS_ENABLED || !connectionHealthy || lastEventCursorMs<=0) return;
         final long cursor=lastEventCursorMs;
@@ -343,6 +372,17 @@ public class MainActivity extends Activity {
         }
         if (count == 0) {
             list.addView(text("Belum ada LONG A yang dapat ditampilkan", 14, MUTED, false));
+        }
+        if(!BuildConfig.DEMO_MODE && BuildConfig.ALERTS_ENABLED){
+            TextView note=text("BUNYI NOTIFIKASI • Saat APK terbuka • LONG A 1M / 5M / 15M (riset)",12,MUTED,false);
+            note.setPadding(0,dp(10),0,dp(9));list.addView(note);
+            Button testSound=new Button(this);
+            testSound.setText("TES SUARA NOTIFIKASI (BUKAN SINYAL)");
+            testSound.setAllCaps(false);testSound.setTextColor(BG);
+            testSound.setBackground(shape(YELLOW,0));
+            LinearLayout.LayoutParams soundLp=new LinearLayout.LayoutParams(-1,dp(52));
+            soundLp.setMargins(0,dp(7),0,dp(9));list.addView(testSound,soundLp);
+            testSound.setOnClickListener(v->testNotificationSound());
         }
     }
     /** Fail closed on disconnected or stale YELLOW market data; never fall back to demo. */

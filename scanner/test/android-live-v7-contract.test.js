@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const r=path=>readFile(new URL('../../'+path,import.meta.url),'utf8');
 
-test('V7 GitHub workflow builds YELLOW LIVE SHADOW without any scanner calls or FCM',async()=>{
+test('V8 workflow enables foreground LONG A while keeping FCM off and Binance out of CI',async()=>{
  const wf=await r('.github/workflows/android-debug.yml');
- assert.match(wf,/YELLOW_API_BASE_URL: https:\/\/yellow-live-shadow-yc94-production\.up\.railway\.app/);
- assert.match(wf,/YELLOW_ALERTS_ENABLED: 'false'/);
- assert.match(wf,/YELLOW_FCM_ENABLED: 'false'/);
- assert.match(wf,/YELLOW_LIVE_ENABLED: 'false'/);
- assert.match(wf,/banksawan-yellow-v7-LIVE-SHADOW-debug/);
+ assert.match(wf,/YELLOW_API_BASE_URL: [\'\"]?https:\/\/yellow-live-shadow-yc94-production\.up\.railway\.app/);
+ assert.match(wf,/YELLOW_ALERTS_ENABLED: 'true'/);
+ assert.match(wf,/test ! -f android\/app\/google-services\.json/);
+ assert.match(wf,/on-device sound \+ foreground LONG A enabled/);
+ assert.match(wf,/banksawan-yellow-v8-LIVE-SOUND-PROOF-debug/);
  assert.doesNotMatch(wf,/BR_FCM|banksawan-radar|successful-enchantment/);
 });
 
@@ -25,12 +25,18 @@ test('V7 validates market status, live mode and stale feeds before rendering',as
  assert.match(src,/SERVER \/ FEED TIDAK SIAP/);
 });
 
-test('V7 pilot keeps all alerts off even when connected to HTTPS live API',async()=>{
+test('V8 foreground sound test is opt-in and never creates a false LONG A' ,async()=>{
  const gradle=await r('android/app/build.gradle');
  const src=await r('android/app/src/main/java/id/banksawan/yellow/MainActivity.java');
  assert.match(gradle,/buildConfigField 'boolean', 'ALERTS_ENABLED'/);
  assert.match(gradle,/allowAlerts && file\('google-services\.json'\)\.exists\(\)/);
  assert.match(src,/BuildConfig\.ALERTS_ENABLED/);
  assert.match(src,/LIVE SHADOW • PENELITIAN, BUKAN SINYAL ENTRY/);
- assert.match(gradle,/versionCode 3/);
+ assert.match(gradle,/versionCode 4/);
+ const notifier=await r('android/app/src/main/java/id/banksawan/yellow/YellowNotifier.java');
+ assert.match(notifier,/TEST_CHANNEL=\"yellow_sound_test_v8\"/);
+ assert.match(notifier,/testSound\(Context context\)/);
+ assert.match(notifier,/BUKAN sinyal LONG A/);
+ assert.match(src,/testNotificationSound\(\)/);
+ assert.match(src,/BuildConfig\.ALERTS_ENABLED/);
 });

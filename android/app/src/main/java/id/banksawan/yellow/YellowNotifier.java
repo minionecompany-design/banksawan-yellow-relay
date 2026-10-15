@@ -7,6 +7,9 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import java.util.Map;
 import java.util.Locale;
 
@@ -15,7 +18,8 @@ import java.util.Locale;
  */
 public final class YellowNotifier {
     public static final String TOPIC="banksawan-yellow-v2";
-    private static final String CHANNEL="yellow_long_a_live";
+    private static final String CHANNEL="yellow_long_a_v8";
+    private static final String TEST_CHANNEL="yellow_sound_test_v8";
     private static final Object CLAIM_LOCK=new Object();
     private YellowNotifier(){}
     public static void channel(Context context){
@@ -23,10 +27,40 @@ public final class YellowNotifier {
             NotificationManager manager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
             if(manager!=null){
                 NotificationChannel c=new NotificationChannel(CHANNEL,"YELLOW LONG A (live)",NotificationManager.IMPORTANCE_HIGH);
-                c.setDescription("LONG A on closed 1M/5M/15M/1H candle");manager.createNotificationChannel(c);
+                c.setDescription("Research alerts for closed 1M/5M/15M/1H LONG A candles");
+                c.setSound(defaultSound(),soundAttributes());
+                manager.createNotificationChannel(c);
+                NotificationChannel selfTest=new NotificationChannel(TEST_CHANNEL,
+                    "YELLOW sound self-test",NotificationManager.IMPORTANCE_HIGH);
+                selfTest.setDescription("Manual sound test only; never generates a LONG A signal");
+                selfTest.setSound(defaultSound(),soundAttributes());
+                manager.createNotificationChannel(selfTest);
             }
         }
     }
+    private static Uri defaultSound(){return RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);}
+    private static AudioAttributes soundAttributes(){return new AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build();}
+
+    /** Manual Android notification test, entirely local. No network, no event, no HOME. */
+    public static boolean testSound(Context context){
+        if(Build.VERSION.SDK_INT>=33 && context.checkSelfPermission(
+            "android.permission.POST_NOTIFICATIONS")!=PackageManager.PERMISSION_GRANTED)return false;
+        NotificationManager manager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if(manager==null)return false;
+        channel(context);
+        Notification.Builder builder=Build.VERSION.SDK_INT>=26?
+            new Notification.Builder(context,TEST_CHANNEL):new Notification.Builder(context);
+        builder.setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("TES SUARA BANKSAWAN YELLOW")
+            .setContentText("Uji notifikasi lokal, BUKAN sinyal LONG A")
+            .setAutoCancel(true);
+        if(Build.VERSION.SDK_INT<26)builder.setDefaults(Notification.DEFAULT_SOUND);
+        manager.notify(787878,builder.build());
+        return true;
+    }
+
     public static boolean claimAndNotify(Context context,String id,String symbol,String timeframe,
              long closedAt,long expiresAt,double price,double change){
         long now=System.currentTimeMillis();
@@ -59,6 +93,7 @@ public final class YellowNotifier {
             .setContentTitle("BANKSAWAN YELLOW • LONG A "+symbol)
             .setContentText(timeframe.toUpperCase(Locale.ROOT)+" • "+String.format(Locale.US,"%.6f USDT • Binance 24H %+.2f%%",price,change))
             .setAutoCancel(true);
+        if(Build.VERSION.SDK_INT<26)builder.setDefaults(Notification.DEFAULT_SOUND);
         NotificationManager manager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
         if(manager!=null)manager.notify(id.hashCode(),builder.build());
         return true;
