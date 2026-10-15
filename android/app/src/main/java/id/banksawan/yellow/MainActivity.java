@@ -86,7 +86,7 @@ public class MainActivity extends Activity {
         final long cursor=lastEventCursorMs;
         io.execute(()->{
             try{
-                JSONArray events=load("/api/events?afterMs="+cursor,"events");
+                JSONArray events=loadJson("/api/events?afterMs="+cursor).getJSONArray("events");
                 long maxSeen=cursor;
                 for(int i=0;i<events.length();i++){
                     JSONObject e=events.optJSONObject(i);if(e==null)continue;
