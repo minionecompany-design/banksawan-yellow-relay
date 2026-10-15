@@ -20,6 +20,13 @@ const market=new YellowLiveMarket({dataDir,maxTracked:Number(process.env.YELLOW_
   }});
 market.fcm=fcm;
 const server=createLiveApi(market);
+// On 418/429/451, WS failure or dead feed, stop the process instead of
+// leaving an idle billable Railway container marked alive. Restart=NEVER.
+const haltWatch=setInterval(()=>{if(!market.isHalted)return;
+  console.error('YELLOW_STOPPED_FAIL_CLOSED',market.haltReason);
+  clearInterval(haltWatch);server.close(()=>{process.exitCode=1;});
+},5000);
 server.listen(port,'0.0.0.0',()=>console.log('YELLOW LIVE SHADOW API active on port',port));
-process.on('SIGTERM',()=>{market.stop();server.close();});
-try{await market.start();}catch(e){console.error('YELLOW LIVE STARTUP FAILED:',e.message);server.close();process.exitCode=1;}
+process.on('SIGTERM',()=>{clearInterval(haltWatch);market.stop();server.close();});
+try{await market.start();}catch(e){console.error('YELLOW LIVE STARTUP FAILED:',e.message);
+  clearInterval(haltWatch);server.close(()=>{process.exitCode=1;});}

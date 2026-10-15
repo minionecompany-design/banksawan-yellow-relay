@@ -11,7 +11,8 @@ import {eligibleUniverse} from './long-a.js';
 import path from 'node:path';
 
 const API='https://fapi.binance.com';
-const WS='wss://fstream.binance.com/market/ws';
+const WS_RAW='wss://fstream.binance.com/market/ws';
+const WS_SUBSCRIBE='wss://fstream.binance.com/market/stream';
 const frames=['1m','5m','15m','1h'];
 const validSymbol=s=>/^[A-Z0-9]{2,25}USDT$/.test(s||'');
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
@@ -31,7 +32,8 @@ export class YellowLiveMarket {
     this.isRunning=false;this.tickerConnected=false;this.klineConnected=false;
     this.isHalted=false;this.haltReason='';this.nextRefresh=0;this.nextExchangeRefresh=0;
     this.recentFaults=[];this.lastClosedCandleMs=0;this.loopPromise=null;
-    this.klineWs=null;this.tickerWs=null;this.heartbeatAt=0;
+    this.klineWs=null;this.tickerWs=null;this.lastTickerDataAtMs=0;
+    this.lastKlineDataAtMs=0;this.firstTrackedAtMs=0;
   }
   async start(){
     if(this.isRunning)throw new Error('ALREADY_RUNNING');
@@ -101,8 +103,8 @@ export class YellowLiveMarket {
   }
   connectWebsockets(){
     if(this.isHalted)return;
-    const ticker=new this.wsClass(WS+'/!ticker@arr');this.tickerWs=ticker;
-    ticker.addEventListener('open',()=>{this.tickerConnected=true;this.log('TICKER_WS_CONNECTED');});
+    const ticker=new this.wsClass(WS_RAW+'/!ticker@arr');this.tickerWs=ticker;
+    ticker.addEventListener('open',()=>{this.tickerConnected=true;this.lastTickerDataAtMs=this.clock();this.log('TICKER_WS_CONNECTED');});
     ticker.addEventListener('message',e=>{try{
       const payload=JSON.parse(typeof e.data==='string'?e.data:String(e.data));
       if(!Array.isArray(payload))return;
@@ -112,17 +114,27 @@ export class YellowLiveMarket {
         const symbol=row.s, exchangeSymbol=this.exchangeSymbols.get(symbol);if(!exchangeSymbol)continue;
         const at=Number(row.E);
         if(!Number.isSafeInteger(at)||Math.abs(this.clock()-at)>120_000)continue;
-        try{this.recordTicker(normalizeBinanceTicker({symbol,
-          ticker:{symbol,lastPrice:row.c,priceChangePercent:row.P},exchangeSymbol,observedAtMs:at}));}catch{}
+        try{if(this.recordTicker(normalizeBinanceTicker({symbol,
+          ticker:{symbol,lastPrice:row.c,priceChangePercent:row.P},exchangeSymbol,observedAtMs:at})))
+            this.lastTickerDataAtMs=this.clock();}catch{}
       }
     }catch{this.ignored++;}});
     ticker.addEventListener('close',()=>this.onSocketClose('ticker'));
     ticker.addEventListener('error',()=>this.onSocketClose('ticker'));
-    const kline=new this.wsClass(WS);this.klineWs=kline;
+    // Binance documents SUBSCRIBE requests at /market/stream, which yields
+    // {stream, data} frames; /market/ws/{name} is for a named raw stream.
+    const kline=new this.wsClass(WS_SUBSCRIBE);this.klineWs=kline;
     kline.addEventListener('open',()=>{this.klineConnected=true;this.subscribeAll();this.log('KLINE_WS_CONNECTED');});
     kline.addEventListener('message',e=>{try{
-      const data=JSON.parse(typeof e.data==='string'?e.data:String(e.data));
-      if(data?.e==='kline'&&(data.st===undefined||data.st===1))void this.onKline(data).catch(err=>this.recordFault(err.message));
+      const frame=JSON.parse(typeof e.data==='string'?e.data:String(e.data));
+      if(frame?.code!==undefined || frame?.error){
+        this.halt('BINANCE_KLINE_SUBSCRIPTION_REJECTED');return;
+      }
+      const data=frame?.data??frame; // Accept both combined and raw shapes.
+      if(data?.e==='kline'&&(data.st===undefined||data.st===1)){
+        this.lastKlineDataAtMs=this.clock();
+        void this.onKline(data).catch(err=>this.recordFault(err.message));
+      }
     }catch{this.ignored++;}});
     kline.addEventListener('close',()=>this.onSocketClose('kline'));
     kline.addEventListener('error',()=>this.onSocketClose('kline'));
@@ -159,6 +171,7 @@ export class YellowLiveMarket {
       const states=newParallelState();
       for(const tf of frames){states[tf].lastProcessedEndMs=book.latest(tf).endMs;}
       if(!this.isHalted){this.covered.set(symbol,{book,states,startedAtMs:this.clock(),readyAfterFreshPullback:true});
+        if(!this.firstTrackedAtMs)this.firstTrackedAtMs=this.clock();
         this.subscribe(symbol);}
     }catch(e){this.retryAfter.set(symbol,this.clock()+10*60_000);
       this.recordFault('BOOTSTRAP_'+symbol+'_'+e.message);
@@ -169,6 +182,15 @@ export class YellowLiveMarket {
     while(this.isRunning&&!this.isHalted){
       try{
         if(this.clock()>=this.nextRefresh)await this.refreshUniverse();
+        // Never report healthy scanning if market data silently stopped arriving.
+        if(this.tickerConnected && this.lastTickerDataAtMs &&
+          this.clock()-this.lastTickerDataAtMs>180_000){
+          this.halt('TICKER_WS_DATA_STALE');break;
+        }
+        if(this.covered.size && this.klineConnected &&
+          this.clock()-(this.lastKlineDataAtMs||this.firstTrackedAtMs)>300_000){
+          this.halt('KLINE_WS_DATA_STALE');break;
+        }
         if(this.tickerConnected&&this.klineConnected){
           const universe=this.universe();
           const currentEligible=new Set(universe.map(x=>x.symbol));
@@ -234,5 +256,6 @@ export class YellowLiveMarket {
     bootstrapInProgress:this.inProgress.size,coverageRatio:eligible.length?this.covered.size/eligible.length:0,
     maxTracked:this.maxTracked,cooldownSymbols:[...this.retryAfter.values()].filter(t=>t>this.clock()).length,eventsEmitted:this.eventsEmitted,lastClosedCandleMs:this.lastClosedCandleMs,
     requestGuard:this.guard.metrics(),fcm:this.fcm?.metrics()||{enabled:false},haltReason:this.haltReason,
+    lastTickerDataAtMs:this.lastTickerDataAtMs,lastKlineDataAtMs:this.lastKlineDataAtMs,
     lastFaults:this.recentFaults.slice(-10)};}
 }
