@@ -1,0 +1,16 @@
+{
+  "name": "banksawan-yellow-scanner",
+  "version": "0.2.0-offline-acceptance",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "demo": "node src/server.js",
+    "replay": "node src/replay-cli.js",
+    "proof": "node scripts/generate-proof.js",
+    "acceptance": "node scripts/run-offline-acceptance.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
