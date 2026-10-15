@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 25
     env:
       YELLOW_API_BASE_URL: 'https://yellow-live-shadow-yc94-production.up.railway.app'
-      YELLOW_ALERTS_ENABLED: 'false'
+      YELLOW_ALERTS_ENABLED: 'true'
 
     steps:
       - name: Checkout YELLOW branch
@@ -28,7 +28,7 @@ jobs:
       - name: Verify live URL and notification safety
         run: |
           test "$YELLOW_API_BASE_URL" = 'https://yellow-live-shadow-yc94-production.up.railway.app'
-          test "$YELLOW_ALERTS_ENABLED" = 'false'
+          test "$YELLOW_ALERTS_ENABLED" = 'true'
           echo 'YELLOW LIVE SHADOW URL configured; notifications OFF.'
 
       - name: Set up Java 17
@@ -61,7 +61,7 @@ jobs:
       - name: Upload live shadow APK
         uses: actions/upload-artifact@v4
         with:
-          name: banksawan-yellow-v7-LIVE-SHADOW-debug
+          name: banksawan-yellow-v8-SOUND-PROOF-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
