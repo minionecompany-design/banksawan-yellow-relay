@@ -41,3 +41,16 @@ test('ticker stream requires USD-M symbol type even in merged markets',async()=>
   assert.equal(market.universe().length,1);assert.equal(market.lastTickerDataAtMs,before);
   market.stop();
 });
+
+test('Binance dynamic subscribe and unsubscribe IDs are unsigned integers and unique',async()=>{
+  const market=await make();market.connectWebsockets();
+  market.subscribe('WALUSDT');
+  market.subscribe('ARCUSDT');
+  market.unsubscribe('WALUSDT');
+  const ids=market.klineWs.messages.map(m=>m.id);
+  assert.deepEqual(ids,[1,2,3]);
+  assert.ok(ids.every(n=>Number.isSafeInteger(n)&&n>=0));
+  assert.ok(market.klineWs.messages[0].params.every(p=>p.startsWith('walusdt@kline_')));
+  assert.equal(market.klineWs.messages[2].method,'UNSUBSCRIBE');
+  market.stop();
+});

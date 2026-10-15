@@ -32,7 +32,7 @@ export class YellowLiveMarket {
     this.isRunning=false;this.tickerConnected=false;this.klineConnected=false;
     this.isHalted=false;this.haltReason='';this.nextRefresh=0;this.nextExchangeRefresh=0;
     this.recentFaults=[];this.lastClosedCandleMs=0;this.loopPromise=null;
-    this.klineWs=null;this.tickerWs=null;this.lastTickerDataAtMs=0;
+    this.klineWs=null;this.tickerWs=null;this.nextSubscriptionId=1;this.lastTickerDataAtMs=0;
     this.lastKlineDataAtMs=0;this.firstTrackedAtMs=0;
   }
   async start(){
@@ -145,13 +145,19 @@ export class YellowLiveMarket {
     // Fail closed. No REST flood or silent socket reconnect after a disconnect.
     this.halt('WEBSOCKET_DISCONNECTED_'+which+'_REQUIRES_REVIEW');
   }
+  // Binance requires an unsigned integer request id; symbol/time strings are invalid.
+  subscriptionId(){
+    const id=this.nextSubscriptionId;
+    this.nextSubscriptionId=id>=2_000_000_000?1:id+1;
+    return id;
+  }
   subscribeAll(){for(const symbol of this.covered.keys())this.subscribe(symbol);}
   subscribe(symbol){if(!this.klineWs||this.klineWs.readyState!==1)return;
     this.klineWs.send(JSON.stringify({method:'SUBSCRIBE',params:frames.map(tf=>
-      `${symbol.toLowerCase()}@kline_${tf}`),id:String(this.clock())+symbol}));}
+      `${symbol.toLowerCase()}@kline_${tf}`),id:this.subscriptionId()}));}
   unsubscribe(symbol){if(!this.klineWs||this.klineWs.readyState!==1)return;
     this.klineWs.send(JSON.stringify({method:'UNSUBSCRIBE',params:frames.map(tf=>
-      `${symbol.toLowerCase()}@kline_${tf}`),id:String(this.clock())+'unsub'+symbol}));}
+      `${symbol.toLowerCase()}@kline_${tf}`),id:this.subscriptionId()}));}
   recordFault(reason){this.recentFaults.push({at:this.clock(),reason});if(this.recentFaults.length>40)this.recentFaults.shift();
     this.log('YELLOW_FAULT',reason);}
   async bootstrap(symbol){
