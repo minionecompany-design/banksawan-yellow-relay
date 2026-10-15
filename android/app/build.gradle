@@ -11,8 +11,8 @@ android {
         applicationId 'id.banksawan.yellow'
         minSdk 26
         targetSdk 35
-        versionCode 4
-        versionName '0.8.0-notification-proof'
+        versionCode 5
+        versionName '0.9.0-ui-refresh'
         // Safe defaults: demo only, no production URL, no Binance requests.
         // CI can override YELLOW_API_BASE_URL after a secure backend exists.
         def suppliedUrl = System.getenv('YELLOW_API_BASE_URL') ?: ''

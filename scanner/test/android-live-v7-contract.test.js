@@ -8,8 +8,8 @@ test('V8 workflow enables foreground LONG A while keeping FCM off and Binance ou
  assert.match(wf,/YELLOW_API_BASE_URL: [\'\"]?https:\/\/yellow-live-shadow-yc94-production\.up\.railway\.app/);
  assert.match(wf,/YELLOW_ALERTS_ENABLED: 'true'/);
  assert.match(wf,/test ! -f android\/app\/google-services\.json/);
- assert.match(wf,/on-device sound \+ foreground LONG A enabled/);
- assert.match(wf,/banksawan-yellow-v8-LIVE-SOUND-PROOF-debug/);
+ assert.match(wf,/YELLOW LIVE foreground only\. Firebase background disabled in this build/);
+ assert.match(wf,/banksawan-yellow-v8-SOUND-PROOF-debug/);
  assert.doesNotMatch(wf,/BR_FCM|banksawan-radar|successful-enchantment/);
 });
 
@@ -31,12 +31,13 @@ test('V8 foreground sound test is opt-in and never creates a false LONG A' ,asyn
  assert.match(gradle,/buildConfigField 'boolean', 'ALERTS_ENABLED'/);
  assert.match(gradle,/allowAlerts && file\('google-services\.json'\)\.exists\(\)/);
  assert.match(src,/BuildConfig\.ALERTS_ENABLED/);
- assert.match(src,/LIVE SHADOW • PENELITIAN, BUKAN SINYAL ENTRY/);
- assert.match(gradle,/versionCode 4/);
+ assert.doesNotMatch(src,/LIVE SHADOW • PENELITIAN, BUKAN SINYAL ENTRY/);
+ assert.match(gradle,/versionCode 5/);
  const notifier=await r('android/app/src/main/java/id/banksawan/yellow/YellowNotifier.java');
  assert.match(notifier,/TEST_CHANNEL=\"yellow_sound_test_v8\"/);
  assert.match(notifier,/testSound\(Context context\)/);
  assert.match(notifier,/BUKAN sinyal LONG A/);
  assert.match(src,/testNotificationSound\(\)/);
+ assert.doesNotMatch(src,/TES SUARA NOTIFIKASI \(BUKAN SINYAL\)/);
  assert.match(src,/BuildConfig\.ALERTS_ENABLED/);
 });

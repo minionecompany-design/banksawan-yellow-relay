@@ -13,10 +13,11 @@ test('V8 Android foreground notifications poll YELLOW read-only events every 10s
   assert.match(java,/handler\.removeCallbacks\(eventsTask\)/);
 });
 
-test('V8 manual sound is a clearly separate self-test, not a LONG A event or HOME candidate',async()=>{
+test('V9 sound self-test remains separate from LONG A, with no HOME button',async()=>{
   const main=await source('android/app/src/main/java/id/banksawan/yellow/MainActivity.java');
   const notifier=await source('android/app/src/main/java/id/banksawan/yellow/YellowNotifier.java');
-  assert.match(main,/TES SUARA NOTIFIKASI \(BUKAN SINYAL\)/);
+  assert.doesNotMatch(main,/TES SUARA NOTIFIKASI \(BUKAN SINYAL\)/);
+  assert.match(main,/testNotificationSound\(\)/);
   assert.match(notifier,/"yellow_sound_test_v8"/);
   assert.match(notifier,/setContentTitle\("TES SUARA BANKSAWAN YELLOW"\)/);
   assert.match(notifier,/Uji notifikasi lokal, BUKAN sinyal LONG A/);
@@ -31,8 +32,8 @@ test('V8 build enables foreground sound, but does not contain Firebase credentia
   const gradle=await source('android/app/build.gradle');
   assert.match(wf,/YELLOW_ALERTS_ENABLED: 'true'/);
   assert.match(wf,/test ! -f android\/app\/google-services\.json/);
-  assert.match(wf,/banksawan-yellow-v8-LIVE-SOUND-PROOF-debug/);
-  assert.match(gradle,/versionCode 4/);
+  assert.match(wf,/banksawan-yellow-v8-SOUND-PROOF-debug/);
+  assert.match(gradle,/versionCode 5/);
   assert.match(gradle,/allowAlerts && file\('google-services\.json'\)\.exists\(\)/);
   assert.doesNotMatch(wf,/fapi\.binance\.com|BR_FCM|successful-enchantment/);
 });

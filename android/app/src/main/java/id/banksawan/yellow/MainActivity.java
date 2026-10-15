@@ -14,7 +14,6 @@ import android.view.Gravity;
 import android.view.WindowInsets;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -47,7 +46,7 @@ public class MainActivity extends Activity {
     private final int LINE=Color.rgb(48,65,85), MUTED=Color.rgb(162,179,198);
     private final int YELLOW=Color.rgb(248,212,60), GREEN=Color.rgb(41,213,141);
     private LinearLayout list, root, bottom, header;
-    private TextView status, banner;
+    private TextView status;
     private long lastRefreshMs = 0L;
     private volatile long lastEventCursorMs = 0L;
     private volatile boolean connectionHealthy = false;
@@ -149,31 +148,26 @@ public class MainActivity extends Activity {
     private void buildShell(){
         root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(BG);
         root.setPadding(dp(16),dp(20),dp(16),dp(8));
-        // Preserve the two navigation tabs above Android gesture/navigation controls.
+        // Android 15 edge-to-edge: HOME/UNIVERSE below status bar and tabs above nav bar.
         root.setOnApplyWindowInsetsListener((view, insets) -> {
-            int navBottom = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+            int topInset = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                ? insets.getInsets(WindowInsets.Type.statusBars()).top
+                : insets.getSystemWindowInsetTop();
+            int bottomInset = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
                 ? insets.getInsets(WindowInsets.Type.navigationBars()).bottom
                 : insets.getSystemWindowInsetBottom();
-            root.setPadding(dp(16), dp(20), dp(16), dp(8) + navBottom);
+            root.setPadding(dp(16), topInset + dp(10), dp(16), bottomInset + dp(8));
             return insets;
         });
         setContentView(root);
-        header=new LinearLayout(this);header.setOrientation(LinearLayout.HORIZONTAL);header.setGravity(Gravity.CENTER_VERTICAL);
-        ImageView image=new ImageView(this);image.setImageResource(R.drawable.yellow_logo);image.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        header.addView(image,new LinearLayout.LayoutParams(dp(70),dp(70)));
-        LinearLayout titleBlock=new LinearLayout(this);titleBlock.setOrientation(LinearLayout.VERTICAL);
-        titleBlock.setPadding(dp(12),0,0,0);titleBlock.addView(text("BANKSAWAN YELLOW",22,YELLOW,true));
-        titleBlock.addView(text("LONG A MTF • Scanner independen",12,MUTED,false));
-        header.addView(titleBlock);root.addView(header);
-        banner=text("DEMO OFFLINE • BUKAN SINYAL ENTRY",13,YELLOW,true);
-        banner.setText(BuildConfig.DEMO_MODE ? "DEMO OFFLINE • BUKAN SINYAL ENTRY" : "LIVE SHADOW • PENELITIAN, BUKAN SINYAL ENTRY");
-        banner.setGravity(Gravity.CENTER);banner.setPadding(dp(12),dp(15),dp(12),dp(15));
-        banner.setBackground(shape(Color.rgb(57,41,12),YELLOW));
-        LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2);bp.setMargins(0,dp(18),0,dp(14));root.addView(banner,bp);
+        header=new LinearLayout(this);header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);header.setPadding(0,dp(3),0,dp(14));
+        header.addView(text("BANKSAWAN YELLOW",24,YELLOW,true));
+        root.addView(header);
         status=text("MENUNGGU DATA",13,GREEN,true);status.setGravity(Gravity.CENTER);
-        status.setPadding(dp(8),dp(15),dp(8),dp(15));status.setBackground(shape(CARD,LINE));root.addView(status);
+        status.setPadding(dp(8),dp(12),dp(8),dp(12));status.setBackground(shape(CARD,LINE));root.addView(status);
         ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);
-        list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);list.setPadding(0,dp(18),0,dp(18));scroll.addView(list);
+        list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);list.setPadding(0,dp(14),0,dp(14));scroll.addView(list);
         root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
         bottom=new LinearLayout(this);bottom.setOrientation(LinearLayout.HORIZONTAL);
         root.addView(bottom);renderTabs();render();
@@ -187,8 +181,21 @@ public class MainActivity extends Activity {
     private String formattedTime(long t){SimpleDateFormat f=new SimpleDateFormat("dd MMM HH:mm",new Locale("id","ID"));
         f.setTimeZone(TimeZone.getTimeZone("Asia/Jakarta"));return f.format(new Date(t))+" WIB";}
     private String number(double n){return String.format(Locale.US,n<1?"%.6f":"%.3f",n);}
-    private void line(LinearLayout parent,String label,String value){TextView t=text(label+"   "+value,13,MUTED,false);
-        t.setPadding(0,dp(6),0,dp(6));parent.addView(t);}
+    /** BR-style detail: small left label, medium/bold right value with true column alignment. */
+    private void line(LinearLayout parent,String label,String value){
+        LinearLayout row=new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0,dp(7),0,dp(7));
+        TextView left=text(label,12,MUTED,false);
+        left.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);
+        TextView right=text(value,14,Color.WHITE,true);
+        right.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);
+        right.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_END);
+        row.addView(left,new LinearLayout.LayoutParams(0,-2,1.1f));
+        row.addView(right,new LinearLayout.LayoutParams(0,-2,1.35f));
+        parent.addView(row);
+    }
     private void tradingView(String symbol,LinearLayout parent){
         Button b=new Button(this);b.setText("BUKA TRADINGVIEW ↗");b.setTextColor(BG);
         b.setBackground(shape(Color.rgb(51,179,229),0));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(48));
@@ -208,8 +215,9 @@ public class MainActivity extends Activity {
             (BuildConfig.DEMO_MODE?"Harga contoh:":"Harga terakhir:"),number(price)+" USDT");
         line(box,BuildConfig.DEMO_MODE?"Perubahan Binance 24H (DEMO):":"Perubahan Binance 24H:",
             String.format(Locale.US,"%+.2f%%",item.optDouble("binance24hChangePct")));
-        if(isHome){line(box,"Timeframe LONG A:",item.optString("timeframe","1m").toUpperCase(Locale.ROOT));long first=item.optLong("firstSeenMs",0),expires=item.optLong("homeExpiresMs",0);
-            line(box,"Mulai HOME:",formattedTime(first));line(box,"Hilang otomatis:",formattedTime(expires));}
+        if(isHome){line(box,"Timeframe LONG A",item.optString("timeframe","1m").toUpperCase(Locale.ROOT));
+            long first=item.optLong("firstSeenMs",0);
+            line(box,"Mulai HOME",formattedTime(first));}
         else line(box,"Prioritas:",item.optString("priority","STANDARD"));
         if (isHome) tradingView(symbol,box);
     }
@@ -339,7 +347,6 @@ public class MainActivity extends Activity {
         list.removeAllViews();
         boolean isUniverse = tab.equals("universe");
         header.setVisibility(isUniverse ? View.GONE : View.VISIBLE);
-        banner.setVisibility(isUniverse ? View.GONE : View.VISIBLE);
         status.setVisibility(isUniverse ? View.GONE : View.VISIBLE);
 
         if (isUniverse) {
@@ -347,12 +354,10 @@ public class MainActivity extends Activity {
             return;
         }
 
-        TextView heading = text("HOME", 26, Color.WHITE, true);
+        TextView heading = text("HOME", 22, Color.WHITE, true);
         heading.setPadding(0, 0, 0, dp(8));
         list.addView(heading);
-        TextView subtitle = text(BuildConfig.DEMO_MODE ? "LONG A • DEMO 24 jam" : "LONG A TERAMATI • RISET 24 jam per simbol", 13, MUTED, false);
-        subtitle.setPadding(0, 0, 0, dp(17));
-        list.addView(subtitle);
+        
 
         int count = 0;
         for (int i = 0; i < home.length(); i++) {
@@ -373,17 +378,7 @@ public class MainActivity extends Activity {
         if (count == 0) {
             list.addView(text("Belum ada LONG A yang dapat ditampilkan", 14, MUTED, false));
         }
-        if(!BuildConfig.DEMO_MODE && BuildConfig.ALERTS_ENABLED){
-            TextView note=text("BUNYI NOTIFIKASI • Saat APK terbuka • LONG A 1M / 5M / 15M (riset)",12,MUTED,false);
-            note.setPadding(0,dp(10),0,dp(9));list.addView(note);
-            Button testSound=new Button(this);
-            testSound.setText("TES SUARA NOTIFIKASI (BUKAN SINYAL)");
-            testSound.setAllCaps(false);testSound.setTextColor(BG);
-            testSound.setBackground(shape(YELLOW,0));
-            LinearLayout.LayoutParams soundLp=new LinearLayout.LayoutParams(-1,dp(52));
-            soundLp.setMargins(0,dp(7),0,dp(9));list.addView(testSound,soundLp);
-            testSound.setOnClickListener(v->testNotificationSound());
-        }
+
     }
     /** Fail closed on disconnected or stale YELLOW market data; never fall back to demo. */
     private void refresh(){
