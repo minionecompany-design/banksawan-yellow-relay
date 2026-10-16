@@ -3,7 +3,7 @@
  */
 import {readFile,writeFile,rename,mkdir} from 'node:fs/promises';
 import path from 'node:path';
-const MAX_AGE=5*60_000, HOME_TTL=24*60*60_000;
+const MAX_AGE=5*60_000, HOME_TTL=60*60_000, CLAIM_TTL=24*60*60_000;
 const frames=new Set(['1m','5m','15m','1h']);
 export class LiveHomeLedger {
   constructor({filename,clock=()=>Date.now()}={}){if(!filename)throw new Error('PERSISTENT_LEDGER_REQUIRED');
@@ -12,7 +12,12 @@ export class LiveHomeLedger {
       if(data.version!==1||!Array.isArray(data.home)||!Array.isArray(data.events)||!Array.isArray(data.claimed))
         throw new Error('LEDGER_CORRUPT_FAIL_CLOSED');this.doc=data;
     }catch(e){if(e.code!=='ENOENT')throw e;}this.#prune();}
-  #prune(){const now=this.clock();this.doc.home=this.doc.home.filter(x=>x.homeExpiresMs>now);
+  #prune(){const now=this.clock();
+    // Apply the new 1-hour cap to existing 24-hour HOME records too.
+    // Keep the original first-seen anchor; later TF events never extend it.
+    this.doc.home=this.doc.home.map(x=>({...x,
+      homeExpiresMs:Math.min(x.homeExpiresMs,x.firstSeenMs+HOME_TTL)}))
+      .filter(x=>Number.isSafeInteger(x.homeExpiresMs)&&x.homeExpiresMs>now);
     this.doc.events=this.doc.events.filter(x=>x.expiresAtMs>now);
     this.doc.claimed=this.doc.claimed.filter(x=>x.expiresAtMs>now);}
   async #persist(){await mkdir(path.dirname(this.filename),{recursive:true});
@@ -31,7 +36,7 @@ export class LiveHomeLedger {
       const record={id:event.id,signal:'LONG_A',symbol:event.symbol,timeframe:event.timeframe,price:event.price,
         binance24hChangePct:event.binance24hChangePct,priority:event.priority,
         barClosedAtMs:event.barClosedAtMs,detectedAtMs:now,expiresAtMs:event.barClosedAtMs+MAX_AGE};
-      this.doc.claimed.push({id:event.id,expiresAtMs:event.barClosedAtMs+HOME_TTL});
+      this.doc.claimed.push({id:event.id,expiresAtMs:event.barClosedAtMs+CLAIM_TTL});
       this.doc.events.push(record);
       if(!this.doc.home.some(x=>x.symbol===event.symbol))
         this.doc.home.push({...record,firstSeenMs:now,homeExpiresMs:now+HOME_TTL});
