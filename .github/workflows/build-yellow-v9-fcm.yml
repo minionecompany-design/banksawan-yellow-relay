@@ -1,0 +1,93 @@
+name: BANKSAWAN YELLOW V9 Firebase APK (build-only)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-yellow-v9-fcm.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: yellow-v9-firebase-apk
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build V9 LIVE + FCM (no Railway deploy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      YELLOW_API_BASE_URL: 'https://yellow-live-shadow-yc94-production.up.railway.app'
+      YELLOW_ALERTS_ENABLED: 'true'
+      EXPECTED_FIREBASE_PROJECT_ID: ${{ secrets.YELLOW_FIREBASE_PROJECT_ID }}
+      YELLOW_FIREBASE_CONFIG_B64: ${{ secrets.YELLOW_FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}
+    steps:
+      - name: Checkout YELLOW source branch (do not change source or deploy)
+        uses: actions/checkout@v4
+        with:
+          ref: yellow-long-a-v2-20261015
+          persist-credentials: false
+
+      - name: Verify YELLOW source and Firebase credentials are configured
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD | tee source-commit.txt
+          test -n "$EXPECTED_FIREBASE_PROJECT_ID" || { echo 'Missing Firebase project ID secret'; exit 1; }
+          test -n "$YELLOW_FIREBASE_CONFIG_B64" || { echo 'Missing Firebase Android configuration secret'; exit 1; }
+          test -f scripts/verify-yellow-firebase.py
+          test -f android/app/src/main/java/id/banksawan/yellow/MainActivity.java
+          test -f android/app/src/main/java/id/banksawan/yellow/YellowFirebaseService.java
+          printf '%s' "$YELLOW_FIREBASE_CONFIG_B64" | base64 --decode > android/app/google-services.json
+          python3 scripts/verify-yellow-firebase.py android/app/google-services.json "$EXPECTED_FIREBASE_PROJECT_ID"
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 35
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Build YELLOW Firebase APK
+        run: gradle -p android :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Verify LIVE, alerts and Firebase enabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONFIG=android/app/build/generated/source/buildConfig/debug/id/banksawan/yellow/BuildConfig.java
+          test -s "$CONFIG"
+          grep -Eq 'DEMO_MODE[[:space:]]*=[[:space:]]*false' "$CONFIG"
+          grep -Eq 'ALERTS_ENABLED[[:space:]]*=[[:space:]]*true' "$CONFIG"
+          grep -Eq 'FCM_ENABLED[[:space:]]*=[[:space:]]*true' "$CONFIG"
+          grep -q "applicationId 'id.banksawan.yellow'" android/app/build.gradle
+          test -s android/app/build/outputs/apk/debug/app-debug.apk
+          sha256sum android/app/build/outputs/apk/debug/app-debug.apk > apk-sha256.txt
+
+      - name: Upload APK and source receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: banksawan-yellow-v9-LIVE-FCM-debug
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            source-commit.txt
+            apk-sha256.txt
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Remove temporary Firebase Android configuration
+        if: always()
+        run: rm -f android/app/google-services.json
