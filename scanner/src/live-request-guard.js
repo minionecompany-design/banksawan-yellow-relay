@@ -44,7 +44,15 @@ export class RequestGuard {
     const now=this.clock();this.charges=this.charges.filter(x=>now-x.at<60000);
     const spent=this.charges.reduce((s,x)=>s+x.weight,0);
     if(spent+weight>this.weightPerMinute){
-      const delay=60000-(now-this.charges[0].at)+25;
+      // Waiting for the oldest charge alone is insufficient when it frees
+      // less weight than this request needs. Calculate the FIRST safe expiry
+      // of enough consecutive charges in the rolling 60-second window.
+      let remaining=spent,delay=0;
+      for(const charge of this.charges){
+        remaining-=charge.weight;
+        delay=60000-(now-charge.at)+25;
+        if(remaining+weight<=this.weightPerMinute)break;
+      }
       await this.sleep(Math.max(1,delay));
     }
     const elapsed=this.clock()-this.lastRequestAt;
