@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-const source = path=>readFile(new URL('../../'+path, import.meta.url),'utf8');
+const source = path=>readFile(new URL('../../../'+path, import.meta.url),'utf8');
 
 test('V8 Android foreground notifications poll YELLOW read-only events every 10s, independently of trading',async()=>{
   const java=await source('android/app/src/main/java/id/banksawan/yellow/MainActivity.java');
@@ -33,7 +33,7 @@ test('V8 build enables foreground sound, but does not contain Firebase credentia
   assert.match(wf,/YELLOW_ALERTS_ENABLED: 'true'/);
   assert.match(wf,/test ! -f android\/app\/google-services\.json/);
   assert.match(wf,/banksawan-yellow-v8-SOUND-PROOF-debug/);
-  assert.match(gradle,/versionCode 5/);
+  assert.match(gradle,/versionCode 6/);
   assert.match(gradle,/allowAlerts && file\('google-services\.json'\)\.exists\(\)/);
   assert.doesNotMatch(wf,/fapi\.binance\.com|BR_FCM|successful-enchantment/);
 });

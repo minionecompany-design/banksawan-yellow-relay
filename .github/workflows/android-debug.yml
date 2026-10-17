@@ -1,13 +1,7 @@
 name: BANKSAWAN YELLOW V8 LIVE + Firebase background pilot
 
+# Retired distributor: the main-branch signed controller is the only release path.
 on:
-  push:
-    branches:
-      - yellow-long-a-v2-20261015
-    paths:
-      - 'android/**'
-      - 'scripts/verify-yellow-firebase.py'
-      - '.github/workflows/android-debug.yml'
   workflow_dispatch:
 
 permissions:
@@ -15,6 +9,7 @@ permissions:
 
 jobs:
   build-live-shadow-apk:
+    if: ${{ false }}
     name: Build V8 LIVE foreground alerts (existing, no Firebase)
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -59,7 +54,7 @@ jobs:
 
   build-firebase-background-pilot:
     # Explicit human-controlled repo variable. Does not run by default.
-    if: vars.YELLOW_FIREBASE_PILOT_ENABLED == 'true'
+    if: ${{ false }}
     name: Build optional YELLOW-only Firebase background APK
     runs-on: ubuntu-latest
     timeout-minutes: 30

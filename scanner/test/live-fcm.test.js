@@ -21,7 +21,7 @@ test('FCM emits data-only LONG A push with bounded TTL; no other symbols',async(
   return {ok:true,status:200,json:async()=>({name:'projects/test/messages/123'})};
  };
  const fcm=new YellowFcm({enabled:true,serviceAccountJson:JSON.stringify(account),fetchImpl:sender,clock:()=>now});
- const event={id:`WALUSDT:15m:${now}:LONG_A`,symbol:'WALUSDT',timeframe:'15m',
+ const event={id:`WALUSDT:15m:${now}:LONG_A`,symbol:'WALUSDT',timeframe:'15m',signal:'LONG_A',
    barClosedAtMs:now,expiresAtMs:now+299000,price:.051,binance24hChangePct:5.8};
  assert.equal((await fcm.send(event)).sent,true);
  assert.equal(calls.length,2);
@@ -31,4 +31,13 @@ test('FCM emits data-only LONG A push with bounded TTL; no other symbols',async(
  assert.ok(parseInt(payload.message.android.ttl)<=299);
  assert.equal((await fcm.send({...event,expiresAtMs:now-1})).sent,false);
  assert.equal(calls.length,2);
+});
+
+test('FCM independently rejects orange LONG B and other markers before any HTTP',async()=>{
+ let calls=0;const fcm=new YellowFcm({enabled:true,serviceAccountJson:JSON.stringify({project_id:'test',client_email:'test',private_key:'not-used'}),fetchImpl:async()=>{calls++;throw Error('UNEXPECTED_HTTP');},clock:()=>1000});
+ for(const signal of ['LONG_B','PROTECT','HOT','OUT_FINAL']){
+  const e={signal,id:`AGTUSDT:1m:1000:${signal}`,symbol:'AGTUSDT',timeframe:'1m',barClosedAtMs:1000,expiresAtMs:2000};
+  assert.equal((await fcm.send(e)).sent,false);
+ }
+ assert.equal(calls,0);
 });

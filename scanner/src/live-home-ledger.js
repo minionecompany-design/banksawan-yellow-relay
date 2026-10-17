@@ -3,7 +3,7 @@
  */
 import {readFile,writeFile,rename,mkdir} from 'node:fs/promises';
 import path from 'node:path';
-const MAX_AGE=5*60_000, HOME_TTL=60*60_000, CLAIM_TTL=24*60*60_000;
+const MAX_AGE=5*60_000, HOME_TTL=10*60*60_000, CLAIM_TTL=24*60*60_000;
 const frames=new Set(['1m','5m','15m','1h']);
 export class LiveHomeLedger {
   constructor({filename,clock=()=>Date.now()}={}){if(!filename)throw new Error('PERSISTENT_LEDGER_REQUIRED');
@@ -13,8 +13,8 @@ export class LiveHomeLedger {
         throw new Error('LEDGER_CORRUPT_FAIL_CLOSED');this.doc=data;
     }catch(e){if(e.code!=='ENOENT')throw e;}this.#prune();}
   #prune(){const now=this.clock();
-    // Apply the new 1-hour cap to existing 24-hour HOME records too.
-    // Keep the original first-seen anchor; later TF events never extend it.
+    // Preserve existing expiry anchors; never revive expired or invent missing events.
+    // New events receive their own ten-hour timer in accept().
     this.doc.home=this.doc.home.map(x=>({...x,
       homeExpiresMs:Math.min(x.homeExpiresMs,x.firstSeenMs+HOME_TTL)}))
       .filter(x=>Number.isSafeInteger(x.homeExpiresMs)&&x.homeExpiresMs>now);
@@ -38,8 +38,7 @@ export class LiveHomeLedger {
         barClosedAtMs:event.barClosedAtMs,detectedAtMs:now,expiresAtMs:event.barClosedAtMs+MAX_AGE};
       this.doc.claimed.push({id:event.id,expiresAtMs:event.barClosedAtMs+CLAIM_TTL});
       this.doc.events.push(record);
-      if(!this.doc.home.some(x=>x.symbol===event.symbol))
-        this.doc.home.push({...record,firstSeenMs:now,homeExpiresMs:now+HOME_TTL});
+      this.doc.home.push({...record,firstSeenMs:now,homeExpiresMs:now+HOME_TTL});
       await this.#persist();return {accepted:true,event:record};
     });this.chain=job.catch(()=>{});return job;}
   home(){this.#prune();return this.doc.home.slice().sort((a,b)=>b.firstSeenMs-a.firstSeenMs).map(x=>({...x}));}

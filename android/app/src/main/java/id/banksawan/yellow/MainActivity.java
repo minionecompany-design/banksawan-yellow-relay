@@ -47,6 +47,8 @@ public class MainActivity extends Activity {
     private final int YELLOW=Color.rgb(248,212,60), GREEN=Color.rgb(41,213,141);
     private LinearLayout list, root, bottom, header;
     private TextView status;
+    private ScrollView scroll;
+    private volatile boolean refreshInFlight=false;
     private long lastRefreshMs = 0L;
     private volatile long lastEventCursorMs = 0L;
     private volatile boolean connectionHealthy = false;
@@ -57,7 +59,7 @@ public class MainActivity extends Activity {
     private JSONArray home=new JSONArray(), universe=new JSONArray();
     private final Handler handler=new Handler(Looper.getMainLooper());
     private final ExecutorService io=Executors.newSingleThreadExecutor();
-    private final Runnable refreshTask=new Runnable(){@Override public void run(){refresh();handler.postDelayed(this,60_000);}};
+    private final Runnable refreshTask=new Runnable(){@Override public void run(){refresh();handler.postDelayed(this,5_000);}};
     private final Runnable eventsTask=new Runnable(){@Override public void run(){pollLongAEvents();handler.postDelayed(this,10_000);}};
 
     @Override public void onCreate(Bundle state){super.onCreate(state);getWindow().setStatusBarColor(BG);
@@ -166,7 +168,7 @@ public class MainActivity extends Activity {
         root.addView(header);
         status=text("MENUNGGU DATA",13,GREEN,true);status.setGravity(Gravity.CENTER);
         status.setPadding(dp(8),dp(12),dp(8),dp(12));status.setBackground(shape(CARD,LINE));root.addView(status);
-        ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);
+        scroll=new ScrollView(this);scroll.setFillViewport(true);
         list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);list.setPadding(0,dp(14),0,dp(14));scroll.addView(list);
         root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
         bottom=new LinearLayout(this);bottom.setOrientation(LinearLayout.HORIZONTAL);
@@ -177,7 +179,7 @@ public class MainActivity extends Activity {
         b.setTextColor(selected?BG:MUTED);b.setTextSize(16);b.setAllCaps(false);
         b.setBackground(shape(selected?YELLOW:CARD,selected?YELLOW:LINE));
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(55),1);lp.setMargins(dp(3),dp(3),dp(3),dp(3));bottom.addView(b,lp);
-        b.setOnClickListener(v->{tab=name;renderTabs();render();});}}
+        b.setOnClickListener(v->{tab=name;scroll.scrollTo(0,0);renderTabs();render();});}}
     private String formattedTime(long t){SimpleDateFormat f=new SimpleDateFormat("dd MMM HH:mm",new Locale("id","ID"));
         f.setTimeZone(TimeZone.getTimeZone("Asia/Jakarta"));return f.format(new Date(t))+" WIB";}
     private String number(double n){return String.format(Locale.US,n<1?"%.6f":"%.3f",n);}
@@ -318,7 +320,7 @@ public class MainActivity extends Activity {
         TextView ticker = text(symbol, 17, Color.WHITE, true);
         ticker.setMaxLines(2);
         symbolColumn.addView(ticker);
-        TextView perp = text("Perp", 12, MUTED, false);
+        TextView perp = text(coin.optBoolean("stale",false) ? "Perp • STALE" : "Perp", 12, MUTED, false);
         perp.setPadding(0, dp(3), 0, 0);
         symbolColumn.addView(perp);
         row.addView(symbolColumn, new LinearLayout.LayoutParams(0, -2, 1.65f));
@@ -344,10 +346,12 @@ public class MainActivity extends Activity {
     }
 
     private void render() {
+        final int previousScroll=scroll.getScrollY();
+        scroll.post(()->scroll.scrollTo(0,previousScroll));
         list.removeAllViews();
         boolean isUniverse = tab.equals("universe");
         header.setVisibility(isUniverse ? View.GONE : View.VISIBLE);
-        status.setVisibility(isUniverse ? View.GONE : View.VISIBLE);
+        status.setVisibility(isUniverse && connectionHealthy ? View.GONE : View.VISIBLE);
 
         if (isUniverse) {
             renderUniverse();
@@ -383,6 +387,8 @@ public class MainActivity extends Activity {
     /** Fail closed on disconnected or stale YELLOW market data; never fall back to demo. */
     private void refresh(){
         if(BuildConfig.DEMO_MODE){setDemo();return;}
+        if(refreshInFlight)return;
+        refreshInFlight=true;
         io.execute(()->{
             try{
                 JSONObject statusReply=loadJson("/api/status");
@@ -394,7 +400,7 @@ public class MainActivity extends Activity {
                 int eligible=statusReply.optInt("eligible",-1);
                 int maximum=statusReply.optInt("maxTracked",-1);
                 boolean tickerFresh=tickerAt>0 && tickerAt<=now+10_000L
-                    && now-tickerAt<180_000L;
+                    && now-tickerAt<30_000L;
                 boolean klineFresh=covered==0 || (klineAt>0 && klineAt<=now+10_000L
                     && now-klineAt<300_000L);
                 if(!statusReply.optBoolean("ok",false)
@@ -434,7 +440,7 @@ public class MainActivity extends Activity {
                     status.setText("SERVER / FEED TIDAK SIAP • TANPA DATA LIVE");
                     render();
                 });
-            }
+            }finally{refreshInFlight=false;}
         });
     }
     private void verifyLive(JSONObject response)throws Exception {
@@ -444,7 +450,7 @@ public class MainActivity extends Activity {
     }
     private JSONObject loadJson(String route)throws Exception {
       HttpURLConnection c=(HttpURLConnection)new URL(BuildConfig.API_BASE_URL+route).openConnection();
-      c.setConnectTimeout(5000);c.setReadTimeout(5000);c.setRequestMethod("GET");
+      c.setUseCaches(false);c.setConnectTimeout(2000);c.setReadTimeout(2000);c.setRequestMethod("GET");
       try{if(c.getResponseCode()!=200)throw new IllegalStateException("HTTP "+c.getResponseCode());
         StringBuilder b=new StringBuilder();try(BufferedReader reader=new BufferedReader(new InputStreamReader(c.getInputStream(),StandardCharsets.UTF_8))){
           String line;while((line=reader.readLine())!=null)b.append(line);}

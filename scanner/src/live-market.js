@@ -19,10 +19,12 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
 export class YellowLiveMarket {
   constructor({dataDir,clock=()=>Date.now(),guard=null,wsClass=globalThis.WebSocket,
-    maxTracked=24,fetchIntervalMs=600_000,sendEvent=async()=>{},
+    maxTracked=24,fetchIntervalMs=600_000,sendEvent=async()=>{},random=Math.random,
     log=(...args)=>console.log(...args)}={}){
     if(!dataDir)throw new Error('YELLOW_DATA_DIR_REQUIRED');
     if(!wsClass)throw new Error('WEBSOCKET_NOT_AVAILABLE');
+    this.random=random;this.feedGeneration=0;this.wsRecovering=false;this.wsRecoveryAttempts=0;
+    this.wsReconnectAtMs=0;this.wsReconnectDeadlineMs=0;this.wsHealthySinceMs=0;this.wsRecoveryDataAtMs=0;
     this.clock=clock;this.dataDir=dataDir;this.wsClass=wsClass;this.log=log;
     this.maxTracked=Math.min(200,Math.max(1,maxTracked));this.fetchIntervalMs=Math.max(300_000,fetchIntervalMs);
     this.guard=guard||new RequestGuard({filename:path.join(dataDir,'binance-circuit.json'),clock});
@@ -52,6 +54,7 @@ export class YellowLiveMarket {
     }catch(e){this.halt('STARTUP_'+e.message);throw e;}
   }
   halt(reason){this.isHalted=true;this.haltReason=reason;this.isRunning=false;
+    this.wsRecovering=false;this.wsReconnectAtMs=0;this.wsReconnectDeadlineMs=0;this.feedGeneration++;
     try{this.klineWs?.close();}catch{}try{this.tickerWs?.close();}catch{}
     this.log('YELLOW_HALT',reason);
   }
@@ -66,6 +69,7 @@ export class YellowLiveMarket {
     }
   }
   async refreshUniverse(){
+    const generation=this.feedGeneration;
     if(this.isHalted)throw new Error('HALTED');
     // Only on initial startup, market symbol metadata. No needless hourly loops.
     if(!this.exchangeSymbols.size || this.clock()>=this.nextExchangeRefresh){
@@ -81,6 +85,7 @@ export class YellowLiveMarket {
     }
     const result=await this.rest('/fapi/v1/ticker/24hr',{weight:40});
     if(!Array.isArray(result))throw new Error('INVALID_TICKER_24HR');
+    if(this.isHalted||generation!==this.feedGeneration)return;
     const at=this.clock();
     for(const ticker of result){
       const exchangeSymbol=this.exchangeSymbols.get(ticker.symbol);if(!exchangeSymbol)continue;
@@ -109,14 +114,16 @@ export class YellowLiveMarket {
   }
   universe(){
     return eligibleUniverse([...this.tickers.values()].filter(t=>this.clock()-t.observedAtMs<120_000))
-      .map(row=>({...row,coverage:this.covered.has(row.symbol)?'SCANNING':
+      .map(row=>({...row,tickerObservedAtMs:this.tickers.get(row.symbol)?.observedAtMs,
+        stale:this.clock()-this.tickers.get(row.symbol).observedAtMs>=30000,coverage:this.covered.has(row.symbol)?'SCANNING':
         this.inProgress.has(row.symbol)?'BOOTSTRAPPING':'QUEUED'}));
   }
   connectWebsockets(){
-    if(this.isHalted)return;
+    if(this.isHalted||this.guard.closedReason)return;
+    if(this.tickerWs||this.klineWs)return;
     const ticker=new this.wsClass(WS_RAW+'/!ticker@arr');this.tickerWs=ticker;
-    ticker.addEventListener('open',()=>{this.tickerConnected=true;this.lastTickerDataAtMs=this.clock();this.log('TICKER_WS_CONNECTED');});
-    ticker.addEventListener('message',e=>{try{
+    ticker.addEventListener('open',()=>{if(this.isHalted||this.tickerWs!==ticker)return;this.tickerConnected=true;this.lastTickerDataAtMs=this.clock();this.log('TICKER_WS_CONNECTED');});
+    ticker.addEventListener('message',e=>{if(this.isHalted||this.tickerWs!==ticker)return;try{
       const payload=JSON.parse(typeof e.data==='string'?e.data:String(e.data));
       if(!Array.isArray(payload))return;
       for(const row of payload){
@@ -127,16 +134,16 @@ export class YellowLiveMarket {
         if(!Number.isSafeInteger(at)||Math.abs(this.clock()-at)>120_000)continue;
         try{if(this.recordTicker(normalizeBinanceTicker({symbol,
           ticker:{symbol,lastPrice:row.c,priceChangePercent:row.P},exchangeSymbol,observedAtMs:at})))
-            this.lastTickerDataAtMs=this.clock();}catch{}
+            {this.lastTickerDataAtMs=this.clock();this.wsRecoveryDataAtMs=this.clock();}}catch{}
       }
     }catch{this.ignored++;}});
-    ticker.addEventListener('close',()=>this.onSocketClose('ticker'));
-    ticker.addEventListener('error',()=>this.onSocketClose('ticker'));
+    ticker.addEventListener('close',e=>this.onSocketClose('ticker',e,ticker));
+    ticker.addEventListener('error',e=>this.onSocketClose('ticker',e,ticker));
     // Binance documents SUBSCRIBE requests at /market/stream, which yields
     // {stream, data} frames; /market/ws/{name} is for a named raw stream.
     const kline=new this.wsClass(WS_SUBSCRIBE);this.klineWs=kline;
-    kline.addEventListener('open',()=>{this.klineConnected=true;this.subscribeAll();this.log('KLINE_WS_CONNECTED');});
-    kline.addEventListener('message',e=>{try{
+    kline.addEventListener('open',()=>{if(this.isHalted||this.klineWs!==kline)return;this.klineConnected=true;this.subscribeAll();this.log('KLINE_WS_CONNECTED');});
+    kline.addEventListener('message',e=>{if(this.isHalted||this.klineWs!==kline)return;try{
       const frame=JSON.parse(typeof e.data==='string'?e.data:String(e.data));
       if(frame?.code!==undefined || frame?.error){
         this.halt('BINANCE_KLINE_SUBSCRIPTION_REJECTED');return;
@@ -147,14 +154,48 @@ export class YellowLiveMarket {
         void this.onKline(data).catch(err=>this.recordFault(err.message));
       }
     }catch{this.ignored++;}});
-    kline.addEventListener('close',()=>this.onSocketClose('kline'));
-    kline.addEventListener('error',()=>this.onSocketClose('kline'));
+    kline.addEventListener('close',e=>this.onSocketClose('kline',e,kline));
+    kline.addEventListener('error',e=>this.onSocketClose('kline',e,kline));
   }
-  onSocketClose(which){
-    if(which==='ticker')this.tickerConnected=false;else this.klineConnected=false;
+  onSocketClose(which,event={},source=null){
+    if(source && source!==(which==='ticker'?this.tickerWs:this.klineWs))return;
     if(this.isHalted)return;
-    // Fail closed. No REST flood or silent socket reconnect after a disconnect.
-    this.halt('WEBSOCKET_DISCONNECTED_'+which+'_REQUIRES_REVIEW');
+    if(this.guard.closedReason){this.halt('PERSISTENT_'+this.guard.closedReason);return;}
+    const code=Number.isSafeInteger(event?.code)?event.code:'UNKNOWN';
+    const reason=String(event?.reason||'').slice(0,128).replace(/[\r\n]/g,' ');
+    this.log('YELLOW_WS_CLOSE',{which,code,reason,generation:this.feedGeneration});
+    if(!this.isRunning){this.halt('WEBSOCKET_DISCONNECTED_'+which+'_REQUIRES_REVIEW');return;}
+    if(this.wsReconnectAtMs)return;
+    if(this.wsRecoveryAttempts>=3){this.halt('WEBSOCKET_RECOVERY_EXHAUSTED_'+which);return;}
+    this.wsRecovering=true;this.wsHealthySinceMs=0;this.feedGeneration++;
+    const ticker=this.tickerWs,kline=this.klineWs;
+    this.tickerWs=null;this.klineWs=null;
+    this.tickerConnected=false;this.klineConnected=false;
+    this.lastTickerDataAtMs=0;this.lastKlineDataAtMs=0;this.wsRecoveryDataAtMs=0;
+    this.firstTrackedAtMs=0;this.lastClosedCandleMs=0;
+    this.covered.clear();this.tickers.clear();this.tickerHistory.clear();
+    try{ticker?.close();}catch{}try{kline?.close();}catch{}
+    const delay=[5000,20000,60000][this.wsRecoveryAttempts++]+Math.floor(Math.max(0,Math.min(1,this.random()))*1000);
+    this.wsReconnectAtMs=this.clock()+delay;this.wsReconnectDeadlineMs=0;
+    this.log('YELLOW_WS_RECOVERY_SCHEDULED',{attempt:this.wsRecoveryAttempts,delayMs:delay,generation:this.feedGeneration});
+  }
+  progressSocketRecovery(){
+    if(this.isHalted)return;
+    if(this.guard.closedReason){this.halt('PERSISTENT_'+this.guard.closedReason);return;}
+    if(!this.wsRecovering)return;
+    const now=this.clock();
+    if(this.wsReconnectAtMs && now>=this.wsReconnectAtMs){
+      this.wsReconnectAtMs=0;this.wsReconnectDeadlineMs=now+90000;
+      try{this.connectWebsockets();}catch(e){this.onSocketClose('kline',{reason:'OPEN_FAILED'});return;}
+    }
+    if(this.wsReconnectDeadlineMs && now>=this.wsReconnectDeadlineMs &&
+      !(this.tickerConnected&&this.klineConnected&&this.wsRecoveryDataAtMs)){
+      this.onSocketClose('kline',{reason:'RECOVERY_TIMEOUT'});return;
+    }
+    if(this.tickerConnected&&this.klineConnected&&this.wsRecoveryDataAtMs){
+      this.wsRecovering=false;this.wsReconnectDeadlineMs=0;this.wsHealthySinceMs=now;
+      this.recordFault('WS_RECOVERED_WAITING_FOR_GUARDED_CANDLE_BOOTSTRAP');
+    }
   }
   // Binance requires an unsigned integer request id; symbol/time strings are invalid.
   subscriptionId(){
@@ -162,7 +203,11 @@ export class YellowLiveMarket {
     this.nextSubscriptionId=id>=2_000_000_000?1:id+1;
     return id;
   }
-  subscribeAll(){for(const symbol of this.covered.keys())this.subscribe(symbol);}
+  subscribeAll(){
+    if(!this.klineWs||this.klineWs.readyState!==1)return;
+    const params=[...this.covered.keys()].flatMap(symbol=>frames.map(tf=>`${symbol.toLowerCase()}@kline_${tf}`));
+    if(params.length)this.klineWs.send(JSON.stringify({method:'SUBSCRIBE',params,id:this.subscriptionId()}));
+  }
   subscribe(symbol){if(!this.klineWs||this.klineWs.readyState!==1)return;
     this.klineWs.send(JSON.stringify({method:'SUBSCRIBE',params:frames.map(tf=>
       `${symbol.toLowerCase()}@kline_${tf}`),id:this.subscriptionId()}));}
@@ -237,19 +282,21 @@ export class YellowLiveMarket {
     if(this.isHalted||this.covered.has(symbol)||this.inProgress.has(symbol)||
       (this.retryAfter.get(symbol)||0)>this.clock())return;
     this.inProgress.add(symbol);
+    const generation=this.feedGeneration;
     try{
       const book=new CandleBook(symbol);
       // Binance gives the most recent 170 bars, including the currently open one.
       // Only closed, contiguous candles are used; cold-start signals NEVER fire.
       // Fetch 1M LAST to avoid a budget-window wait creating a 1m stream gap.
       for(const tf of ['1h','15m','5m','1m']){
+        if(this.isHalted||generation!==this.feedGeneration||this.wsRecovering)return;
         const data=await this.rest(`/fapi/v1/klines?symbol=${symbol}&interval=${tf}&limit=170`,{weight:klineWeight(170)});
         const closed=Array.isArray(data)?data.filter(b=>Number(b[6])+1<=this.clock()):[];
         book.bootstrap(tf,closed,this.clock());
       }
       const states=newParallelState();
       for(const tf of frames){states[tf].lastProcessedEndMs=book.latest(tf).endMs;}
-      if(!this.isHalted){this.covered.set(symbol,{book,states,startedAtMs:this.clock(),readyAfterFreshPullback:true});
+      if(!this.isHalted&&!this.wsRecovering&&generation===this.feedGeneration){this.covered.set(symbol,{book,states,startedAtMs:this.clock(),readyAfterFreshPullback:true});
         if(!this.firstTrackedAtMs)this.firstTrackedAtMs=this.clock();
         this.subscribe(symbol);}
     }catch(e){
@@ -267,6 +314,14 @@ export class YellowLiveMarket {
   async workLoop(){
     while(this.isRunning&&!this.isHalted){
       try{
+        this.progressSocketRecovery();
+        if(this.wsRecovering){await wait(1200);continue;}
+        if(this.wsRecoveryAttempts && this.wsHealthySinceMs && this.tickerConnected&&this.klineConnected &&
+          this.lastTickerDataAtMs && this.clock()-this.lastTickerDataAtMs<30000 &&
+          this.lastKlineDataAtMs && this.clock()-this.lastKlineDataAtMs<30000 &&
+          this.clock()-this.wsHealthySinceMs>=300000){
+          this.wsRecoveryAttempts=0;this.wsHealthySinceMs=0;
+        }
         // Remote IP-weight headroom affects REST only: preserve WS and tracked TFs.
         // Never probe during the pause; one guarded REST after expiry is sufficient.
         if(this.clock()>=this.nextRefresh && !this.guard.isRemotePaused?.())
@@ -274,11 +329,11 @@ export class YellowLiveMarket {
         // Never report healthy scanning if market data silently stopped arriving.
         if(this.tickerConnected && this.lastTickerDataAtMs &&
           this.clock()-this.lastTickerDataAtMs>180_000){
-          this.halt('TICKER_WS_DATA_STALE');break;
+          this.onSocketClose('ticker',{reason:'DATA_STALE'});continue;
         }
         if(this.covered.size && this.klineConnected &&
           this.clock()-(this.lastKlineDataAtMs||this.firstTrackedAtMs)>300_000){
-          this.halt('KLINE_WS_DATA_STALE');break;
+          this.onSocketClose('kline',{reason:'DATA_STALE'});continue;
         }
         if(this.tickerConnected&&this.klineConnected){
           const universe=this.universe();
@@ -307,14 +362,15 @@ export class YellowLiveMarket {
       if(this.isRunning&&!this.isHalted)await wait(1200);
     }
   }
-  async onKline(message){
+  async onKline(message,generation=this.feedGeneration){
+    if(generation!==this.feedGeneration||this.wsRecovering)return;
     if(message?.k?.st!==undefined&&message.k.st!==1)return;
     // Binance closed-bar events can arrive just before the server wall clock
     // advances to the candle boundary. Postpone briefly; never use future data.
     const candleEnd=Number(message?.k?.T)+1;
     const ahead=candleEnd-this.clock();
     if(message?.k?.x===true && ahead>0 && ahead<=5000){
-      setTimeout(()=>{if(!this.isHalted)void this.onKline(message).catch(e=>this.recordFault(e.message));},ahead+100);
+      setTimeout(()=>{if(!this.isHalted)void this.onKline(message,generation).catch(e=>this.recordFault(e.message));},ahead+100);
       return;
     }
     if(message?.k?.x===true && ahead>5000){this.recordFault('EXCHANGE_CLOCK_AHEAD_TOO_FAR');return;}
@@ -339,6 +395,7 @@ export class YellowLiveMarket {
     exchange:'BINANCE_USDM_PERPETUAL',tickerConnected:this.tickerConnected,
     klineConnected:this.klineConnected,eligible:eligible.length,covered:this.covered.size,
     bootstrapInProgress:this.inProgress.size,coverageRatio:eligible.length?this.covered.size/eligible.length:0,
+    feedGeneration:this.feedGeneration,wsRecovering:this.wsRecovering,wsRecoveryAttempts:this.wsRecoveryAttempts,
     maxTracked:this.maxTracked,cooldownSymbols:[...this.retryAfter.values()].filter(t=>t>this.clock()).length,eventsEmitted:this.eventsEmitted,lastClosedCandleMs:this.lastClosedCandleMs,
     requestGuard:this.guard.metrics(),fcm:this.fcm?.metrics()||{enabled:false},haltReason:this.haltReason,
     lastTickerDataAtMs:this.lastTickerDataAtMs,lastKlineDataAtMs:this.lastKlineDataAtMs,

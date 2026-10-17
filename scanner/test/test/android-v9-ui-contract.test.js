@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-const src=path=>readFile(new URL('../../'+path,import.meta.url),'utf8');
+const src=path=>readFile(new URL('../../../'+path,import.meta.url),'utf8');
 
 test('V9 UI removes marked header and HOME clutter, retaining live status',async()=>{
  const main=await src('android/app/src/main/java/id/banksawan/yellow/MainActivity.java');
@@ -42,6 +42,6 @@ test('V9 keeps safety and notification behavior unchanged',async()=>{
  assert.match(main,/root.setOnApplyWindowInsetsListener/);
  assert.match(main,/WindowInsets.Type.statusBars/);
  assert.match(main,/WindowInsets.Type.navigationBars/);
- assert.match(gradle,/versionCode 5/);
- assert.match(gradle,/versionName '0.9.0-ui-refresh'/);
+ assert.match(gradle,/versionCode 6/);
+ assert.match(gradle,/versionName '0.10.0-event-home'/);
 });
