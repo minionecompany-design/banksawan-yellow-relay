@@ -13,7 +13,7 @@ if(!dataDir)throw new Error('YELLOW_DATA_DIR_REQUIRED: mount a persistent Railwa
 if(!Number.isInteger(port)||port<=0||port>65535)throw new Error('INVALID_PORT');
 const fcm=new YellowFcm({enabled:process.env.YELLOW_FCM_ENABLED==='true',
   serviceAccountJson:process.env.YELLOW_FCM_SERVICE_ACCOUNT_JSON||''});
-const market=new YellowLiveMarket({dataDir,maxTracked:Number(process.env.YELLOW_MAX_TRACKED||24),
+const market=new YellowLiveMarket({dataDir,maxTracked:Number(process.env.YELLOW_MAX_TRACKED||200),
   sendEvent:async event=>{
     const delivery=await fcm.send(event);
     if(fcm.enabled)console.log('YELLOW_FCM',event.id,delivery.sent?'SENT':delivery.reason);

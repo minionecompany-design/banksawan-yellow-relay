@@ -55,7 +55,7 @@ test('GET API read-only, simulation=false, health liveness independent of readin
   assert.equal((await fetch(url+'/api/universe')).status,503);
   market.tickerConnected=true;market.klineConnected=true;
   const universe=await (await fetch(url+'/api/universe')).json();
-  assert.equal(universe.simulation,false);assert.equal(universe.coverage.maxTracked,24);
+  assert.equal(universe.simulation,false);assert.equal(universe.coverage.maxTracked,200);
   const post=await fetch(url+'/api/universe',{method:'POST'});assert.equal(post.status,405);
   market.halt('TEST_HALT');const stop=await fetch(url+'/health');assert.equal(stop.status,503);
   const alive=await fetch(url+'/health/live');assert.equal(alive.status,200);
