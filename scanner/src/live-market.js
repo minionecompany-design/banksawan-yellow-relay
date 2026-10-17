@@ -428,7 +428,8 @@ export class YellowLiveMarket {
     coverageComplete:eligible.every(x=>this.covered.has(x.symbol)),
     uncoveredEligible:eligible.filter(x=>!this.covered.has(x.symbol)).length,
     laneRecovery:[...this.covered].map(([symbol,t])=>({symbol,resumed:t.resumedLanes||[],cold:t.coldLanes||[]})),
-    requestGuard:this.guard.metrics(),fcm:this.fcm?.metrics()||{enabled:false},haltReason:this.haltReason,
+    requestGuard:this.guard.metrics(),fcm:this.fcm?.metrics()||{enabled:false},
+    researchEvidence:this.passiveEvidence?.status?.()??{enabled:false},haltReason:this.haltReason,
     lastTickerDataAtMs:this.lastTickerDataAtMs,lastKlineDataAtMs:this.lastKlineDataAtMs,
     lastFaults:this.recentFaults.slice(-10)};}
 }
