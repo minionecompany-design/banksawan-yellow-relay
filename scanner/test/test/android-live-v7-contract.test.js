@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-const r=path=>readFile(new URL('../../'+path,import.meta.url),'utf8');
+const r=path=>readFile(new URL('../../../'+path,import.meta.url),'utf8');
 
 test('V8 workflow enables foreground LONG A while keeping FCM off and Binance out of CI',async()=>{
  const wf=await r('.github/workflows/android-debug.yml');
@@ -32,7 +32,7 @@ test('V8 foreground sound test is opt-in and never creates a false LONG A' ,asyn
  assert.match(gradle,/allowAlerts && file\('google-services\.json'\)\.exists\(\)/);
  assert.match(src,/BuildConfig\.ALERTS_ENABLED/);
  assert.doesNotMatch(src,/LIVE SHADOW • PENELITIAN, BUKAN SINYAL ENTRY/);
- assert.match(gradle,/versionCode 5/);
+ assert.match(gradle,/versionCode 6/);
  const notifier=await r('android/app/src/main/java/id/banksawan/yellow/YellowNotifier.java');
  assert.match(notifier,/TEST_CHANNEL=\"yellow_sound_test_v8\"/);
  assert.match(notifier,/testSound\(Context context\)/);

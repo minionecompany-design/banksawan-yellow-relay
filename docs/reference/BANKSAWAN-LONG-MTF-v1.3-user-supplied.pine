@@ -1,0 +1,903 @@
+//@version=6
+
+indicator("BANKSAWAN LONG MTF v1.3", shorttitle="BANKSAWAN LONG v1.3", overlay=false, max_labels_count=500)
+
+
+
+//==================================================
+
+// INPUT
+
+//==================================================
+
+
+
+groupMA = "Moving Average"
+
+maFastLength = input.int(7, "MA Kuning", group=groupMA)
+
+maMidLength = input.int(25, "MA Pink", group=groupMA)
+
+maSlowLength = input.int(99, "MA Ungu", group=groupMA)
+
+
+
+groupRSI = "RSI"
+
+rsiLength = input.int(14, "RSI Length", group=groupRSI)
+
+rsiAverageLength = input.int(14, "RSI Average", group=groupRSI)
+
+rsiEntryMinimum = input.float(50.0, "RSI Minimum Entry", group=groupRSI)
+
+rsiEntryMaximum = input.float(75.0, "RSI Maximum Entry", group=groupRSI)
+
+
+
+groupFilter = "Entry Filter"
+
+maximumPrice = input.float(30.0, "Maximum Coin Price", group=groupFilter)
+
+minimumVolumeRatio = input.float(0.75, "Minimum Volume Ratio", group=groupFilter)
+
+maximumMADistance = input.float(2.5, "Maximum Distance From MA7 (%)", group=groupFilter)
+
+entryWindowBars = input.int(30, "Entry Window (1M Bars)", group=groupFilter)
+
+reclaimWindowBars = input.int(90, "LONG B Window (1M Bars)", group=groupFilter)
+
+
+
+//==================================================
+
+// CURRENT TIMEFRAME DATA
+
+//==================================================
+
+
+
+ma7 = ta.sma(close, maFastLength)
+
+ma25 = ta.sma(close, maMidLength)
+
+ma99 = ta.sma(close, maSlowLength)
+
+
+
+rsiValue = ta.rsi(close, rsiLength)
+
+rsiAverage = ta.sma(rsiValue, rsiAverageLength)
+
+
+
+averageVolume = ta.sma(volume, 20)
+
+volumeRatio = averageVolume > 0 ? volume / averageVolume : 0.0
+
+
+
+distanceFromMA7 = ma7 > 0 ? math.abs(close - ma7) / ma7 * 100 : 0.0
+
+
+
+//==================================================
+
+// CONFIRMED MULTI-TIMEFRAME DATA
+
+// Uses previous completed candles.
+
+//==================================================
+
+
+
+// Confirmed 5-minute data
+
+[close5, ma7Five, ma25Five, ma99Five, rsiFive, rsiAverageFive] = request.security(
+
+     syminfo.tickerid,
+
+     "5",
+
+     [
+
+         close[1],
+
+         ta.sma(close, maFastLength)[1],
+
+         ta.sma(close, maMidLength)[1],
+
+         ta.sma(close, maSlowLength)[1],
+
+         ta.rsi(close, rsiLength)[1],
+
+         ta.sma(ta.rsi(close, rsiLength), rsiAverageLength)[1]
+
+     ],
+
+     lookahead=barmerge.lookahead_on
+
+)
+
+
+
+// Confirmed 15-minute data
+
+[close15, ma7Fifteen, ma25Fifteen, ma99Fifteen, rsiFifteen] = request.security(
+
+     syminfo.tickerid,
+
+     "15",
+
+     [
+
+         close[1],
+
+         ta.sma(close, maFastLength)[1],
+
+         ta.sma(close, maMidLength)[1],
+
+         ta.sma(close, maSlowLength)[1],
+
+         ta.rsi(close, rsiLength)[1]
+
+     ],
+
+     lookahead=barmerge.lookahead_on
+
+)
+
+
+
+// Confirmed 1-hour data
+
+[close60, ma7Sixty, ma25Sixty, ma99Sixty, rsiSixty] = request.security(
+
+     syminfo.tickerid,
+
+     "60",
+
+     [
+
+         close[1],
+
+         ta.sma(close, maFastLength)[1],
+
+         ta.sma(close, maMidLength)[1],
+
+         ta.sma(close, maSlowLength)[1],
+
+         ta.rsi(close, rsiLength)[1]
+
+     ],
+
+     lookahead=barmerge.lookahead_on
+
+)
+
+
+
+//==================================================
+
+// PULLBACK COUNT
+
+//==================================================
+
+
+
+priceUp = close > close[4]
+
+priceDown = close < close[4]
+
+
+
+var int countUp = 0
+
+var int countDown = 0
+
+
+
+countUp := priceUp ? nz(countUp[1]) + 1 : 0
+
+countDown := priceDown ? nz(countDown[1]) + 1 : 0
+
+
+
+hotCount = countUp == 9 or countUp == 13 or countUp == 14 or countUp == 15 or countUp == 16
+
+
+
+pullbackCount = countDown == 9 or countDown == 13 or countDown == 14 or countDown == 15 or countDown == 16
+
+
+
+var int pullbackBar = na
+
+
+
+if pullbackCount
+
+    pullbackBar := bar_index
+
+
+
+pullbackWindowActive = not na(pullbackBar) and bar_index - pullbackBar <= entryWindowBars
+
+
+
+//==================================================
+
+// MULTI-TIMEFRAME MARKET CONDITIONS
+
+//==================================================
+
+
+
+// 1H: larger trend permission
+
+oneHourPermission = close60 > ma99Sixty and ma7Sixty >= ma25Sixty and rsiSixty >= 48
+
+
+
+// 15M: structure support
+
+fifteenMinuteSupport = close15 > ma99Fifteen and ma7Fifteen >= ma25Fifteen and rsiFifteen >= 48
+
+
+
+// 5M: momentum confirmation
+
+fiveMinuteMomentum = close5 > ma7Five and close5 > ma25Five and ma7Five >= ma25Five and rsiFive > 50 and rsiFive >= rsiAverageFive
+
+
+
+// 1M: entry trigger
+
+oneMinuteTrigger = close > ma7 and close > ma25 and close > ma99 and ma7 > ma25 and rsiValue > rsiEntryMinimum and rsiValue > rsiAverage and rsiValue < rsiEntryMaximum and volumeRatio >= minimumVolumeRatio and distanceFromMA7 <= maximumMADistance and close < maximumPrice
+
+
+
+//==================================================
+
+// LONG A
+
+//==================================================
+
+
+
+longASetup = pullbackWindowActive and oneHourPermission and fifteenMinuteSupport and fiveMinuteMomentum and oneMinuteTrigger
+
+
+
+//==================================================
+
+// PROTECT
+
+// Not a full exit.
+
+// Take partial profit or move SL to BEP.
+
+//==================================================
+
+
+
+oneMinuteWeak = close < ma7 and rsiValue < rsiAverage and rsiValue < 50
+
+
+
+fiveMinuteWeak = close5 < ma7Five and rsiFive < rsiAverageFive
+
+
+
+protectCondition = oneMinuteWeak and fiveMinuteWeak
+
+
+
+//==================================================
+
+// LONG B / RECLAIM
+
+//==================================================
+
+
+
+oneMinuteReclaim = close > ma7 and close > ma25 and close > ma99 and ma7 > ma25 and rsiValue > 50 and rsiValue > rsiAverage and rsiValue < 75 and volumeRatio >= minimumVolumeRatio and distanceFromMA7 <= maximumMADistance
+
+
+
+fiveMinuteReclaim = close5 > ma7Five and close5 > ma25Five and ma7Five >= ma25Five and rsiFive > 50
+
+
+
+//==================================================
+
+// OUT FINAL
+
+//==================================================
+
+
+
+fifteenMinuteFailure = close15 < ma25Fifteen and ma7Fifteen < ma25Fifteen and rsiFifteen < 45
+
+
+
+fiveMinuteMajorFailure = close5 < ma99Five and ma7Five < ma25Five and rsiFive < 45
+
+
+
+hardFailure = close < ma99 and close5 < ma99Five and rsiFive < 45
+
+
+
+finalExitCondition = fifteenMinuteFailure or fiveMinuteMajorFailure or hardFailure
+
+
+
+//==================================================
+
+// POSITION STATE
+
+//
+
+// 0 = Waiting
+
+// 1 = LONG active
+
+// 2 = Protected, waiting for LONG B
+
+//==================================================
+
+
+
+var int tradeState = 0
+
+var int protectBar = na
+
+
+
+bool longASignal = false
+
+bool protectSignal = false
+
+bool longBSignal = false
+
+bool finalExitSignal = false
+
+bool hotSignal = false
+
+
+
+if tradeState != 0 and finalExitCondition
+
+    finalExitSignal := true
+
+    tradeState := 0
+
+    protectBar := na
+
+
+
+else if tradeState == 0 and longASetup
+
+    longASignal := true
+
+    tradeState := 1
+
+
+
+else if tradeState == 1 and protectCondition
+
+    protectSignal := true
+
+    tradeState := 2
+
+    protectBar := bar_index
+
+
+
+else if tradeState == 2
+
+    reclaimWindowActive = not na(protectBar) and bar_index - protectBar <= reclaimWindowBars
+
+
+
+    if reclaimWindowActive and oneHourPermission and fifteenMinuteSupport and fiveMinuteReclaim and oneMinuteReclaim
+
+        longBSignal := true
+
+        tradeState := 1
+
+
+
+hotSignal := tradeState != 0 and hotCount
+
+
+
+//==================================================
+
+// MOVING AVERAGES ON PRICE CHART
+
+//==================================================
+
+
+
+plot(
+
+     ma7,
+
+     title="MA 7",
+
+     color=color.rgb(255, 193, 7),
+
+     linewidth=1,
+
+     force_overlay=true
+
+)
+
+
+
+plot(
+
+     ma25,
+
+     title="MA 25",
+
+     color=color.rgb(236, 64, 160),
+
+     linewidth=1,
+
+     force_overlay=true
+
+)
+
+
+
+plot(
+
+     ma99,
+
+     title="MA 99",
+
+     color=color.rgb(126, 87, 194),
+
+     linewidth=1,
+
+     force_overlay=true
+
+)
+
+
+
+//==================================================
+
+// RSI DISPLAY
+
+//==================================================
+
+
+
+rsiPlot = plot(
+
+     rsiValue,
+
+     title="RSI 14",
+
+     color=color.rgb(126, 87, 194),
+
+     linewidth=1
+
+)
+
+
+
+rsiAveragePlot = plot(
+
+     rsiAverage,
+
+     title="RSI Average",
+
+     color=color.rgb(255, 179, 0),
+
+     linewidth=1
+
+)
+
+
+
+// RSI levels use plot so RSI fill remains valid.
+
+rsiUpperPlot = plot(
+
+     70,
+
+     title="Overbought",
+
+     color=color.new(color.gray, 30),
+
+     linewidth=1
+
+)
+
+
+
+plot(
+
+     50,
+
+     title="RSI Center",
+
+     color=color.new(color.gray, 70),
+
+     linewidth=1
+
+)
+
+
+
+plot(
+
+     30,
+
+     title="Oversold",
+
+     color=color.new(color.gray, 30),
+
+     linewidth=1
+
+)
+
+
+
+// Blue shading when RSI is above 70.
+
+fill(
+
+     rsiPlot,
+
+     rsiUpperPlot,
+
+     color=rsiValue > 70 ? color.new(color.rgb(66, 165, 245), 75) : na,
+
+     title="RSI Overbought Area"
+
+)
+
+
+
+//==================================================
+
+// SIGNAL DISPLAY
+
+// Main icons reduced from normal to small.
+
+//==================================================
+
+
+
+// LONG A: small yellow triangle
+
+plotshape(
+
+     longASignal,
+
+     title="LONG A",
+
+     style=shape.triangleup,
+
+     location=location.belowbar,
+
+     color=color.rgb(255, 215, 0),
+
+     text="A",
+
+     textcolor=color.black,
+
+     size=size.small,
+
+     force_overlay=true
+
+)
+
+
+
+// PROTECT: small light-blue diamond
+
+plotshape(
+
+     protectSignal,
+
+     title="PROTECT",
+
+     style=shape.diamond,
+
+     location=location.abovebar,
+
+     color=color.rgb(0, 188, 212),
+
+     text="P",
+
+     textcolor=color.white,
+
+     size=size.small,
+
+     force_overlay=true
+
+)
+
+
+
+// LONG B: small orange triangle
+
+plotshape(
+
+     longBSignal,
+
+     title="LONG B",
+
+     style=shape.triangleup,
+
+     location=location.belowbar,
+
+     color=color.rgb(255, 152, 0),
+
+     text="B",
+
+     textcolor=color.white,
+
+     size=size.small,
+
+     force_overlay=true
+
+)
+
+
+
+// OUT FINAL: small dark-blue triangle
+
+plotshape(
+
+     finalExitSignal,
+
+     title="OUT FINAL",
+
+     style=shape.triangledown,
+
+     location=location.abovebar,
+
+     color=color.rgb(25, 118, 210),
+
+     text="OUT",
+
+     textcolor=color.white,
+
+     size=size.small,
+
+     force_overlay=true
+
+)
+
+
+
+// HOT remains tiny.
+
+plotshape(
+
+     hotSignal,
+
+     title="HOT",
+
+     style=shape.diamond,
+
+     location=location.abovebar,
+
+     color=color.rgb(255, 111, 0),
+
+     text="HOT",
+
+     textcolor=color.white,
+
+     size=size.small,
+
+     force_overlay=true
+
+)
+
+
+
+//==================================================
+
+// VISIBLE HIGH AND LOW PRICE
+
+// Small black text without icon or background.
+
+//==================================================
+
+
+
+var float visibleHigh = na
+
+var float visibleLow = na
+
+
+
+var int visibleHighBar = na
+
+var int visibleLowBar = na
+
+
+
+var label visibleHighLabel = na
+
+var label visibleLowLabel = na
+
+
+
+isInsideVisibleChart = time >= chart.left_visible_bar_time and time <= chart.right_visible_bar_time
+
+
+
+// Reset at the first visible candle.
+
+if time == chart.left_visible_bar_time
+
+    visibleHigh := high
+
+    visibleLow := low
+
+
+
+    visibleHighBar := bar_index
+
+    visibleLowBar := bar_index
+
+
+
+    label.delete(visibleHighLabel)
+
+    label.delete(visibleLowLabel)
+
+
+
+// Find visible high and low.
+
+if isInsideVisibleChart
+
+    if na(visibleHigh) or high > visibleHigh
+
+        visibleHigh := high
+
+        visibleHighBar := bar_index
+
+
+
+    if na(visibleLow) or low < visibleLow
+
+        visibleLow := low
+
+        visibleLowBar := bar_index
+
+
+
+// Display after reaching the final visible candle.
+
+if time == chart.right_visible_bar_time
+
+    label.delete(visibleHighLabel)
+
+    label.delete(visibleLowLabel)
+
+
+
+    visibleHighLabel := label.new(
+
+         visibleHighBar,
+
+         visibleHigh,
+
+         str.tostring(visibleHigh, format.mintick),
+
+         xloc=xloc.bar_index,
+
+         yloc=yloc.price,
+
+         style=label.style_none,
+
+         textcolor=color.black,
+
+         size=size.small,
+
+         force_overlay=true
+
+    )
+
+
+
+    visibleLowLabel := label.new(
+
+         visibleLowBar,
+
+         visibleLow,
+
+         str.tostring(visibleLow, format.mintick),
+
+         xloc=xloc.bar_index,
+
+         yloc=yloc.price,
+
+         style=label.style_none,
+
+         textcolor=color.black,
+
+         size=size.small,
+
+         force_overlay=true
+
+    )
+
+
+
+//==================================================
+
+// ALERTS
+
+//==================================================
+
+
+
+alertcondition(
+
+     longASignal,
+
+     title="BANKSAWAN LONG A",
+
+     message="LONG A {{ticker}} | Harga {{close}} | Entry awal terkonfirmasi."
+
+)
+
+
+
+alertcondition(
+
+     protectSignal,
+
+     title="BANKSAWAN PROTECT",
+
+     message="PROTECT {{ticker}} | Harga {{close}} | Amankan profit atau geser SL ke BEP."
+
+)
+
+
+
+alertcondition(
+
+     longBSignal,
+
+     title="BANKSAWAN LONG B",
+
+     message="LONG B {{ticker}} | Harga {{close}} | Momentum kembali setelah pullback."
+
+)
+
+
+
+alertcondition(
+
+     finalExitSignal,
+
+     title="BANKSAWAN OUT FINAL",
+
+     message="OUT FINAL {{ticker}} | Harga {{close}} | Struktur tren utama melemah."
+
+)
+
+
+
+alertcondition(
+
+     hotSignal,
+
+     title="BANKSAWAN HOT",
+
+     message="HOT {{ticker}} | Harga {{close}} | Momentum mulai panas, jangan mengejar entry."
+
+)

@@ -40,11 +40,11 @@ test('UNIVERSE includes all eligible but reports only covered subset',async()=>{
  assert.equal(list[0].coverage,'QUEUED');assert.equal(list[1].coverage,'SCANNING');
  assert.equal(market.status().covered,1);
 });
-test('socket failure hard-stops scanning; cannot silently fallback to REST',async()=>{
+test('socket failure pauses scanning and schedules bounded WS recovery',async()=>{
  const market=new YellowLiveMarket(await config());market.isRunning=true;
  market.connectWebsockets();market.tickerWs.emit('open');market.klineWs.emit('open');
  market.klineWs.emit('close');
- assert.equal(market.isHalted,true);assert.match(market.haltReason,/WEBSOCKET_DISCONNECTED/);
+ assert.equal(market.isHalted,false);assert.equal(market.wsRecovering,true);assert.equal(market.covered.size,0);market.stop();
 });
 test('GET API read-only, simulation=false, health liveness independent of readiness',async()=>{
  const market=new YellowLiveMarket(await config());await market.ledger.restore();market.isRunning=true;
