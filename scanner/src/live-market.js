@@ -5,10 +5,11 @@
 import {RequestGuard,klineWeight,CircuitOpen,RestPaused} from './live-request-guard.js';
 import {CandleBook,CandleGap,KEYS} from './live-candle-book.js';
 import {LiveHomeLedger} from './live-home-ledger.js';
-import {newParallelState,stepLongAOnTimeframe,PERIODS} from './parallel-long-a.js';
+import {stepLongAOnTimeframe,PERIODS} from './parallel-long-a.js';
 import {normalizeBinanceTicker} from './binance-fixture-adapter.js';
 import {eligibleUniverse} from './long-a.js';
 import path from 'node:path';
+import {LaneCheckpoint} from './live-state-checkpoint.js';
 
 const API='https://fapi.binance.com';
 const WS_RAW='wss://fstream.binance.com/market/ws';
@@ -19,14 +20,16 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
 export class YellowLiveMarket {
   constructor({dataDir,clock=()=>Date.now(),guard=null,wsClass=globalThis.WebSocket,
-    maxTracked=24,fetchIntervalMs=600_000,sendEvent=async()=>{},random=Math.random,
+    maxTracked=200,fetchIntervalMs=600_000,sendEvent=async()=>{},random=Math.random,
     log=(...args)=>console.log(...args)}={}){
     if(!dataDir)throw new Error('YELLOW_DATA_DIR_REQUIRED');
     if(!wsClass)throw new Error('WEBSOCKET_NOT_AVAILABLE');
     this.random=random;this.feedGeneration=0;this.wsRecovering=false;this.wsRecoveryAttempts=0;
     this.wsReconnectAtMs=0;this.wsReconnectDeadlineMs=0;this.wsHealthySinceMs=0;this.wsRecoveryDataAtMs=0;
     this.clock=clock;this.dataDir=dataDir;this.wsClass=wsClass;this.log=log;
-    this.maxTracked=Math.min(200,Math.max(1,maxTracked));this.fetchIntervalMs=Math.max(300_000,fetchIntervalMs);
+    if(!Number.isSafeInteger(maxTracked)||maxTracked<1||maxTracked>200)throw Error('INVALID_MAX_TRACKED');
+    this.maxTracked=maxTracked;this.fetchIntervalMs=Math.max(300_000,fetchIntervalMs);
+    this.checkpoints=new LaneCheckpoint(path.join(dataDir,'lane-checkpoints'));
     this.guard=guard||new RequestGuard({filename:path.join(dataDir,'binance-circuit.json'),clock});
     this.ledger=new LiveHomeLedger({filename:path.join(dataDir,'home-ledger.json'),clock});
     this.sendEvent=sendEvent;this.exchangeSymbols=new Map();this.tickers=new Map();this.tickerHistory=new Map();
@@ -277,6 +280,10 @@ export class YellowLiveMarket {
           this.recordFault('EVAL_'+symbol+'_'+tf+'_'+result.reason);
       }
     }
+    if(!this.isHalted&&this.covered.get(symbol)===tracked){
+      try{await this.checkpoints.save(symbol,tracked.states,this.clock());}
+      catch(e){this.halt('CHECKPOINT_WRITE_FAILED');throw e;}
+    }
   }
   async bootstrap(symbol){
     if(this.isHalted||this.covered.has(symbol)||this.inProgress.has(symbol)||
@@ -294,9 +301,11 @@ export class YellowLiveMarket {
         const closed=Array.isArray(data)?data.filter(b=>Number(b[6])+1<=this.clock()):[];
         book.bootstrap(tf,closed,this.clock());
       }
-      const states=newParallelState();
-      for(const tf of frames){states[tf].lastProcessedEndMs=book.latest(tf).endMs;}
-      if(!this.isHalted&&!this.wsRecovering&&generation===this.feedGeneration){this.covered.set(symbol,{book,states,startedAtMs:this.clock(),readyAfterFreshPullback:true});
+      const {states,resumed,cold}=await this.checkpoints.restore(symbol,book,this.clock());
+      if(!this.isHalted&&!this.wsRecovering&&generation===this.feedGeneration){
+        await this.checkpoints.save(symbol,states,this.clock());
+        if(this.isHalted||this.wsRecovering||generation!==this.feedGeneration)return;
+        this.covered.set(symbol,{book,states,startedAtMs:this.clock(),resumedLanes:resumed,coldLanes:cold,readyAfterFreshPullback:cold.length>0});
         if(!this.firstTrackedAtMs)this.firstTrackedAtMs=this.clock();
         this.subscribe(symbol);}
     }catch(e){
@@ -345,14 +354,7 @@ export class YellowLiveMarket {
               this.covered.delete(symbol);this.unsubscribe(symbol);
             }
           }
-          // Priority +5% first, then all +1% as slots become available.
-          for(const item of universe){
-            if(this.covered.size>=this.maxTracked||this.isHalted||this.guard.isRemotePaused?.())break;
-            if(this.covered.has(item.symbol)||this.inProgress.has(item.symbol)||
-              (this.retryAfter.get(item.symbol)||0)>this.clock())continue;
-            await this.bootstrap(item.symbol);
-            break; // one bootstrap each scheduler pass
-          }
+          await this.bootstrapNextEligible(universe);
         }
       }catch(e){
         if(e instanceof RestPaused)this.recordFault('LOOP_REST_DEFERRED');
@@ -360,6 +362,15 @@ export class YellowLiveMarket {
         if(this.guard.closedReason)this.halt('CIRCUIT_OPEN');
       }
       if(this.isRunning&&!this.isHalted)await wait(1200);
+    }
+  }
+  async bootstrapNextEligible(universe){
+    // One symbol at a time through the unchanged guarded REST gateway.
+    for(const item of universe){
+      if(this.covered.size>=this.maxTracked||this.isHalted||this.guard.isRemotePaused?.())break;
+      if(this.covered.has(item.symbol)||this.inProgress.has(item.symbol)||
+        (this.retryAfter.get(item.symbol)||0)>this.clock())continue;
+      await this.bootstrap(item.symbol);break;
     }
   }
   async onKline(message,generation=this.feedGeneration){
@@ -397,6 +408,9 @@ export class YellowLiveMarket {
     bootstrapInProgress:this.inProgress.size,coverageRatio:eligible.length?this.covered.size/eligible.length:0,
     feedGeneration:this.feedGeneration,wsRecovering:this.wsRecovering,wsRecoveryAttempts:this.wsRecoveryAttempts,
     maxTracked:this.maxTracked,cooldownSymbols:[...this.retryAfter.values()].filter(t=>t>this.clock()).length,eventsEmitted:this.eventsEmitted,lastClosedCandleMs:this.lastClosedCandleMs,
+    coverageComplete:eligible.every(x=>this.covered.has(x.symbol)),
+    uncoveredEligible:eligible.filter(x=>!this.covered.has(x.symbol)).length,
+    laneRecovery:[...this.covered].map(([symbol,t])=>({symbol,resumed:t.resumedLanes||[],cold:t.coldLanes||[]})),
     requestGuard:this.guard.metrics(),fcm:this.fcm?.metrics()||{enabled:false},haltReason:this.haltReason,
     lastTickerDataAtMs:this.lastTickerDataAtMs,lastKlineDataAtMs:this.lastKlineDataAtMs,
     lastFaults:this.recentFaults.slice(-10)};}
