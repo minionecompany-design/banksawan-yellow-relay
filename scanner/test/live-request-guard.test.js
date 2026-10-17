@@ -93,3 +93,21 @@ test('budget avoids burst by waiting, and no retries on server failure',async()=
  assert.ok(now>=160000);assert.equal(calls,2);
  assert.equal(klineWeight(170),2);
 });
+
+test('weighted rolling window waits for enough expiring charges, not only the first lightweight request',async()=>{
+ let now=100_000,calls=0;
+ const guard=new RequestGuard({filename:await file(),clock:()=>now,sleep:async ms=>{now+=ms;},
+   minGapMs:0,weightPerMinute:60,
+   fetchImpl:async()=>{calls++;return response(200,{calls},'1');}});
+ await guard.restore();
+ const call=async weight=>guard.getJson('https://fapi.binance.com/fapi/v1/klines',{weight});
+ await call(1);now+=100;await call(40);
+ for(let i=0;i<9;i++){now+=100;await call(2);} // spent 59
+ now+=100;await call(1); // spent 60
+ await call(2); // wait for the weight-40 charge, not the earliest weight-1 charge
+ assert.ok(now>=100_100+60_000,'waits for sufficient free weight');
+ assert.equal(calls,13,'no retries or direct REST bypass');
+ assert.equal(guard.closedReason,null,'never latches a local scheduling condition');
+ const alive=guard.charges.filter(x=>now-x.at<60_000).reduce((n,x)=>n+x.weight,0);
+ assert.ok(alive<=60);
+});
