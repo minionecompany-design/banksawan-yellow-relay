@@ -20,7 +20,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
 export class YellowLiveMarket {
   constructor({dataDir,clock=()=>Date.now(),guard=null,wsClass=globalThis.WebSocket,
-    maxTracked=200,fetchIntervalMs=600_000,sendEvent=async()=>{},random=Math.random,
+    maxTracked=200,fetchIntervalMs=600_000,sendEvent=async()=>{},passiveEvidence=null,random=Math.random,
     log=(...args)=>console.log(...args)}={}){
     if(!dataDir)throw new Error('YELLOW_DATA_DIR_REQUIRED');
     if(!wsClass)throw new Error('WEBSOCKET_NOT_AVAILABLE');
@@ -32,7 +32,7 @@ export class YellowLiveMarket {
     this.checkpoints=new LaneCheckpoint(path.join(dataDir,'lane-checkpoints'));
     this.guard=guard||new RequestGuard({filename:path.join(dataDir,'binance-circuit.json'),clock});
     this.ledger=new LiveHomeLedger({filename:path.join(dataDir,'home-ledger.json'),clock});
-    this.sendEvent=sendEvent;this.exchangeSymbols=new Map();this.tickers=new Map();this.tickerHistory=new Map();
+    this.sendEvent=sendEvent;this.passiveEvidence=passiveEvidence;this.exchangeSymbols=new Map();this.tickers=new Map();this.tickerHistory=new Map();
     this.covered=new Map();this.inProgress=new Set();this.retryAfter=new Map();this.ignored=0;this.eventsEmitted=0;
     this.isRunning=false;this.tickerConnected=false;this.klineConnected=false;
     this.isHalted=false;this.haltReason='';this.nextRefresh=0;this.nextExchangeRefresh=0;
@@ -273,7 +273,21 @@ export class YellowLiveMarket {
         tracked.states[tf]=result.state;
         if(result.event?.signal==='LONG_A'){
           const accepted=await this.ledger.accept(result.event);
-          if(accepted.accepted){this.eventsEmitted++;await this.sendEvent(accepted.event);}
+          if(accepted.accepted){
+             this.eventsEmitted++;
+             // Research-only hook. No DB/REST/FCM dependency; every exception
+             // must fail open so the original notification path is unchanged.
+             try{
+               const saved=this.passiveEvidence?.onAcceptedLongA(result.event,target);
+               if(saved?.accepted){
+                 // MTF context can delay evaluation: catch up ONLY closed bars
+                 // already present in the same trusted in-memory candle book.
+                 for(const b of bars)if(b.endMs>nextEnd&&b.endMs<=this.clock())
+                   this.passiveEvidence.onClosedBar(symbol,tf,b);
+               }
+             }catch(e){this.log('YELLOW_GOLD_RESEARCH_FAULT','EVENT_HOOK_'+String(e?.message).slice(0,80));}
+             await this.sendEvent(accepted.event);
+           }
         }
         if(result.reason&&result.reason!=='NO_CONFIRMED_SIGNAL'&&
            result.reason!=='BINANCE_24H_FILTER')
@@ -393,6 +407,9 @@ export class YellowLiveMarket {
       this.recordFault('CANDLE_GAP_'+symbol+'_'+e.message);return;}
     if(applied.status!=='APPENDED')return;
     this.lastClosedCandleMs=Math.max(this.lastClosedCandleMs,applied.endMs);
+    // Already-closed WS bar; no extra subscription or request.
+    try{this.passiveEvidence?.onClosedBar(symbol,applied.timeframe,tracked.book.latest(applied.timeframe));}
+    catch(e){this.log('YELLOW_GOLD_RESEARCH_FAULT','BAR_HOOK_'+String(e?.message).slice(0,80));}
     // Serial symbol-local evaluation: a late 5m bar may unblock queued 1m
     // candles, and overlapping WebSocket callbacks must never duplicate them.
     const job=(tracked.drain||Promise.resolve()).then(()=>this.flushTracked(symbol,tracked));
@@ -411,7 +428,8 @@ export class YellowLiveMarket {
     coverageComplete:eligible.every(x=>this.covered.has(x.symbol)),
     uncoveredEligible:eligible.filter(x=>!this.covered.has(x.symbol)).length,
     laneRecovery:[...this.covered].map(([symbol,t])=>({symbol,resumed:t.resumedLanes||[],cold:t.coldLanes||[]})),
-    requestGuard:this.guard.metrics(),fcm:this.fcm?.metrics()||{enabled:false},haltReason:this.haltReason,
+    requestGuard:this.guard.metrics(),fcm:this.fcm?.metrics()||{enabled:false},
+    researchEvidence:this.passiveEvidence?.status?.()??{enabled:false},haltReason:this.haltReason,
     lastTickerDataAtMs:this.lastTickerDataAtMs,lastKlineDataAtMs:this.lastKlineDataAtMs,
     lastFaults:this.recentFaults.slice(-10)};}
 }
