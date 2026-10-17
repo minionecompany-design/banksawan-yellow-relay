@@ -31,12 +31,15 @@ export function inspectLongAQuality(event,rawBars){
   const bars=rawBars.filter(x=>x && Number.isSafeInteger(x.endMs)&&x.endMs<=t)
     .sort((a,b)=>a.endMs-b.endMs).slice(-61);
   if(bars.length<61 || bars.at(-1).endMs!==t) return rejected('INSUFFICIENT_AS_OF_CANDLES');
+  // Price in the genuine LONG_A event must match the exact closed candle.
+  if(Math.abs(bars.at(-1).close-event.price)>Math.max(1e-10,Math.abs(event.price)*1e-8))
+    return rejected('EVENT_PRICE_MISMATCH');
   for(let i=0;i<bars.length;i++){
     const b=bars[i];
     if((i&&b.endMs-bars[i-1].endMs!==period)||b.endMs%period!==0 ||
       ![b.open,b.high,b.low,b.close,b.volume].every(finite) ||
       b.open<=0||b.high<=0||b.low<=0||b.close<=0||b.volume<0 ||
-      b.high<Math.max(b.open,b.close)||b.low>Math.min(b.open,b.close))
+      b.high<Math.max(b.open,b.close)||b.low>Math.min(b.open,b.close)||b.high<b.low)
       return rejected('INVALID_OR_GAPPED_CANDLES');
   }
   const now=bars.at(-1), prev=bars.slice(0,-1), previous20=prev.slice(-20);
