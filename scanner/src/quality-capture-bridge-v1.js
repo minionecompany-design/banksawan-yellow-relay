@@ -91,6 +91,6 @@ export class QualityCaptureBridgeV1 {
   }
   status(){
     return {enabled:this.enabled,initialized:this.initialized,
-      ...this.metrics,pendingRecords:this.capture.snapshot().records.length};
+      ...this.metrics,pendingRecords:this.capture.records?.size??null};
   }
 }
