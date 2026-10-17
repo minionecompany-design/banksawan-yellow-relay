@@ -23,8 +23,9 @@ const rejected = reason => ({status:'UNVERIFIED',reason,deliveryAction:'NONE',gr
 export function inspectLongAQuality(event,rawBars){
   if(!event || event.signal!=='LONG_A' || !Object.hasOwn(PERIODS,event.timeframe) ||
     !/^[A-Z0-9]{2,25}USDT$/.test(event.symbol||'') ||
-    !Number.isSafeInteger(event.barClosedAtMs) || event.id!==signalId(event) ||
-    !(finite(event.price)&&event.price>0)) return rejected('INVALID_LONG_A_EVENT');
+    !Number.isSafeInteger(event.barClosedAtMs) || event.id!==signalId(event))
+    return rejected('INVALID_LONG_A_EVENT');
+  if(!(finite(event.price)&&event.price>0)) return rejected('EVENT_PRICE_MISSING');
   if(!Array.isArray(rawBars))return rejected('CANDLES_NOT_PROVIDED');
   const period=PERIODS[event.timeframe], t=event.barClosedAtMs;
   // Ignore all future data, including future modifications and higher highs.
