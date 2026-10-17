@@ -17,7 +17,7 @@ const barsFor=(tf='1m',symbol='AGTUSDT')=>{
   symbol,timeframe:tf,barClosedAtMs:END,signal:'LONG_A',price:1}};
 };
 const fakeStore=()=>{const snapshots=[];return {
-  snapshots,restore:async()=>null,save:async x=>{snapshots.push(JSON.parse(JSON.stringify(x)));return {saved:true}};
+  snapshots,restore:async()=>null,save:async x=>{snapshots.push(JSON.parse(JSON.stringify(x)));return {saved:true}}
 }};
 const make=async(extra={})=>{
  const store=extra.store??fakeStore(),clock=extra.clock??(()=>END);
