@@ -7,47 +7,46 @@ permissions:
 jobs:
   proof:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 23
     steps:
-      - name: Read existing YELLOW APIs only; zero direct Binance requests
+      - name: Verify approved 200-cap rollout through existing APIs only
         shell: bash
         run: |
           python3 - <<'PY'
-          import urllib.request,urllib.error,json,time,datetime,pathlib
+          import urllib.request,json,time,datetime,pathlib
           base='https://yellow-live-shadow-yc94-production.up.railway.app'
-          report={'scope':'Read-only existing YELLOW API; no direct Binance requests; no deploy/restart','startedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'samples':[],'errors':[]}
+          report={'scope':'Read-only YELLOW APIs; zero direct Binance requests, deploys or restarts','startedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'samples':[],'errors':[],'complete':False}
           def get(route):
               start=time.monotonic()
-              with urllib.request.urlopen(urllib.request.Request(base+route,headers={'Cache-Control':'no-cache'}),timeout=20) as response:
-                  value=json.load(response);code=response.status
-              return {'http':code,'durationMs':round((time.monotonic()-start)*1000,2),'receivedAtMs':int(time.time()*1000),'body':value}
+              with urllib.request.urlopen(urllib.request.Request(base+route,headers={'Cache-Control':'no-cache'}),timeout=15) as r:
+                  return {'http':r.status,'body':json.load(r),'durationMs':round((time.monotonic()-start)*1000,2),'receivedAtMs':int(time.time()*1000)}
           try:
-              report['health']=get('/health')
-              report['home']=get('/api/home')
-              for i in range(3):
-                  status=get('/api/status');universe=get('/api/universe')
-                  report['samples'].append({'status':status,'universe':universe})
-                  if i<2:time.sleep(5)
-              s=report['samples'][-1]['status']['body']
-              assert s['ok'] and s['tickerConnected'] and s['klineConnected'] and not s.get('wsRecovering')
-              assert not s['requestGuard']['circuitOpen']
-              assert int(time.time()*1000)-s['lastTickerDataAtMs']<30000
-              u=report['samples'][-1]['universe']['body']
-              assert u['simulation'] is False and len(u['universe'])>0
-              assert len(u['universe'])==u['coverage']['eligible']
-              assert report['home']['body']['simulation'] is False
-              for event in report['home']['body']['home']:
-                  assert event['signal']=='LONG_A'
-                  assert event['id']==f"{event['symbol']}:{event['timeframe']}:{event['barClosedAtMs']}:LONG_A"
-                  assert event['homeExpiresMs']-event['firstSeenMs']<=10*3600000
-              report['pass']=True
+              for i in range(40):
+                  try:
+                      sample=get('/api/status');s=sample['body'];report['samples'].append(sample)
+                      summary={k:s.get(k) for k in ['ok','maxTracked','eligible','covered','coverageComplete','uncoveredEligible','tickerConnected','klineConnected','wsRecovering','haltReason']}
+                      summary['guard']=s.get('requestGuard');print(json.dumps(summary),flush=True)
+                      if s.get('requestGuard',{}).get('circuitOpen') or s.get('haltReason'):
+                          raise RuntimeError('Scanner halted or circuit open')
+                      if s.get('maxTracked')==200 and s.get('covered',0)>24 and s.get('eligible',0)>0 and s.get('coverageComplete'):
+                          assert s['ok'] and s['tickerConnected'] and s['klineConnected'] and not s.get('wsRecovering')
+                          assert int(time.time()*1000)-s['lastTickerDataAtMs']<30000
+                          report['universe']=get('/api/universe');report['home']=get('/api/home')
+                          assert report['universe']['body']['simulation'] is False
+                          for e in report['home']['body']['home']:
+                              assert e['signal']=='LONG_A'
+                              assert e['id']==f"{e['symbol']}:{e['timeframe']}:{e['barClosedAtMs']}:LONG_A"
+                              assert e['homeExpiresMs']-e['firstSeenMs']<=10*3600000
+                          report['complete']=True;break
+                  except (urllib.error.URLError,TimeoutError) as e:
+                      report['errors'].append(str(e))
+                  if i<39:time.sleep(30)
+              report['pass']=report['complete']
           except Exception as e:
               report['pass']=False;report['errors'].append(type(e).__name__+': '+str(e))
+          report['finishedAt']=datetime.datetime.now(datetime.timezone.utc).isoformat()
           pathlib.Path('yellow-live-readonly-proof.json').write_text(json.dumps(report,indent=2)+'\n')
-          print(json.dumps({'pass':report['pass'],'errors':report['errors'],'samples':len(report['samples'])}))
-          if report['samples']:
-              s=report['samples'][-1]['status']['body']
-              print(json.dumps({'eligible':s.get('eligible'),'covered':s.get('covered'),'tickerConnected':s.get('tickerConnected'),'klineConnected':s.get('klineConnected'),'guard':s.get('requestGuard'),'fcm':s.get('fcm')}))
+          print(json.dumps({'pass':report['pass'],'samples':len(report['samples']),'errors':report['errors']}))
           if not report['pass']:raise SystemExit(1)
           PY
       - name: Preserve public API proof
