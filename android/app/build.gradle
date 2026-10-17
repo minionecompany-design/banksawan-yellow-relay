@@ -4,6 +4,25 @@ if (file('google-services.json').exists()) {
     apply plugin: 'com.google.gms.google-services'
 }
 
+def permanentSigning = System.getenv('YELLOW_RELEASE_SIGNING') == 'true'
+def releaseRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
+if (releaseRequested && !permanentSigning) {
+    throw new GradleException('YELLOW_PERMANENT_SIGNING_REQUIRED: release must never use an ephemeral debug key')
+}
+gradle.taskGraph.whenReady { graph ->
+    if (!permanentSigning && graph.allTasks.any { it.name.toLowerCase().contains('release') }) {
+        throw new GradleException('YELLOW_PERMANENT_SIGNING_REQUIRED: release task graph requires the permanent signer')
+    }
+}
+if (permanentSigning) {
+    ['YELLOW_SIGNING_STORE_FILE', 'YELLOW_SIGNING_STORE_PASSWORD'].each { name ->
+        if (!System.getenv(name)) throw new GradleException('YELLOW_SIGNING_INPUT_MISSING: ' + name)
+    }
+    if (!file(System.getenv('YELLOW_SIGNING_STORE_FILE')).isFile()) {
+        throw new GradleException('YELLOW_SIGNING_STORE_NOT_FOUND')
+    }
+}
+
 android {
     namespace 'id.banksawan.yellow'
     compileSdk 35
@@ -28,6 +47,24 @@ android {
         buildConfigField 'boolean', 'FCM_ENABLED', (allowAlerts && file('google-services.json').exists()) ? 'true' : 'false'
     }
     buildFeatures { buildConfig true }
+    signingConfigs {
+        if (permanentSigning) {
+            yellowPermanent {
+                storeFile file(System.getenv('YELLOW_SIGNING_STORE_FILE'))
+                storeType 'PKCS12'
+                storePassword System.getenv('YELLOW_SIGNING_STORE_PASSWORD')
+                keyAlias 'yellow-permanent'
+                keyPassword System.getenv('YELLOW_SIGNING_STORE_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (permanentSigning) signingConfig signingConfigs.yellowPermanent
+            debuggable false
+            minifyEnabled false
+        }
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
