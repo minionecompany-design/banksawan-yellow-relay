@@ -38,6 +38,10 @@ test('weak or stretched LONG A can be ranked but never blocked by research engin
  assert.equal(b.flags.notChasing,false);
  assert.notEqual(b.grade,'GOLD_RESEARCH');
 });
+test('rejects prices that do not match the closed signal candle',()=>{
+ const {event,bars}=fixture();
+ assert.equal(inspectLongAQuality({...event,price:event.price*1.01},bars).reason,'EVENT_PRICE_MISMATCH');
+});
 test('future bars cannot improve or change a past classification',()=>{
  const {event,bars}=fixture(); const r=inspectLongAQuality(event,bars);
  const period=periods[event.timeframe];
