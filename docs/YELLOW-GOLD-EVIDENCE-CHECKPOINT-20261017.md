@@ -12,10 +12,16 @@ Railway YELLOW_FCM logs show:
 | RSRUSDT | 1m | 17 Oct 15:21 | UNVERIFIED |
 | FOLKSUSDT | 1m | 17 Oct 15:33 | UNVERIFIED |
 | AIOUSDT | 1m | 17 Oct 16:09 | UNVERIFIED |
+| METISUSDT | 1m | 17 Oct 16:43 | UNVERIFIED |
+| AIOUSDT (new event) | 1m | 17 Oct 16:48 | UNVERIFIED |
+| HANAUSDT | 1m | 17 Oct 16:52 | UNVERIFIED |
+| ACUUSDT | 1m | 17 Oct 16:56 | UNVERIFIED |
+| KMNOUSDT | 1m | 17 Oct 17:07 | UNVERIFIED |
+| TAKEUSDT | 1m | 17 Oct 18:02 | UNVERIFIED |
 
 FCM SENT means submission from backend, not proof every phone received sound; user confirmed phone sound for AVA. TradingView AGT 5m A marker is visual only; no separate confirmed 5m FCM event. ZIP screenshot charts do not contain full exact OHLCV candles at signal. Registry JSON deliberately uses null for missing as-of source data.
 
-Offline evaluation of these SEVEN verified natural event IDs: 7 inputs, 0 candidates scored, 0 with verified forward 4h outcome, 7 UNVERIFIED. This does NOT mean seven failures. Do not invent GOLD grades or profit outcomes.
+Offline evaluation of these THIRTEEN verified natural event IDs: 13 inputs, 0 candidates scored, 0 with verified forward 4h outcome, 13 UNVERIFIED. This does NOT mean thirteen failures. Do not invent GOLD grades or profit outcomes.
 
 ## Research-only work added
 - quality-shadow-v1: original confirmed LONG_A only; independently looks at structure (early base OR continuation), release volume, and timing from the 61 contiguous target-TF CLOSED candles ending at event time. Fails UNVERIFIED when data missing or event price mismatches candle.
