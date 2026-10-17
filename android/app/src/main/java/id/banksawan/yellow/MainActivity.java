@@ -408,7 +408,7 @@ public class MainActivity extends Activity {
                     || !statusReply.optBoolean("tickerConnected",false)
                     || !statusReply.optBoolean("klineConnected",false)
                     || guard==null || guard.optBoolean("circuitOpen",true)
-                    || covered<0 || eligible<0 || maximum<1 || maximum>24 || covered>maximum
+                    || covered<0 || eligible<0 || maximum<1 || maximum>200 || covered>maximum
                     || !tickerFresh || !klineFresh){
                     throw new IllegalStateException("YELLOW_MARKET_NOT_READY_OR_STALE");
                 }
@@ -421,7 +421,7 @@ public class MainActivity extends Activity {
                 JSONObject coverage=universeReply.getJSONObject("coverage");
                 int newCovered=coverage.getInt("covered");
                 int newEligible=coverage.getInt("eligible");
-                if(newCovered<0||newCovered>24||newEligible<0)
+                if(newCovered<0||newCovered>maximum||newEligible<0)
                     throw new IllegalStateException("INVALID_SCANNER_COVERAGE");
                 runOnUiThread(()->{
                     home=newHome;universe=newUniverse;
