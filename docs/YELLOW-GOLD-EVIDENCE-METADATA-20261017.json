@@ -124,5 +124,113 @@
       "metadataOnly": true,
       "warning": "NULL candles and NULL prices mean no GOLD rating; do not substitute later ticker."
     }
+  },
+  {
+    "event": {
+      "id": "METISUSDT:1m:1792230180000:LONG_A",
+      "symbol": "METISUSDT",
+      "timeframe": "1m",
+      "barClosedAtMs": 1792230180000,
+      "price": null,
+      "signal": "LONG_A"
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "eventIdSource": "Railway YELLOW_FCM ... SENT deployment runtime log",
+      "logTimeUtc": "2026-10-17T09:43:10.634Z",
+      "metadataOnly": true,
+      "warning": "NULL candles and NULL prices mean no GOLD rating; do not substitute later ticker."
+    }
+  },
+  {
+    "event": {
+      "id": "AIOUSDT:1m:1792230480000:LONG_A",
+      "symbol": "AIOUSDT",
+      "timeframe": "1m",
+      "barClosedAtMs": 1792230480000,
+      "price": null,
+      "signal": "LONG_A"
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "eventIdSource": "Railway YELLOW_FCM ... SENT deployment runtime log",
+      "logTimeUtc": "2026-10-17T09:48:02.279Z",
+      "metadataOnly": true,
+      "warning": "NULL candles and NULL prices mean no GOLD rating; do not substitute later ticker."
+    }
+  },
+  {
+    "event": {
+      "id": "HANAUSDT:1m:1792230720000:LONG_A",
+      "symbol": "HANAUSDT",
+      "timeframe": "1m",
+      "barClosedAtMs": 1792230720000,
+      "price": null,
+      "signal": "LONG_A"
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "eventIdSource": "Railway YELLOW_FCM ... SENT deployment runtime log",
+      "logTimeUtc": "2026-10-17T09:52:04.259Z",
+      "metadataOnly": true,
+      "warning": "NULL candles and NULL prices mean no GOLD rating; do not substitute later ticker."
+    }
+  },
+  {
+    "event": {
+      "id": "ACUUSDT:1m:1792230960000:LONG_A",
+      "symbol": "ACUUSDT",
+      "timeframe": "1m",
+      "barClosedAtMs": 1792230960000,
+      "price": null,
+      "signal": "LONG_A"
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "eventIdSource": "Railway YELLOW_FCM ... SENT deployment runtime log",
+      "logTimeUtc": "2026-10-17T09:56:05.799Z",
+      "metadataOnly": true,
+      "warning": "NULL candles and NULL prices mean no GOLD rating; do not substitute later ticker."
+    }
+  },
+  {
+    "event": {
+      "id": "KMNOUSDT:1m:1792231620000:LONG_A",
+      "symbol": "KMNOUSDT",
+      "timeframe": "1m",
+      "barClosedAtMs": 1792231620000,
+      "price": null,
+      "signal": "LONG_A"
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "eventIdSource": "Railway YELLOW_FCM ... SENT deployment runtime log",
+      "logTimeUtc": "2026-10-17T10:07:10.408Z",
+      "metadataOnly": true,
+      "warning": "NULL candles and NULL prices mean no GOLD rating; do not substitute later ticker."
+    }
+  },
+  {
+    "event": {
+      "id": "TAKEUSDT:1m:1792234920000:LONG_A",
+      "symbol": "TAKEUSDT",
+      "timeframe": "1m",
+      "barClosedAtMs": 1792234920000,
+      "price": null,
+      "signal": "LONG_A"
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "eventIdSource": "Railway YELLOW_FCM ... SENT deployment runtime log",
+      "logTimeUtc": "2026-10-17T11:02:03.951Z",
+      "metadataOnly": true,
+      "warning": "NULL candles and NULL prices mean no GOLD rating; do not substitute later ticker."
+    }
   }
 ]
