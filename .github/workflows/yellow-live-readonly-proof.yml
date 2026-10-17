@@ -1,0 +1,59 @@
+name: YELLOW deployed API read-only proof
+on:
+  push:
+    branches: [audit/yellow-live-readonly-20261017]
+permissions:
+  contents: read
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read existing YELLOW APIs only; zero direct Binance requests
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import urllib.request,urllib.error,json,time,datetime,pathlib
+          base='https://yellow-live-shadow-yc94-production.up.railway.app'
+          report={'scope':'Read-only existing YELLOW API; no direct Binance requests; no deploy/restart','startedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'samples':[],'errors':[]}
+          def get(route):
+              start=time.monotonic()
+              with urllib.request.urlopen(urllib.request.Request(base+route,headers={'Cache-Control':'no-cache'}),timeout=20) as response:
+                  value=json.load(response);code=response.status
+              return {'http':code,'durationMs':round((time.monotonic()-start)*1000,2),'receivedAtMs':int(time.time()*1000),'body':value}
+          try:
+              report['health']=get('/health')
+              report['home']=get('/api/home')
+              for i in range(3):
+                  status=get('/api/status');universe=get('/api/universe')
+                  report['samples'].append({'status':status,'universe':universe})
+                  if i<2:time.sleep(5)
+              s=report['samples'][-1]['status']['body']
+              assert s['ok'] and s['tickerConnected'] and s['klineConnected'] and not s.get('wsRecovering')
+              assert not s['requestGuard']['circuitOpen']
+              assert int(time.time()*1000)-s['lastTickerDataAtMs']<30000
+              u=report['samples'][-1]['universe']['body']
+              assert u['simulation'] is False and len(u['universe'])>0
+              assert len(u['universe'])==u['coverage']['eligible']
+              assert report['home']['body']['simulation'] is False
+              for event in report['home']['body']['home']:
+                  assert event['signal']=='LONG_A'
+                  assert event['id']==f"{event['symbol']}:{event['timeframe']}:{event['barClosedAtMs']}:LONG_A"
+                  assert event['homeExpiresMs']-event['firstSeenMs']<=10*3600000
+              report['pass']=True
+          except Exception as e:
+              report['pass']=False;report['errors'].append(type(e).__name__+': '+str(e))
+          pathlib.Path('yellow-live-readonly-proof.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps({'pass':report['pass'],'errors':report['errors'],'samples':len(report['samples'])}))
+          if report['samples']:
+              s=report['samples'][-1]['status']['body']
+              print(json.dumps({'eligible':s.get('eligible'),'covered':s.get('covered'),'tickerConnected':s.get('tickerConnected'),'klineConnected':s.get('klineConnected'),'guard':s.get('requestGuard'),'fcm':s.get('fcm')}))
+          if not report['pass']:raise SystemExit(1)
+          PY
+      - name: Preserve public API proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yellow-deployed-api-readonly-proof
+          path: yellow-live-readonly-proof.json
+          retention-days: 14
