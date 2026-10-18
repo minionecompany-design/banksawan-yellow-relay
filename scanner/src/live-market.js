@@ -20,7 +20,8 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
 export class YellowLiveMarket {
   constructor({dataDir,clock=()=>Date.now(),guard=null,wsClass=globalThis.WebSocket,
-    maxTracked=200,fetchIntervalMs=600_000,sendEvent=async()=>{},passiveEvidence=null,random=Math.random,
+    maxTracked=200,fetchIntervalMs=600_000,sendEvent=async()=>{},passiveEvidence=null,
+    alertTimeframes=frames,random=Math.random,
     log=(...args)=>console.log(...args)}={}){
     if(!dataDir)throw new Error('YELLOW_DATA_DIR_REQUIRED');
     if(!wsClass)throw new Error('WEBSOCKET_NOT_AVAILABLE');
@@ -29,6 +30,13 @@ export class YellowLiveMarket {
     this.clock=clock;this.dataDir=dataDir;this.wsClass=wsClass;this.log=log;
     if(!Number.isSafeInteger(maxTracked)||maxTracked<1||maxTracked>200)throw Error('INVALID_MAX_TRACKED');
     this.maxTracked=maxTracked;this.fetchIntervalMs=Math.max(300_000,fetchIntervalMs);
+    // Presentation-only gate: 1m candle and state remain available for safe
+    // continuity, but disabled LONG_A signals never enter HOME, FCM or polling.
+    if(!Array.isArray(alertTimeframes)||!alertTimeframes.length||
+       alertTimeframes.length!==new Set(alertTimeframes).size||
+       alertTimeframes.some(tf=>!frames.includes(tf)))throw Error('INVALID_ALERT_TIMEFRAMES');
+    this.alertTimeframes=new Set(alertTimeframes);
+    this.suppressedLongAEvents=0;
     this.checkpoints=new LaneCheckpoint(path.join(dataDir,'lane-checkpoints'));
     this.guard=guard||new RequestGuard({filename:path.join(dataDir,'binance-circuit.json'),clock});
     this.ledger=new LiveHomeLedger({filename:path.join(dataDir,'home-ledger.json'),clock});
@@ -272,6 +280,10 @@ export class YellowLiveMarket {
         }
         tracked.states[tf]=result.state;
         if(result.event?.signal==='LONG_A'){
+          if(!this.alertTimeframes.has(tf)){
+            this.suppressedLongAEvents++;
+            continue; // Preserve state/cursor, never publish a disabled TF.
+          }
           const accepted=await this.ledger.accept(result.event);
           if(accepted.accepted){
              this.eventsEmitted++;
@@ -416,15 +428,16 @@ export class YellowLiveMarket {
     tracked.drain=job.catch(err=>this.recordFault('DRAIN_'+symbol+'_'+err.message));
     await job;
   }
-  home(){return this.ledger.home();}
-  events(afterMs){return this.ledger.eventsSince(afterMs);}
+  home(){return this.ledger.home().filter(x=>this.alertTimeframes.has(x.timeframe));}
+  events(afterMs){return this.ledger.eventsSince(afterMs).filter(x=>this.alertTimeframes.has(x.timeframe));}
   status(){const eligible=this.universe();return {
     ok:this.isRunning&&!this.isHalted,mode:this.isHalted?'STOPPED':this.isRunning?'LIVE_SHADOW':'STARTING',
     exchange:'BINANCE_USDM_PERPETUAL',tickerConnected:this.tickerConnected,
     klineConnected:this.klineConnected,eligible:eligible.length,covered:this.covered.size,
     bootstrapInProgress:this.inProgress.size,coverageRatio:eligible.length?this.covered.size/eligible.length:0,
     feedGeneration:this.feedGeneration,wsRecovering:this.wsRecovering,wsRecoveryAttempts:this.wsRecoveryAttempts,
-    maxTracked:this.maxTracked,cooldownSymbols:[...this.retryAfter.values()].filter(t=>t>this.clock()).length,eventsEmitted:this.eventsEmitted,lastClosedCandleMs:this.lastClosedCandleMs,
+    maxTracked:this.maxTracked,alertTimeframes:[...this.alertTimeframes],
+    suppressedLongAEvents:this.suppressedLongAEvents,cooldownSymbols:[...this.retryAfter.values()].filter(t=>t>this.clock()).length,eventsEmitted:this.eventsEmitted,lastClosedCandleMs:this.lastClosedCandleMs,
     coverageComplete:eligible.every(x=>this.covered.has(x.symbol)),
     uncoveredEligible:eligible.filter(x=>!this.covered.has(x.symbol)).length,
     laneRecovery:[...this.covered].map(([symbol,t])=>({symbol,resumed:t.resumedLanes||[],cold:t.coldLanes||[]})),

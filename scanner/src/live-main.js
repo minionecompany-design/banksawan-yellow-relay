@@ -19,7 +19,11 @@ const fcm=new YellowFcm({enabled:process.env.YELLOW_FCM_ENABLED==='true',
 const research=process.env.YELLOW_GOLD_EVIDENCE_ENABLED==='true'
   ?new QualityCaptureBridgeV1({dataDir,log:(...args)=>console.warn(...args)}):null;
 if(research)await research.initialize();
+// Only publications are filtered. Original four-TF candle/state plane remains intact.
+const alertTimeframes=(process.env.YELLOW_ALERT_TIMEFRAMES||'1m,5m,15m,1h')
+  .split(',').map(tf=>tf.trim()).filter(Boolean);
 const market=new YellowLiveMarket({dataDir,maxTracked:Number(process.env.YELLOW_MAX_TRACKED||200),
+  alertTimeframes,
   passiveEvidence:research,
   sendEvent:async event=>{
     const delivery=await fcm.send(event);
