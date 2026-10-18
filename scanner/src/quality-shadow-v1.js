@@ -23,7 +23,8 @@ const rejected = reason => ({status:'UNVERIFIED',reason,deliveryAction:'NONE',gr
 export function inspectLongAQuality(event,rawBars){
   if(!event || event.signal!=='LONG_A' || !Object.hasOwn(PERIODS,event.timeframe) ||
     !/^[A-Z0-9]{2,25}USDT$/.test(event.symbol||'') ||
-    !Number.isSafeInteger(event.barClosedAtMs) || event.id!==signalId(event))
+    !Number.isSafeInteger(event.barClosedAtMs) || event.barClosedAtMs<=0 ||
+    event.barClosedAtMs%PERIODS[event.timeframe]!==0 || event.id!==signalId(event))
     return rejected('INVALID_LONG_A_EVENT');
   if(!(finite(event.price)&&event.price>0)) return rejected('EVENT_PRICE_MISSING');
   if(!Array.isArray(rawBars))return rejected('CANDLES_NOT_PROVIDED');
@@ -37,7 +38,7 @@ export function inspectLongAQuality(event,rawBars){
     return rejected('EVENT_PRICE_MISMATCH');
   for(let i=0;i<bars.length;i++){
     const b=bars[i];
-    if((i&&b.endMs-bars[i-1].endMs!==period)||b.endMs%period!==0 ||
+    if(b.endMs<=0||(i&&b.endMs-bars[i-1].endMs!==period)||b.endMs%period!==0 ||
       ![b.open,b.high,b.low,b.close,b.volume].every(finite) ||
       b.open<=0||b.high<=0||b.low<=0||b.close<=0||b.volume<0 ||
       b.high<Math.max(b.open,b.close)||b.low>Math.min(b.open,b.close)||b.high<b.low)
@@ -87,3 +88,4 @@ export function inspectLongAQuality(event,rawBars){
       previousMa25SlopePct:round(pct(ma25,previousMa25))},
     notes:['PROVISIONAL_THRESHOLDS','NOT_TRADING_ADVICE','NOT_CONNECTED_TO_LIVE_DELIVERY']};
 }
+

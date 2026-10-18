@@ -9,7 +9,12 @@ const HORIZONS=Object.freeze([60,240]);
 const finite=x=>typeof x==='number'&&Number.isFinite(x);
 const round=x=>Math.round(x*1e4)/1e4;
 const pct=(price,entry)=>round(100*(price/entry-1));
-function futureOutcome(event,rawFuture,horizonMinutes){
+export function measureForwardOutcome(event,rawFuture,horizonMinutes){
+  if(!event||!Object.hasOwn(PERIODS,event.timeframe)||
+    !Number.isSafeInteger(event.barClosedAtMs)||event.barClosedAtMs<=0||
+    event.barClosedAtMs%PERIODS[event.timeframe]!==0||!finite(event.price)||event.price<=0)
+    return {status:'UNVERIFIED',reason:'INVALID_OUTCOME_EVENT'};
+  if(!HORIZONS.includes(horizonMinutes))return {status:'UNVERIFIED',reason:'UNSUPPORTED_HORIZON'};
   if(!Array.isArray(rawFuture))return {status:'UNVERIFIED',reason:'FUTURE_CANDLES_NOT_PROVIDED'};
   const period=PERIODS[event.timeframe],until=event.barClosedAtMs+horizonMinutes*60_000;
   const expected=horizonMinutes*60_000/period;
@@ -26,12 +31,17 @@ function futureOutcome(event,rawFuture,horizonMinutes){
       x.high<Math.max(x.open,x.close)||x.low>Math.min(x.open,x.close))
       return {status:'UNVERIFIED',reason:'INVALID_FORWARD_CANDLES'};
   }
-  const peak=Math.max(...bars.map(x=>x.high)),trough=Math.min(...bars.map(x=>x.low));
+  // Include the entry itself: MFE cannot be negative and MAE cannot be positive.
+  const peak=Math.max(event.price,...bars.map(x=>x.high));
+  const trough=Math.min(event.price,...bars.map(x=>x.low));
   const firstPeak5=bars.find(x=>x.high>=event.price*1.05);
   return {status:'MEASURED',horizonMinutes,
     maxFavorablePct:pct(peak,event.price),maxAdversePct:pct(trough,event.price),
     endingReturnPct:pct(bars.at(-1).close,event.price),
-    timeToFirstPlus5Minutes:firstPeak5?(firstPeak5.endMs-event.barClosedAtMs)/60_000:null,
+    // OHLC only bounds the crossing to a bar; it does not reveal a tick time.
+    firstPlus5WindowMinutes:firstPeak5?{
+      startInclusive:(firstPeak5.endMs-period-event.barClosedAtMs)/60_000,
+      endInclusive:(firstPeak5.endMs-event.barClosedAtMs)/60_000}:null,
     barCount:bars.length,
     limitation:'MFE/MAE are theoretical extremes; intrabar stop/target order and tradability unknown'};
 }
@@ -48,7 +58,7 @@ export function evaluateQualityEvidence(records){
     if(id!==null){if(seen.has(id))throw Error('DUPLICATE_EVENT_ID');seen.add(id);}
     const quality=inspectLongAQuality(row?.event,row?.bars);
     const outcomes=Object.fromEntries(HORIZONS.map(h=>[String(h),quality.status==='ASSESSED'?
-      futureOutcome(row.event,row?.futureBars,h):{status:'UNVERIFIED',reason:'QUALITY_INPUT_UNVERIFIED'}]));
+      measureForwardOutcome(row.event,row?.futureBars,h):{status:'UNVERIFIED',reason:'QUALITY_INPUT_UNVERIFIED'}]));
     return {index,eventId:id,symbol:row?.event?.symbol??null,timeframe:row?.event?.timeframe??null,
       barClosedAtMs:row?.event?.barClosedAtMs??null,quality,outcomes};
   });
@@ -72,3 +82,4 @@ export function evaluateQualityEvidence(records){
     guardrail:'MFE >= 5% is retrospective potential, NOT executable profit, trade win rate, or proof of GOLD accuracy',
     results};
 }
+

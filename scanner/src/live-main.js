@@ -5,6 +5,7 @@
 import {YellowLiveMarket} from './live-market.js';
 import {createLiveApi} from './live-api.js';
 import {YellowFcm} from './live-fcm.js';
+import {QualityCaptureBridgeV1} from './quality-capture-bridge-v1.js';
 const enabled=process.env.YELLOW_LIVE_ENABLED==='true';
 const dataDir=process.env.YELLOW_DATA_DIR;
 const port=Number(process.env.PORT||8080);
@@ -13,7 +14,17 @@ if(!dataDir)throw new Error('YELLOW_DATA_DIR_REQUIRED: mount a persistent Railwa
 if(!Number.isInteger(port)||port<=0||port>65535)throw new Error('INVALID_PORT');
 const fcm=new YellowFcm({enabled:process.env.YELLOW_FCM_ENABLED==='true',
   serviceAccountJson:process.env.YELLOW_FCM_SERVICE_ACCOUNT_JSON||''});
+// Explicit opt-in only. Research errors never interfere with HOME or FCM.
+// No existing Railway environment has this enabled by default.
+const research=process.env.YELLOW_GOLD_EVIDENCE_ENABLED==='true'
+  ?new QualityCaptureBridgeV1({dataDir,log:(...args)=>console.warn(...args)}):null;
+if(research)await research.initialize();
+// Only publications are filtered. Original four-TF candle/state plane remains intact.
+const alertTimeframes=(process.env.YELLOW_ALERT_TIMEFRAMES||'1m,5m,15m,1h')
+  .split(',').map(tf=>tf.trim()).filter(Boolean);
 const market=new YellowLiveMarket({dataDir,maxTracked:Number(process.env.YELLOW_MAX_TRACKED||200),
+  alertTimeframes,
+  passiveEvidence:research,
   sendEvent:async event=>{
     const delivery=await fcm.send(event);
     if(fcm.enabled)console.log('YELLOW_FCM',event.id,delivery.sent?'SENT':delivery.reason);

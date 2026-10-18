@@ -21,3 +21,4 @@ test('shadow modules are not wired to live scanner, FCM, API or HOME',async()=>{
     assert.doesNotMatch(code,/from ['"].*quality-(?:shadow|evidence)/);
   }
 });
+

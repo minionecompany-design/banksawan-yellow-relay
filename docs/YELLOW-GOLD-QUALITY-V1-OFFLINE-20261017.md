@@ -1,3 +1,5 @@
+> Update 18 October 2026: historical checkpoint below is superseded by YELLOW-GOLD-POLICY-REVIEW-20261018.md for current production, Pine v1.3 clarification, PR #12 alert subset and recorder progress. Historical counts are not current status.
+
 # YELLOW GOLD — Quality Shadow V1 (RESEARCH ONLY)
 17 October 2026 WIB. Source branch research/yellow-gold-quality-v1-20261017.
 
@@ -53,3 +55,4 @@ Active production deployment source pinned to backend commit f82ab446b9deb5b5c1a
 This DRAFT PR is strictly OFFLINE; do not merge/deploy. Work may help review, create reproducible as-of snapshots and evaluate natural samples; assistant supervises scope and interprets results.
 
 Local isolated prototype: 9/9 targeted tests PASS. A prior outdated user-supplied ZIP snapshot ran 118/127 tests with 9 existing duplicate Android contract-path failures; rely on CURRENT branch CI for full-suite verdict, not on that old copy.
+

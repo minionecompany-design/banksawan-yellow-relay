@@ -15,3 +15,4 @@ const counts=Object.fromEntries(['GOLD_RESEARCH','REVIEW_RESEARCH','WEAK_RESEARC
   .map(key=>[key,results.filter(x=>(x.quality.grade||'UNVERIFIED')===key).length]));
 process.stdout.write(JSON.stringify({mode:'OFFLINE_SHADOW_ONLY',thresholdStatus:'PROVISIONAL',
   source:'USER_SUPPLIED_AS_OF_SNAPSHOTS',total:results.length,counts,results},null,2)+'\n');
+

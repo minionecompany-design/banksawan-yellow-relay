@@ -20,7 +20,8 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
 export class YellowLiveMarket {
   constructor({dataDir,clock=()=>Date.now(),guard=null,wsClass=globalThis.WebSocket,
-    maxTracked=200,fetchIntervalMs=600_000,sendEvent=async()=>{},random=Math.random,
+    maxTracked=200,fetchIntervalMs=600_000,sendEvent=async()=>{},passiveEvidence=null,
+    alertTimeframes=frames,random=Math.random,
     log=(...args)=>console.log(...args)}={}){
     if(!dataDir)throw new Error('YELLOW_DATA_DIR_REQUIRED');
     if(!wsClass)throw new Error('WEBSOCKET_NOT_AVAILABLE');
@@ -29,10 +30,17 @@ export class YellowLiveMarket {
     this.clock=clock;this.dataDir=dataDir;this.wsClass=wsClass;this.log=log;
     if(!Number.isSafeInteger(maxTracked)||maxTracked<1||maxTracked>200)throw Error('INVALID_MAX_TRACKED');
     this.maxTracked=maxTracked;this.fetchIntervalMs=Math.max(300_000,fetchIntervalMs);
+    // Presentation-only gate: 1m candle and state remain available for safe
+    // continuity, but disabled LONG_A signals never enter HOME, FCM or polling.
+    if(!Array.isArray(alertTimeframes)||!alertTimeframes.length||
+       alertTimeframes.length!==new Set(alertTimeframes).size||
+       alertTimeframes.some(tf=>!frames.includes(tf)))throw Error('INVALID_ALERT_TIMEFRAMES');
+    this.alertTimeframes=new Set(alertTimeframes);
+    this.suppressedLongAEvents=0;
     this.checkpoints=new LaneCheckpoint(path.join(dataDir,'lane-checkpoints'));
     this.guard=guard||new RequestGuard({filename:path.join(dataDir,'binance-circuit.json'),clock});
     this.ledger=new LiveHomeLedger({filename:path.join(dataDir,'home-ledger.json'),clock});
-    this.sendEvent=sendEvent;this.exchangeSymbols=new Map();this.tickers=new Map();this.tickerHistory=new Map();
+    this.sendEvent=sendEvent;this.passiveEvidence=passiveEvidence;this.exchangeSymbols=new Map();this.tickers=new Map();this.tickerHistory=new Map();
     this.covered=new Map();this.inProgress=new Set();this.retryAfter=new Map();this.ignored=0;this.eventsEmitted=0;
     this.isRunning=false;this.tickerConnected=false;this.klineConnected=false;
     this.isHalted=false;this.haltReason='';this.nextRefresh=0;this.nextExchangeRefresh=0;
@@ -272,8 +280,26 @@ export class YellowLiveMarket {
         }
         tracked.states[tf]=result.state;
         if(result.event?.signal==='LONG_A'){
+          if(!this.alertTimeframes.has(tf)){
+            this.suppressedLongAEvents++;
+            continue; // Preserve state/cursor, never publish a disabled TF.
+          }
           const accepted=await this.ledger.accept(result.event);
-          if(accepted.accepted){this.eventsEmitted++;await this.sendEvent(accepted.event);}
+          if(accepted.accepted){
+             this.eventsEmitted++;
+             // Research-only hook. No DB/REST/FCM dependency; every exception
+             // must fail open so the original notification path is unchanged.
+             try{
+               const saved=this.passiveEvidence?.onAcceptedLongA(result.event,target);
+               if(saved?.accepted){
+                 // MTF context can delay evaluation: catch up ONLY closed bars
+                 // already present in the same trusted in-memory candle book.
+                 for(const b of bars)if(b.endMs>nextEnd&&b.endMs<=this.clock())
+                   this.passiveEvidence.onClosedBar(symbol,tf,b);
+               }
+             }catch(e){this.log('YELLOW_GOLD_RESEARCH_FAULT','EVENT_HOOK_'+String(e?.message).slice(0,80));}
+             await this.sendEvent(accepted.event);
+           }
         }
         if(result.reason&&result.reason!=='NO_CONFIRMED_SIGNAL'&&
            result.reason!=='BINANCE_24H_FILTER')
@@ -393,25 +419,30 @@ export class YellowLiveMarket {
       this.recordFault('CANDLE_GAP_'+symbol+'_'+e.message);return;}
     if(applied.status!=='APPENDED')return;
     this.lastClosedCandleMs=Math.max(this.lastClosedCandleMs,applied.endMs);
+    // Already-closed WS bar; no extra subscription or request.
+    try{this.passiveEvidence?.onClosedBar(symbol,applied.timeframe,tracked.book.latest(applied.timeframe));}
+    catch(e){this.log('YELLOW_GOLD_RESEARCH_FAULT','BAR_HOOK_'+String(e?.message).slice(0,80));}
     // Serial symbol-local evaluation: a late 5m bar may unblock queued 1m
     // candles, and overlapping WebSocket callbacks must never duplicate them.
     const job=(tracked.drain||Promise.resolve()).then(()=>this.flushTracked(symbol,tracked));
     tracked.drain=job.catch(err=>this.recordFault('DRAIN_'+symbol+'_'+err.message));
     await job;
   }
-  home(){return this.ledger.home();}
-  events(afterMs){return this.ledger.eventsSince(afterMs);}
+  home(){return this.ledger.home().filter(x=>this.alertTimeframes.has(x.timeframe));}
+  events(afterMs){return this.ledger.eventsSince(afterMs).filter(x=>this.alertTimeframes.has(x.timeframe));}
   status(){const eligible=this.universe();return {
     ok:this.isRunning&&!this.isHalted,mode:this.isHalted?'STOPPED':this.isRunning?'LIVE_SHADOW':'STARTING',
     exchange:'BINANCE_USDM_PERPETUAL',tickerConnected:this.tickerConnected,
     klineConnected:this.klineConnected,eligible:eligible.length,covered:this.covered.size,
     bootstrapInProgress:this.inProgress.size,coverageRatio:eligible.length?this.covered.size/eligible.length:0,
     feedGeneration:this.feedGeneration,wsRecovering:this.wsRecovering,wsRecoveryAttempts:this.wsRecoveryAttempts,
-    maxTracked:this.maxTracked,cooldownSymbols:[...this.retryAfter.values()].filter(t=>t>this.clock()).length,eventsEmitted:this.eventsEmitted,lastClosedCandleMs:this.lastClosedCandleMs,
+    maxTracked:this.maxTracked,alertTimeframes:[...this.alertTimeframes],
+    suppressedLongAEvents:this.suppressedLongAEvents,cooldownSymbols:[...this.retryAfter.values()].filter(t=>t>this.clock()).length,eventsEmitted:this.eventsEmitted,lastClosedCandleMs:this.lastClosedCandleMs,
     coverageComplete:eligible.every(x=>this.covered.has(x.symbol)),
     uncoveredEligible:eligible.filter(x=>!this.covered.has(x.symbol)).length,
     laneRecovery:[...this.covered].map(([symbol,t])=>({symbol,resumed:t.resumedLanes||[],cold:t.coldLanes||[]})),
-    requestGuard:this.guard.metrics(),fcm:this.fcm?.metrics()||{enabled:false},haltReason:this.haltReason,
+    requestGuard:this.guard.metrics(),fcm:this.fcm?.metrics()||{enabled:false},
+    researchEvidence:this.passiveEvidence?.status?.()??{enabled:false},haltReason:this.haltReason,
     lastTickerDataAtMs:this.lastTickerDataAtMs,lastKlineDataAtMs:this.lastKlineDataAtMs,
     lastFaults:this.recentFaults.slice(-10)};}
 }

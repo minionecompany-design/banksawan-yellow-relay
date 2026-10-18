@@ -48,3 +48,4 @@ test('no source data => zero observations; never production-ready',()=>{
  assert.equal(r.records,0);assert.equal(r.measured4h,0);
  assert.equal(r.plus5MfeIn4h,0);assert.equal(r.readyForProduction,false);
 });
+

@@ -1,3 +1,5 @@
+> Update 18 October 2026: historical checkpoint below is superseded by YELLOW-GOLD-POLICY-REVIEW-20261018.md for current production, Pine v1.3 clarification, PR #12 alert subset and recorder progress. Historical counts are not current status.
+
 # YELLOW GOLD V1 — Evidence checkpoint and approval gates
 17 Oct 2026 WIB. DRAFT PR #8: OFFLINE only.
 
@@ -45,3 +47,4 @@ An eligible source record must have exact symbol + timeframe + event ID + candle
 
 ## Next blocker and Work handoff
 Existing log/metadata do not include all exact signal-time 61-candle snapshots, so real GOLD sensitivity cannot yet be validated. Next separately propose/test a small bounded passive snapshot recorder that reuses existing in-memory candle book ONLY at future genuine LONG_A moments, no new REST/WS, with retention, size limits, and durable storage. That would modify live code and therefore requires user approval before deployment. Work can help investigate existing Railway volume and source/visual chart parity, but NO action needs an automatic Work session. This PR remains fully disconnected from production delivery.
+
