@@ -5,6 +5,7 @@ import {mkdtemp,readFile} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import {Silent1mHotV1} from '../src/silent-1m-hot-v1.js';
+import {YellowLiveMarket} from '../src/live-market.js';
 
 const MIN=60_000,START=Date.UTC(2026,9,20,6),symbol='JCTUSDT';
 const event=(start=START)=>({signal:'LONG_A',timeframe:'1m',symbol,
@@ -88,6 +89,18 @@ test('silently rejects malformed A, does not create HOME entries',async()=>{
  m.onLongA({...event(),id:'NOT_VALID'});
  m.onLongA({...event(),timeframe:'5m'});
  assert.equal(m.status().last24h.events,0);
+});
+test('misconfigured passive experiment cannot silently reenable original 1m HOME/FCM',async()=>{
+  const {m}=await mk();
+  const dir=await mkdtemp(path.join(os.tmpdir(),'yellow-shadow-config-'));
+  assert.throws(()=>new YellowLiveMarket({dataDir:dir,
+    wsClass:class FakeSocket{},
+    silent1mHot:m,alertTimeframes:['1m','5m','15m','1h']}),
+    /SILENT_1M_HOT_REQUIRES_1M_ALERTS_DISABLED/);
+  const valid=new YellowLiveMarket({dataDir:dir,
+    wsClass:class FakeSocket{},silent1mHot:m,alertTimeframes:['5m','15m','1h']});
+  assert.deepEqual(valid.status().alertTimeframes,['5m','15m','1h']);
+  assert.equal(valid.status().shadow1mHot.sendsFCM,false);
 });
 test('existing live scanner gates remain before any HOME/FCM call for disabled 1m',async()=>{
  const market=await readFile(new URL('../src/live-market.js',import.meta.url),'utf8');
