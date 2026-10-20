@@ -21,6 +21,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 export class YellowLiveMarket {
   constructor({dataDir,clock=()=>Date.now(),guard=null,wsClass=globalThis.WebSocket,
     maxTracked=200,fetchIntervalMs=600_000,sendEvent=async()=>{},passiveEvidence=null,
+    silent1mHot=null,
     alertTimeframes=frames,random=Math.random,
     log=(...args)=>console.log(...args)}={}){
     if(!dataDir)throw new Error('YELLOW_DATA_DIR_REQUIRED');
@@ -40,7 +41,7 @@ export class YellowLiveMarket {
     this.checkpoints=new LaneCheckpoint(path.join(dataDir,'lane-checkpoints'));
     this.guard=guard||new RequestGuard({filename:path.join(dataDir,'binance-circuit.json'),clock});
     this.ledger=new LiveHomeLedger({filename:path.join(dataDir,'home-ledger.json'),clock});
-    this.sendEvent=sendEvent;this.passiveEvidence=passiveEvidence;this.exchangeSymbols=new Map();this.tickers=new Map();this.tickerHistory=new Map();
+    this.sendEvent=sendEvent;this.passiveEvidence=passiveEvidence;this.silent1mHot=silent1mHot;this.exchangeSymbols=new Map();this.tickers=new Map();this.tickerHistory=new Map();
     this.covered=new Map();this.inProgress=new Set();this.retryAfter=new Map();this.ignored=0;this.eventsEmitted=0;
     this.isRunning=false;this.tickerConnected=false;this.klineConnected=false;
     this.isHalted=false;this.haltReason='';this.nextRefresh=0;this.nextExchangeRefresh=0;
@@ -279,6 +280,14 @@ export class YellowLiveMarket {
           return;
         }
         tracked.states[tf]=result.state;
+        // Research-only, no ledger and no delivery: observe suppressed LONG A 1m
+        // and the true Pine HOT countUp on the same closed-target 1m state.
+        if(tf==='1m'&&this.silent1mHot?.enabled){
+          try{
+            if(result.event?.signal==='LONG_A')this.silent1mHot.onLongA(result.event);
+            this.silent1mHot.onClosedBar(symbol,target.at(-1),result.state);
+          }catch(e){this.recordFault('SILENT_1M_HOT_HOOK_'+String(e?.message).slice(0,70));}
+        }
         if(result.event?.signal==='LONG_A'){
           if(!this.alertTimeframes.has(tf)){
             this.suppressedLongAEvents++;
@@ -442,7 +451,9 @@ export class YellowLiveMarket {
     uncoveredEligible:eligible.filter(x=>!this.covered.has(x.symbol)).length,
     laneRecovery:[...this.covered].map(([symbol,t])=>({symbol,resumed:t.resumedLanes||[],cold:t.coldLanes||[]})),
     requestGuard:this.guard.metrics(),fcm:this.fcm?.metrics()||{enabled:false},
-    researchEvidence:this.passiveEvidence?.status?.()??{enabled:false},haltReason:this.haltReason,
+    researchEvidence:this.passiveEvidence?.status?.()??{enabled:false},
+    shadow1mHot:this.silent1mHot?.status?.()??{enabled:false,mode:'SILENT_RESEARCH'},
+    haltReason:this.haltReason,
     lastTickerDataAtMs:this.lastTickerDataAtMs,lastKlineDataAtMs:this.lastKlineDataAtMs,
     lastFaults:this.recentFaults.slice(-10)};}
 }
