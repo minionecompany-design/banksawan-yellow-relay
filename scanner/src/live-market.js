@@ -37,6 +37,8 @@ export class YellowLiveMarket {
        alertTimeframes.length!==new Set(alertTimeframes).size||
        alertTimeframes.some(tf=>!frames.includes(tf)))throw Error('INVALID_ALERT_TIMEFRAMES');
     this.alertTimeframes=new Set(alertTimeframes);
+    if(silent1mHot&&this.alertTimeframes.has('1m'))
+      throw Error('SILENT_1M_HOT_REQUIRES_1M_ALERTS_DISABLED');
     this.suppressedLongAEvents=0;
     this.checkpoints=new LaneCheckpoint(path.join(dataDir,'lane-checkpoints'));
     this.guard=guard||new RequestGuard({filename:path.join(dataDir,'binance-circuit.json'),clock});
