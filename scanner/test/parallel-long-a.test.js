@@ -59,6 +59,15 @@ test('no event for Binance change <+1%, >=10 USDT, stale/future ticker',()=>{
    assert.equal(r.event,null,bad);
  }
 });
+test('1M native LONG B keeps the FIRST A admission after 24h P falls below +1%',()=>{
+ const {input,states}=fixture('1m','0.25');
+ states['1m'].tradeState=2;states['1m'].protectBar=20;
+ input.oneMinuteEpisodePinned=true;
+ const r=stepLongAOnTimeframe('TESTUSDT','1m',input,states['1m']);
+ assert.equal(r.event?.signal,'LONG_B','Pine-like B allowed from verified pinned episode');
+ input.oneMinuteEpisodePinned=false;
+ assert.equal(stepLongAOnTimeframe('TESTUSDT','1m',input,states['1m']).event,null);
+});
 test('priority +5% does not delay LONG A and operates in any lane',()=>{
  const {input,states}=fixture('15m','5.0');
  const r=evaluateParallelLongA('TESTUSDT',input,states);
