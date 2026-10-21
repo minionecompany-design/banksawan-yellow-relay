@@ -1,0 +1,33 @@
+{
+  "simulation": false,
+  "mode": "LIVE_SHADOW",
+  "generatedAtMs": 1792612800000,
+  "lastTickerDataAtMs": 1792612800000,
+  "coverage": {
+    "eligible": 376,
+    "covered": 50,
+    "maxTracked": 50
+  },
+  "universe": [
+    {
+      "symbol": "PLAYUSDT",
+      "price": 0.12452,
+      "binance24hChangePct": 12.45
+    },
+    {
+      "symbol": "FOGOUSDT",
+      "price": 0.03784,
+      "binance24hChangePct": 8.23
+    },
+    {
+      "symbol": "ARCUSDT",
+      "price": 0.06129,
+      "binance24hChangePct": 3.18
+    },
+    {
+      "symbol": "WALUSDT",
+      "price": 0.20231,
+      "binance24hChangePct": 1.0
+    }
+  ]
+}

@@ -22,7 +22,7 @@ test('V7 validates market status, live mode and stale feeds before rendering',as
  assert.match(src,/!tickerFresh \|\| !klineFresh/);
  assert.match(src,/REJECT_NON_LIVE_API_PAYLOAD/);
  assert.match(src,/home=new JSONArray\(\);universe=new JSONArray\(\)/);
- assert.match(src,/SERVER \/ FEED TIDAK SIAP/);
+ assert.match(src,/universeError/);
 });
 
 test('V8 foreground sound test is opt-in and never creates a false LONG A' ,async()=>{
@@ -32,7 +32,7 @@ test('V8 foreground sound test is opt-in and never creates a false LONG A' ,asyn
  assert.match(gradle,/allowAlerts && file\('google-services\.json'\)\.exists\(\)/);
  assert.match(src,/BuildConfig\.ALERTS_ENABLED/);
  assert.doesNotMatch(src,/LIVE SHADOW • PENELITIAN, BUKAN SINYAL ENTRY/);
- assert.match(gradle,/versionCode 7/);
+ assert.match(gradle,/versionCode 10/);
  const notifier=await r('android/app/src/main/java/id/banksawan/yellow/YellowNotifier.java');
  assert.match(notifier,/TEST_CHANNEL=\"yellow_sound_test_v8\"/);
  assert.match(notifier,/testSound\(Context context\)/);
