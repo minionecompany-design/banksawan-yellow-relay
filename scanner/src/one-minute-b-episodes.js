@@ -37,7 +37,9 @@ export function eligibleOneMinuteB(e){
     e.barClosedAtMs<=e.episodeStartedAtMs+EPISODE_WINDOW_MS&&
     e.barClosedAtMs-e.protectAtMs<=PROTECT_WINDOW_MS&&
     productEligible(e.firstAPrice,e.firstAChangePct,e.firstAQuoteVolume24h)&&
-    e.quoteVolume24h===e.firstAQuoteVolume24h&&eligibleEvent(e);
+    e.quoteVolume24h===e.firstAQuoteVolume24h&&
+    typeof e.price==='number'&&Number.isFinite(e.price)&&e.price>0&&
+    typeof e.binance24hChangePct==='number'&&Number.isFinite(e.binance24hChangePct);
 }
 export class OneMinuteBEpisodes {
   constructor({filename,clock=()=>Date.now()}={}){
