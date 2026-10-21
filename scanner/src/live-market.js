@@ -270,6 +270,8 @@ export class YellowLiveMarket {
         const result=stepLongAOnTimeframe(symbol,tf,{
           ...snapshot,[key]:target,nowMs:this.clock(),
           ticker24h:this.getTickerAsOf(symbol,nextEnd),
+          oneMinuteEpisodePinned:tf==='1m'&&this.oneMinuteLongBEnabled&&
+            this.episodes.active(symbol,nextEnd),
           contextMode:'CAUSAL_REALTIME'
         },state);
         if(result.reason?.startsWith('CONTEXT_STALE_OR_INCOMPLETE_')||
@@ -479,14 +481,14 @@ export class YellowLiveMarket {
     tracked.drain=job.catch(err=>this.recordFault('DRAIN_'+symbol+'_'+err.message));
     await job;
   }
-  home(){return this.ledger.home().filter(x=>eligibleEvent(x)&&
-    (x.signal==='LONG_A'&&this.alertTimeframes.has(x.timeframe)&&
-      (x.timeframe!=='1m'||!this.oneMinuteLongBEnabled)||
-     this.oneMinuteLongBEnabled&&eligibleOneMinuteB(x)));}
-  events(afterMs){return this.ledger.eventsSince(afterMs).filter(x=>eligibleEvent(x)&&
-    (x.signal==='LONG_A'&&this.alertTimeframes.has(x.timeframe)&&
-      (x.timeframe!=='1m'||!this.oneMinuteLongBEnabled)||
-     this.oneMinuteLongBEnabled&&eligibleOneMinuteB(x)));}
+  home(){return this.ledger.home().filter(x=>
+    (x.signal==='LONG_A'&&eligibleEvent(x)&&this.alertTimeframes.has(x.timeframe)&&
+      (x.timeframe!=='1m'||!this.oneMinuteLongBEnabled))||
+    (this.oneMinuteLongBEnabled&&eligibleOneMinuteB(x)));}
+  events(afterMs){return this.ledger.eventsSince(afterMs).filter(x=>
+    (x.signal==='LONG_A'&&eligibleEvent(x)&&this.alertTimeframes.has(x.timeframe)&&
+      (x.timeframe!=='1m'||!this.oneMinuteLongBEnabled))||
+    (this.oneMinuteLongBEnabled&&eligibleOneMinuteB(x)));}
   status(){const eligible=this.universe();return {
     ok:this.isRunning&&!this.isHalted,mode:this.isHalted?'STOPPED':this.isRunning?'LIVE_SHADOW':'STARTING',
     exchange:'BINANCE_USDM_PERPETUAL',tickerConnected:this.tickerConnected,
