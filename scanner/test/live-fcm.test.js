@@ -30,6 +30,7 @@ test('FCM emits data-only LONG A push with bounded TTL; no other symbols',async(
  assert.equal(payload.message.data.event,'YELLOW_LONG_A');
  assert.ok(parseInt(payload.message.android.ttl)<=299);
  assert.equal((await fcm.send({...event,expiresAtMs:now-1})).sent,false);
+ assert.equal((await fcm.send({...event,id:`WALUSDT:1m:${now}:LONG_A`,timeframe:'1m'})).sent,false,'main YELLOW must not deliver 1m FCM');
  assert.equal(calls.length,2);
 });
 
