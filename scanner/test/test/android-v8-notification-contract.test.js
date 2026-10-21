@@ -34,7 +34,7 @@ test('V8 build enables foreground sound, but does not contain Firebase credentia
   assert.match(wf,/YELLOW_ALERTS_ENABLED: 'true'/);
   assert.match(wf,/test ! -f android\/app\/google-services\.json/);
   assert.match(wf,/banksawan-yellow-v8-SOUND-PROOF-debug/);
-  assert.match(gradle,/versionCode 9/);
+  assert.match(gradle,/versionCode 10/);
   assert.match(gradle,/allowAlerts && file\('google-services\.json'\)\.exists\(\)/);
   assert.doesNotMatch(wf,/fapi\.binance\.com|BR_FCM|successful-enchantment/);
 });

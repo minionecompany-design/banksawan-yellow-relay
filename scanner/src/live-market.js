@@ -1,3 +1,4 @@
+import {universeSnapshot,UNIVERSE_SCHEMA} from './universe-contract.js';
 /** Binance USD-M LIVE data plane. Exactly one WS ticker stream, one WS kline
  * connection, and one strictly budgeted REST gateway. No proxy or IP evasion.
  * Deliberate coverage cap is visible in /api/status (never claim full-universe).
@@ -489,11 +490,12 @@ export class YellowLiveMarket {
     (x.signal==='LONG_A'&&eligibleEvent(x)&&this.alertTimeframes.has(x.timeframe)&&
       (x.timeframe!=='1m'||!this.oneMinuteLongBEnabled))||
     (this.oneMinuteLongBEnabled&&eligibleOneMinuteB(x)));}
-  status(){const eligible=this.universe();return {
+  status(){const eligible=this.universe(),snapshot=universeSnapshot(this);return {
     ok:this.isRunning&&!this.isHalted,mode:this.isHalted?'STOPPED':this.isRunning?'LIVE_SHADOW':'STARTING',
+    universeSchema:UNIVERSE_SCHEMA,universeDataState:snapshot.dataState,
     exchange:'BINANCE_USDM_PERPETUAL',tickerConnected:this.tickerConnected,
-    klineConnected:this.klineConnected,eligible:eligible.length,covered:this.covered.size,
-    bootstrapInProgress:this.inProgress.size,coverageRatio:eligible.length?this.covered.size/eligible.length:0,
+    klineConnected:this.klineConnected,eligible:snapshot.coverage.eligible,covered:this.covered.size,
+    bootstrapInProgress:this.inProgress.size,coverageRatio:snapshot.coverage.eligible===null?null:(snapshot.coverage.eligible?snapshot.coverage.trackedEligible/snapshot.coverage.eligible:0),
     feedGeneration:this.feedGeneration,wsRecovering:this.wsRecovering,wsRecoveryAttempts:this.wsRecoveryAttempts,
     productPolicy:PRODUCT_POLICY,maxTracked:this.maxTracked,alertTimeframes:[...this.alertTimeframes],
     suppressedLongAEvents:this.suppressedLongAEvents,

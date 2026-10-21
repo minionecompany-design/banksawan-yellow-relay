@@ -37,7 +37,7 @@ jobs:
         run: python3 -m unittest discover -s scripts -p 'test*.py' -v
 
   android:
-    name: Compile v0.13 Android (debug-only smoke test; NOT installable update)
+    name: Compile v0.14 Android (debug-only smoke test; NOT installable update)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -58,8 +58,8 @@ jobs:
         with:
           gradle-version: '8.10.2'
       - name: Build debug variant without live access or signing secrets
-        run: gradle -p android :app:assembleDebug --no-daemon
-      - name: Verify v0.13 version and safe demo build
+        run: gradle -p android :app:testDebugUnitTest :app:assembleDebug --no-daemon
+      - name: Verify v0.14 version and safe demo build
         shell: bash
         run: |
           test -s android/app/build/outputs/apk/debug/app-debug.apk
@@ -67,11 +67,31 @@ jobs:
           grep -Eq 'DEMO_MODE[[:space:]]*=[[:space:]]*true' "$CONFIG"
           grep -Eq 'FCM_ENABLED[[:space:]]*=[[:space:]]*false' "$CONFIG"
           grep -Eq 'ALERTS_ENABLED[[:space:]]*=[[:space:]]*false' "$CONFIG"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android/app/build/outputs/apk/debug/app-debug.apk | grep -q "versionCode='9'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android/app/build/outputs/apk/debug/app-debug.apk | grep -q "versionCode='10'"
       - name: Upload smoke-test APK; not an official signed release
         uses: actions/upload-artifact@v4
         with:
-          name: banksawan-yellow-v0.13-OFFLINE-DEBUG-NOT-RELEASE
+          name: banksawan-yellow-v0.14-OFFLINE-DEBUG-NOT-RELEASE
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
+
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Offline UNIVERSE UI at Samsung-sized viewports
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: python3 scripts/capture-yellow-universe.py
+      - name: Upload real emulator screenshots and UI hierarchy
+        uses: actions/upload-artifact@v4
+        with:
+          name: yellow-v014-offline-ui-proof
+          path: docs/v014/emulator/
+          if-no-files-found: error

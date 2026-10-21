@@ -52,7 +52,7 @@ test('GET API read-only, simulation=false, health liveness independent of readin
  try{
   const url=`http://127.0.0.1:${server.address().port}`;
   const h=await fetch(url+'/health/live');assert.equal(h.status,200);
-  assert.equal((await fetch(url+'/api/universe')).status,503);
+  assert.equal((await (await fetch(url+'/api/universe')).json()).dataState,'DATA_UNAVAILABLE');
   market.tickerConnected=true;market.klineConnected=true;
   const universe=await (await fetch(url+'/api/universe')).json();
   assert.equal(universe.simulation,false);assert.equal(universe.coverage.maxTracked,200);

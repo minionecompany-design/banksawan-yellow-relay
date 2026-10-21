@@ -14,6 +14,10 @@ import android.view.Gravity;
 import android.view.WindowInsets;
 import android.view.View;
 import android.widget.Button;
+import android.widget.HorizontalScrollView;
+import android.widget.EditText;
+import android.text.TextWatcher;
+import android.text.Editable;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -56,6 +60,14 @@ public class MainActivity extends Activity {
     private int lastCovered = 0;
     private int lastEligible = 0;
     private String tab="home";
+    private UniverseSnapshot universeSnapshot;
+    private String universeError="DATA TIDAK TERSEDIA",query="",sortColumn="binance24hChangePct";
+    private boolean sortDescending=true;
+    private LinearLayout universeRows;
+    private TextView resultCount;
+    private HorizontalScrollView universeScroller;
+    private int universeScrollX=0;
+
     private JSONArray home=new JSONArray(), universe=new JSONArray();
     private final Handler handler=new Handler(Looper.getMainLooper());
     private final ExecutorService io=Executors.newSingleThreadExecutor();
@@ -241,76 +253,53 @@ public class MainActivity extends Activity {
      * Server values are displayed read-only; the Android app never calls Binance.
      */
     private void renderUniverse() {
-        ArrayList<JSONObject> eligible = new ArrayList<>();
-        for (int i = 0; i < universe.length(); i++) {
-            JSONObject coin = universe.optJSONObject(i);
-            if (coin == null) continue;
-            String symbol = coin.optString("symbol", "");
-            double price = coin.optDouble("price", Double.NaN);
-            double change = coin.optDouble("binance24hChangePct", Double.NaN);
-            if (!symbol.matches("[A-Z0-9]{2,25}USDT")
-                || !Double.isFinite(price) || price <= 0 || price >= 10.0
-                || !Double.isFinite(change) || change < 1.0
-                || !Double.isFinite(coin.optDouble("quoteVolume24h",Double.NaN))
-                || coin.optDouble("quoteVolume24h",0)<=10_000_000) continue;
-            eligible.add(coin);
+        list.addView(text("UNIVERSE",24,YELLOW,true));
+        TextView filters=text("USDⓈ-M USDT PERPETUAL • AKTIF\n0 < harga < 10 • 24H ≥ +1% • Quote 24H > 10M USDT",12,MUTED,false);
+        filters.setPadding(0,dp(8),0,dp(12));list.addView(filters);
+        boolean fresh=universeSnapshot!=null && (BuildConfig.DEMO_MODE ||
+            (connectionHealthy&&System.currentTimeMillis()-universeSnapshot.generatedAtMs<30_000));
+        if(!fresh){
+            list.addView(text(universeSnapshot!=null?"STALE":universeError,16,YELLOW,true));
+            list.addView(text("Eligible Universe: —   •   Actively Tracked: —",13,MUTED,false));
+            list.addView(text("Jumlah kandidat belum dapat diverifikasi. Bukan berarti pasar kosong.",13,MUTED,false));return;
         }
-        eligible.sort((left, right) -> Double.compare(
-            right.optDouble("binance24hChangePct"),
-            left.optDouble("binance24hChangePct")
-        ));
-
-        LinearLayout titleRow = new LinearLayout(this);
-        titleRow.setOrientation(LinearLayout.HORIZONTAL);
-        titleRow.setGravity(Gravity.CENTER_VERTICAL);
-        TextView title = text("USDⓈ-M  " + eligible.size() + " COIN", 21, Color.WHITE, true);
-        titleRow.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView updated = text(lastRefreshMs > 0 ? shortTime(lastRefreshMs) : "--:--:--",
-            15, GREEN, true);
-        updated.setGravity(Gravity.END);
-        titleRow.addView(updated);
-        list.addView(titleRow);
-
-        if (BuildConfig.DEMO_MODE) {
-            TextView demo = text("DEMO OFFLINE • DATA CONTOH, BUKAN HARGA LIVE",
-                11, YELLOW, true);
-            demo.setPadding(0, dp(5), 0, dp(8));
-            list.addView(demo);
-        } else {
-            // Do not present previously fetched rows as fresh when the server is down.
-            boolean fresh = connectionHealthy && lastRefreshMs > 0
-                && System.currentTimeMillis() - lastRefreshMs < 180_000L;
-            String detail = fresh
-                ? "LIVE SHADOW • " + lastCovered + "/" + lastEligible + " DIPINDAI • PILOT MTF"
-                : "SERVER OFFLINE • DATA TIDAK TERBARU";
-            TextView health = text(detail, 11, fresh ? GREEN : YELLOW, true);
-            health.setPadding(0, dp(5), 0, dp(8));
-            list.addView(health);
+        if(universeSnapshot.partial)list.addView(text("DATA TIDAK LENGKAP / STALE • Jumlah di bawah hanya yang terverifikasi",12,YELLOW,true));
+        list.addView(text("Eligible Universe: "+universeSnapshot.eligible,18,Color.WHITE,true));
+        list.addView(text("Actively Tracked: "+universeSnapshot.tracked+" / "+universeSnapshot.capacity+" kapasitas",14,GREEN,true));
+        list.addView(text(BuildConfig.DEMO_MODE?"DEMO OFFLINE • FIXTURE • BUKAN DATA LIVE":
+            "Snapshot "+shortTime(universeSnapshot.generatedAtMs)+" WIB",11,YELLOW,false));
+        EditText search=new EditText(this);search.setSingleLine(true);search.setTextColor(Color.WHITE);
+        search.setHintTextColor(MUTED);search.setHint("Cari simbol, mis. PLAY");search.setText(query);
+        search.setContentDescription("Cari simbol UNIVERSE");list.addView(search,new LinearLayout.LayoutParams(-1,dp(52)));
+        search.addTextChangedListener(new TextWatcher(){
+            public void beforeTextChanged(CharSequence t,int st,int count,int after){}
+            public void onTextChanged(CharSequence t,int st,int before,int count){query=t.toString();renderUniverseRows();}
+            public void afterTextChanged(Editable t){}
+        });
+        resultCount=text("",12,MUTED,false);list.addView(resultCount);
+        universeScroller=new HorizontalScrollView(this);universeScroller.setHorizontalScrollBarEnabled(true);
+        universeRows=new LinearLayout(this);universeRows.setOrientation(LinearLayout.VERTICAL);
+        universeScroller.addView(universeRows);list.addView(universeScroller);
+        universeScroller.setOnScrollChangeListener((v,x,y,oldX,oldY)->universeScrollX=x);
+        universeScroller.post(()->universeScroller.scrollTo(universeScrollX,0));renderUniverseRows();
+    }
+    private final String[] universeKeys={"symbol","price","binance24hChangePct","quoteVolume24h","tracked"};
+    private final String[] universeTitles={"Symbol","Last Price\nUSDT","Change %\n24H","Quote Volume\nUSDT / 24H","Status"};
+    private final int[] universeWidths={144,128,120,160,112};
+    private void renderUniverseRows(){
+        if(universeRows==null||universeSnapshot==null)return;
+        universeRows.removeAllViews();LinearLayout headings=new LinearLayout(this);
+        for(int i=0;i<universeKeys.length;i++){
+            final String key=universeKeys[i];TextView h=text(universeTitles[i]+(key.equals(sortColumn)?(sortDescending?" ↓":" ↑"):" ↕"),12,YELLOW,true);
+            h.setPadding(dp(8),dp(8),dp(8),dp(8));h.setGravity(i==0?Gravity.START:Gravity.END);
+            h.setContentDescription("Urutkan "+universeTitles[i]);headings.addView(h,new LinearLayout.LayoutParams(dp(universeWidths[i]),dp(64)));
+            h.setOnClickListener(v->{sortDescending=key.equals(sortColumn)?!sortDescending:!key.equals("symbol");sortColumn=key;renderUniverseRows();});
         }
-
-        LinearLayout columns = new LinearLayout(this);
-        columns.setOrientation(LinearLayout.HORIZONTAL);
-        columns.setGravity(Gravity.TOP);
-        TextView colSymbol = text("USDⓈ-M", 12, MUTED, false);
-        TextView colPrice = text("Harga\nTerakhir", 12, MUTED, false);
-        TextView colChange = text("Prbh% 24j", 12, MUTED, false);
-        colPrice.setGravity(Gravity.END);
-        colChange.setGravity(Gravity.END);
-        columns.addView(colSymbol, new LinearLayout.LayoutParams(0, -2, 1.65f));
-        columns.addView(colPrice, new LinearLayout.LayoutParams(0, -2, 1.2f));
-        columns.addView(colChange, new LinearLayout.LayoutParams(0, -2, 1.15f));
-        list.addView(columns);
-        View spacer = new View(this);
-        list.addView(spacer, new LinearLayout.LayoutParams(-1, dp(13)));
-
-        for (JSONObject coin : eligible) addUniverseRow(coin);
-
-        if (eligible.isEmpty()) {
-            TextView empty = text("Belum ada koin yang memenuhi filter harga <10 USDT, kenaikan 24H >=+1%, volume 24H >10 juta USDT.",
-                13, MUTED, false);
-            empty.setPadding(0, dp(18), 0, 0);
-            list.addView(empty);
-        }
+        headings.setBackgroundColor(CARD);universeRows.addView(headings);
+        ArrayList<JSONObject> selected=universeSnapshot.select(query,sortColumn,sortDescending);
+        resultCount.setText(selected.size()+" hasil • Geser tabel ↔ • Ketuk judul untuk urutkan");
+        for(JSONObject coin:selected)addUniverseRow(coin);
+        if(selected.isEmpty())universeRows.addView(text(query.isEmpty()?"Tidak ada kontrak yang lolos filter pada snapshot valid ini.":"Simbol tidak ditemukan pada snapshot ini.",13,MUTED,false));
     }
 
     private String shortTime(long ms) {
@@ -320,43 +309,17 @@ public class MainActivity extends Activity {
     }
 
     private void addUniverseRow(JSONObject coin) {
-        String symbol = coin.optString("symbol", "");
-        double price = coin.optDouble("price", 0);
-        double change = coin.optDouble("binance24hChangePct", 0);
-
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setMinimumHeight(dp(75));
-
-        LinearLayout symbolColumn = new LinearLayout(this);
-        symbolColumn.setOrientation(LinearLayout.VERTICAL);
-        TextView ticker = text(symbol, 17, Color.WHITE, true);
-        ticker.setMaxLines(2);
-        symbolColumn.addView(ticker);
-        TextView perp = text(coin.optBoolean("stale",false) ? "Perp • STALE" : "Perp", 12, MUTED, false);
-        perp.setPadding(0, dp(3), 0, 0);
-        symbolColumn.addView(perp);
-        row.addView(symbolColumn, new LinearLayout.LayoutParams(0, -2, 1.65f));
-
-        TextView priceView = text(number(price), 16, Color.WHITE, false);
-        priceView.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        row.addView(priceView, new LinearLayout.LayoutParams(0, -2, 1.2f));
-
-        LinearLayout changeColumn = new LinearLayout(this);
-        changeColumn.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
-        TextView changeView = text(String.format(Locale.US, "%+.2f%%", change),
-            16, Color.WHITE, true);
-        changeView.setGravity(Gravity.CENTER);
-        changeView.setPadding(dp(7), dp(10), dp(7), dp(10));
-        GradientDrawable greenPill = shape(Color.rgb(11, 191, 123), 0);
-        greenPill.setCornerRadius(dp(8));
-        changeView.setBackground(greenPill);
-        changeColumn.addView(changeView);
-        row.addView(changeColumn, new LinearLayout.LayoutParams(0, -2, 1.15f));
-        list.addView(row);
-
-        // Intentionally no row click and no TradingView shortcut on UNIVERSE.
+        LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);row.setMinimumHeight(dp(64));
+        String[] values={coin.optString("symbol"),number(coin.optDouble("price")),
+            String.format(Locale.US,"%+.2f%%",coin.optDouble("binance24hChangePct")),
+            String.format(Locale.US,"%,.2f",coin.optDouble("quoteVolume24h")),coin.optBoolean("tracked")?"TRACKED":"ELIGIBLE"};
+        for(int i=0;i<values.length;i++){
+            TextView cell=text(values[i],i==0?15:13,i==2?GREEN:Color.WHITE,i==0||i==2);
+            cell.setPadding(dp(8),dp(12),dp(8),dp(12));cell.setGravity(i==0?Gravity.START:Gravity.END);
+            row.addView(cell,new LinearLayout.LayoutParams(dp(universeWidths[i]),-2));
+        }
+        universeRows.addView(row);View divider=new View(this);divider.setBackgroundColor(LINE);
+        universeRows.addView(divider,new LinearLayout.LayoutParams(-1,dp(1)));
     }
 
     private void render() {
@@ -420,6 +383,7 @@ public class MainActivity extends Activity {
         io.execute(()->{
             try{
                 JSONObject statusReply=loadJson("/api/status");
+                UniverseSnapshot.compatible(statusReply);
                 JSONObject guard=statusReply.optJSONObject("requestGuard");
                 long now=System.currentTimeMillis();
                 long tickerAt=statusReply.optLong("lastTickerDataAtMs",0);
@@ -436,7 +400,7 @@ public class MainActivity extends Activity {
                     || !statusReply.optBoolean("tickerConnected",false)
                     || !statusReply.optBoolean("klineConnected",false)
                     || guard==null || guard.optBoolean("circuitOpen",true)
-                    || covered<0 || eligible<0 || maximum<1 || maximum>200 || covered>maximum
+                    || covered<0 || maximum<1 || maximum>200 || covered>maximum
                     || !tickerFresh || !klineFresh){
                     throw new IllegalStateException("YELLOW_MARKET_NOT_READY_OR_STALE");
                 }
@@ -445,27 +409,33 @@ public class MainActivity extends Activity {
                 verifyLive(homeReply);
                 verifyLive(universeReply);
                 JSONArray newHome=homeReply.getJSONArray("home");
+                UniverseSnapshot parsedSnapshot=null;String parsedError="";
+                try{parsedSnapshot=UniverseSnapshot.parse(universeReply,System.currentTimeMillis());}
+                catch(UniverseSnapshot.DataException e){parsedError=e.label;}
+                final UniverseSnapshot snapshot=parsedSnapshot;final String snapshotError=parsedError;
                 JSONArray newUniverse=universeReply.getJSONArray("universe");
                 JSONObject coverage=universeReply.getJSONObject("coverage");
                 int newCovered=coverage.getInt("covered");
-                int newEligible=coverage.getInt("eligible");
-                if(newCovered<0||newCovered>maximum||newEligible<0)
+                int newEligible=coverage.optInt("eligible",-1);
+                if(newCovered<0||newCovered>maximum||(snapshot!=null&&newEligible<0))
                     throw new IllegalStateException("INVALID_SCANNER_COVERAGE");
                 runOnUiThread(()->{
-                    home=newHome;universe=newUniverse;
+                    home=newHome;universe=newUniverse;universeSnapshot=snapshot;universeError=snapshotError;
                     lastCovered=newCovered;lastEligible=newEligible;
                     lastRefreshMs=System.currentTimeMillis();
                     connectionHealthy=true;
-                    status.setText("LIVE SHADOW • "+newCovered+"/"+newEligible+" DIPINDAI");
-                    render();
+                    status.setText("Eligible: "+(newEligible>=0?String.valueOf(newEligible):"—")+" • Tracked: "+newCovered+" / "+maximum);
+                    if(tab.equals("universe") && getCurrentFocus() instanceof EditText)renderUniverseRows();else render();
                 });
             }catch(Exception err){
                 runOnUiThread(()->{
                     // Clear all last-known prices and signals. Never display stale data as LIVE.
-                    connectionHealthy=false;
+                    connectionHealthy=false;universeSnapshot=null;
+                    universeError=err instanceof UniverseSnapshot.DataException?((UniverseSnapshot.DataException)err).label:
+                        ("YELLOW_MARKET_NOT_READY_OR_STALE".equals(err.getMessage())?"STALE":"DATA TIDAK TERSEDIA");
                     home=new JSONArray();universe=new JSONArray();
                     lastCovered=0;lastEligible=0;lastRefreshMs=0;
-                    status.setText("SERVER / FEED TIDAK SIAP • TANPA DATA LIVE");
+                    status.setText(universeError);
                     render();
                 });
             }finally{refreshInFlight=false;}
@@ -486,18 +456,21 @@ public class MainActivity extends Activity {
         return response;
       }finally{c.disconnect();}
     }
-    private void setDemo(){long now=System.currentTimeMillis();
-        long anchor=getSharedPreferences("yellow_demo",MODE_PRIVATE).getLong("demoAnchorMs",0);
-        if(anchor==0){anchor=now;getSharedPreferences("yellow_demo",MODE_PRIVATE).edit().putLong("demoAnchorMs",anchor).apply();}
-        try{home=new JSONArray().put(new JSONObject().put("symbol","WALUSDT").put("timeframe","15m").put("price",0.05123)
-          .put("binance24hChangePct",5.8).put("firstSeenMs",anchor-35*60_000).put("homeExpiresMs",anchor+23*60*60_000+25*60_000))
-          .put(new JSONObject().put("symbol","ARCUSDT").put("timeframe","1m").put("price",0.03741)
-          .put("binance24hChangePct",2.7).put("firstSeenMs",anchor-97*60_000).put("homeExpiresMs",anchor+22*60*60_000+23*60_000));
-          universe=new JSONArray().put(new JSONObject().put("symbol","WALUSDT").put("timeframe","15m").put("price",0.05123)
-           .put("binance24hChangePct",5.8).put("priority","HIGH"))
-           .put(new JSONObject().put("symbol","ARCUSDT").put("timeframe","1m").put("price",0.03741)
-           .put("binance24hChangePct",2.7).put("priority","STANDARD"));
-          lastRefreshMs=System.currentTimeMillis();status.setText("DEMO OFFLINE • 0 REQUEST BINANCE");render();
-        }catch(Exception ignored){}
+    private void setDemo(){
+        try{
+            // Packaged synthetic fixture only; no URL, no subscriptions or notifications.
+            String json;
+            try(java.io.InputStream stream=getAssets().open("universe-preview.json")){
+                BufferedReader reader=new BufferedReader(new InputStreamReader(stream,StandardCharsets.UTF_8));
+                StringBuilder data=new StringBuilder();String line;while((line=reader.readLine())!=null)data.append(line);json=data.toString();
+            }
+            JSONObject fixture=new JSONObject(json);long now=System.currentTimeMillis();
+            fixture.put("generatedAtMs",now).put("lastTickerDataAtMs",now);
+            JSONArray rows=fixture.getJSONArray("universe");
+            for(int i=0;i<rows.length();i++)rows.getJSONObject(i).put("tickerObservedAtMs",now);
+            universeSnapshot=UniverseSnapshot.parse(fixture,now);universe=rows;
+            lastRefreshMs=now;status.setText("DEMO OFFLINE • 0 REQUEST BINANCE");
+            if(!(tab.equals("universe")&&getCurrentFocus() instanceof EditText))render();
+        }catch(Exception e){universeError="DATA TIDAK TERSEDIA";universeSnapshot=null;render();}
     }
 }

@@ -34,7 +34,7 @@ jobs:
         with:
           gradle-version: '8.10.2'
       - name: Compile only; no Firebase credentials, no release or installation
-        run: gradle -p android :app:assembleDebug --no-daemon --stacktrace
+        run: gradle -p android :app:testDebugUnitTest :app:assembleDebug --no-daemon --stacktrace
       - name: Refuse release without permanent signing configuration
         shell: bash
         run: |

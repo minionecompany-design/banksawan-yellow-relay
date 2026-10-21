@@ -11,8 +11,8 @@ test('V9 UI removes marked header and HOME clutter, retaining live status',async
   assert.ok(!main.includes(old),'unexpected visible UI '+old);
  }
  assert.match(main,/BANKSAWAN YELLOW/);
- assert.match(main,/status.setText\("LIVE SHADOW • "\+newCovered/);
- assert.match(main,/status.setText\("SERVER \/ FEED TIDAK SIAP/);
+ assert.match(main,/status.setText\("Eligible: "/);
+ assert.match(main,/status.setText\(universeError/);
  assert.match(main,/\/api\/home/);
  assert.match(main,/\/api\/universe/);
 });
@@ -43,8 +43,8 @@ test('V9 keeps safety and notification behavior unchanged',async()=>{
  assert.match(main,/root.setOnApplyWindowInsetsListener/);
  assert.match(main,/WindowInsets.Type.statusBars/);
  assert.match(main,/WindowInsets.Type.navigationBars/);
- assert.match(gradle,/versionCode 9/);
- assert.match(gradle,/versionName '0.13.0-one-minute-long-b'/);
+ assert.match(gradle,/versionCode 10/);
+ assert.match(gradle,/versionName '0.14.0-universe'/);
 });
 
 test('Android accepts server-advertised scanner capacity 50 or 200 but rejects invalid coverage',async()=>{
