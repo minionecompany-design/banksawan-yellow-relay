@@ -85,11 +85,12 @@ test('B notifies via durable ledger HOME once; legacy 5m LONG A unaffected',asyn
  await market.ledger.restore();await market.episodes.restore();
  await market.episodes.observe(ev('LONG_A',A),{quoteVolumeAtA:20_000_000});
  await market.episodes.observe(ev('PROTECT',A+17*M));
- const b=await market.episodes.observe(ev('LONG_B',A+38*M));
+ const b=await market.episodes.observe({...ev('LONG_B',A+38*M,-0.4),price:11});
  assert.equal(b.status,'LONG_B_SELECTED');
  assert.equal(await market.publishOneMinuteB(b.event),true);
  assert.equal(sent.length,1);assert.equal(sent[0].signal,'LONG_B');
  assert.equal(market.home().length,1);assert.equal(market.home()[0].timeframe,'1m');
+ assert.equal(market.home()[0].binance24hChangePct,-0.4,'B shows actual current change while A q remains pinned');
  assert.equal(market.events(0).length,1);
  assert.equal(await market.publishOneMinuteB(b.event),false);
  assert.equal(sent.length,1);
