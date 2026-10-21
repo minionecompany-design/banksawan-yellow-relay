@@ -201,7 +201,7 @@ public class MainActivity extends Activity {
         b.setOnClickListener(v->{tab=name;scroll.scrollTo(0,0);renderTabs();render();});}}
     private String formattedTime(long t){SimpleDateFormat f=new SimpleDateFormat("dd MMM HH:mm",new Locale("id","ID"));
         f.setTimeZone(TimeZone.getTimeZone("Asia/Jakarta"));return f.format(new Date(t))+" WIB";}
-    private String number(double n){return String.format(Locale.US,n<1?"%.6f":"%.3f",n);}
+    private String number(double n){return java.math.BigDecimal.valueOf(n).stripTrailingZeros().toPlainString();}
     /** BR-style detail: small left label, medium/bold right value with true column alignment. */
     private void line(LinearLayout parent,String label,String value){
         LinearLayout row=new LinearLayout(this);
@@ -253,7 +253,8 @@ public class MainActivity extends Activity {
      * Server values are displayed read-only; the Android app never calls Binance.
      */
     private void renderUniverse() {
-        list.addView(text("UNIVERSE",24,YELLOW,true));
+        list.addView(text("BANKSAWAN YELLOW • GOLD",14,YELLOW,true));
+        list.addView(text("UNIVERSE",24,Color.WHITE,true));
         TextView filters=text("USDⓈ-M USDT PERPETUAL • AKTIF\n0 < harga < 10 • 24H ≥ +1% • Quote 24H > 10M USDT",12,MUTED,false);
         filters.setPadding(0,dp(8),0,dp(12));list.addView(filters);
         boolean fresh=universeSnapshot!=null && (BuildConfig.DEMO_MODE ||
@@ -424,8 +425,8 @@ public class MainActivity extends Activity {
                     lastCovered=newCovered;lastEligible=newEligible;
                     lastRefreshMs=System.currentTimeMillis();
                     connectionHealthy=true;
-                    status.setText("Eligible: "+(newEligible>=0?String.valueOf(newEligible):"—")+" • Tracked: "+newCovered+" / "+maximum);
-                    if(tab.equals("universe") && getCurrentFocus() instanceof EditText)renderUniverseRows();else render();
+                    status.setText("Eligible: "+(newEligible>=0?String.valueOf(newEligible):"—")+(snapshot!=null&&snapshot.partial?" (parsial)":"")+" • Tracked: "+newCovered+" / "+maximum);
+                    if(snapshot!=null && tab.equals("universe") && getCurrentFocus() instanceof EditText)renderUniverseRows();else render();
                 });
             }catch(Exception err){
                 runOnUiThread(()->{

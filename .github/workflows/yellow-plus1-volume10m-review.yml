@@ -97,5 +97,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: yellow-v014-offline-ui-proof
-          path: docs/v014/emulator/
+          path: |
+            docs/v014/emulator/
+            android/app/build/test-results/testDebugUnitTest/
           if-no-files-found: error
