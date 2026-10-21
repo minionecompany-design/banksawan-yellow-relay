@@ -27,7 +27,7 @@ public final class YellowNotifier {
             NotificationManager manager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
             if(manager!=null){
                 NotificationChannel c=new NotificationChannel(CHANNEL,"YELLOW LONG A (live)",NotificationManager.IMPORTANCE_HIGH);
-                c.setDescription("Research alerts for closed 1M/5M/15M/1H LONG A candles");
+                c.setDescription("Research alerts for closed 5M/15M/1H LONG A candles");
                 c.setSound(defaultSound(),soundAttributes());
                 manager.createNotificationChannel(c);
                 NotificationChannel selfTest=new NotificationChannel(TEST_CHANNEL,
@@ -69,8 +69,8 @@ public final class YellowNotifier {
             !(timeframe.equals("5m")||timeframe.equals("15m")||timeframe.equals("1h"))||
             !id.equals(symbol+":"+timeframe+":"+closedAt+":LONG_A")||
             closedAt<=0||closedAt>now||now-closedAt>300_000||expiresAt<=now||
-            !Double.isFinite(price)||price<=0||price>=30||
-            !Double.isFinite(change)||change<=0||!Double.isFinite(quoteVolume24h)||quoteVolume24h<=10_000_000)return false;
+            !Double.isFinite(price)||price<=0||price>=10||
+            !Double.isFinite(change)||change<1||!Double.isFinite(quoteVolume24h)||quoteVolume24h<=10_000_000)return false;
         if(Build.VERSION.SDK_INT>=33 &&
            context.checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=PackageManager.PERMISSION_GRANTED)
             return false;
