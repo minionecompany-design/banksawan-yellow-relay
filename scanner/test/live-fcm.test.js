@@ -22,7 +22,7 @@ test('FCM emits data-only LONG A push with bounded TTL; no other symbols',async(
  };
  const fcm=new YellowFcm({enabled:true,serviceAccountJson:JSON.stringify(account),fetchImpl:sender,clock:()=>now});
  const event={id:`WALUSDT:15m:${now}:LONG_A`,symbol:'WALUSDT',timeframe:'15m',signal:'LONG_A',
-   barClosedAtMs:now,expiresAtMs:now+299000,price:.051,binance24hChangePct:5.8};
+   barClosedAtMs:now,expiresAtMs:now+299000,price:.051,quoteVolume24h:20_000_000,binance24hChangePct:5.8};
  assert.equal((await fcm.send(event)).sent,true);
  assert.equal(calls.length,2);
  const payload=JSON.parse(calls[1].opts.body);

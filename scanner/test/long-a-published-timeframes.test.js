@@ -21,7 +21,7 @@ const newMarket=async(alertTimeframes)=>{
 };
 const event=tf=>({id:'AGTUSDT:'+tf+':'+now+':LONG_A',symbol:'AGTUSDT',
   timeframe:tf,signal:'LONG_A',price:.08,barClosedAtMs:now,
-  binance24hChangePct:12,priority:'HIGH'});
+  quoteVolume24h:20_000_000,binance24hChangePct:12,priority:'HIGH'});
 
 test('5m/15m/1h alert-only setting removes historic 1m from HOME and polling without deleting ledger',async()=>{
  const m=await newMarket(['5m','15m','1h']);

@@ -9,10 +9,11 @@
  * All histories must be strictly contiguous and sufficiently warmed up.
  * This implementation is NOT yet TradingView-parity-certified.
  */
+import {productEligible} from './product-policy.js';
 export const SETTINGS = Object.freeze({
-  minBinance24hChangePct: 1,
+  minBinance24hChangePct: 0,
   highPriorityChangePct: 5,
-  maxPriceExclusive: 10,
+  maxPriceExclusive: 30,
   minVolumeRatio: 0.75,
   maxDistanceFromMa7Pct: 2.5,
   entryWindow1mBars: 30,
@@ -120,7 +121,7 @@ export function stepLongA(symbol, data, state = newSymbolState()) {
   if (ticker24h.observedAtMs > latest.endMs + 5_000 ||
       latest.endMs - ticker24h.observedAtMs > SETTINGS.maxTickerAgeMs)
     return {event:null, reason:'STALE_BINANCE_TICKER',state};
-  const eligible = pct >= SETTINGS.minBinance24hChangePct &&
+  const eligible = pct > SETTINGS.minBinance24hChangePct &&
     lastPrice < SETTINGS.maxPriceExclusive;
   const one = metrics(oneMinute), five = metrics(fiveMinute);
   const fifteen = metrics(fifteenMinute), hour = metrics(oneHour);
@@ -199,9 +200,9 @@ export function eligibleUniverse(tickers) {
     finite(Number(t.lastPrice)) && Number(t.lastPrice)>0 &&
     Number(t.lastPrice)<SETTINGS.maxPriceExclusive &&
     finite(Number(t.priceChangePercent)) &&
-    Number(t.priceChangePercent)>=SETTINGS.minBinance24hChangePct)
+    productEligible(Number(t.lastPrice),Number(t.priceChangePercent),Number(t.quoteVolume)))
     .map(t=>({symbol:t.symbol,price:Number(t.lastPrice),
-      binance24hChangePct:Number(t.priceChangePercent),
+      binance24hChangePct:Number(t.priceChangePercent),quoteVolume24h:Number(t.quoteVolume),
       priority:Number(t.priceChangePercent)>=SETTINGS.highPriorityChangePct?'HIGH':'STANDARD'}))
     .sort((a,b)=>b.binance24hChangePct-a.binance24hChangePct);
 }

@@ -9,6 +9,7 @@ import {stepLongAOnTimeframe,PERIODS} from './parallel-long-a.js';
 import {normalizeBinanceTicker} from './binance-fixture-adapter.js';
 import {eligibleUniverse} from './long-a.js';
 import path from 'node:path';
+import {PRODUCT_POLICY,productEligible,eligibleEvent} from './product-policy.js';
 import {LaneCheckpoint} from './live-state-checkpoint.js';
 
 const API='https://fapi.binance.com';
@@ -144,7 +145,7 @@ export class YellowLiveMarket {
         const at=Number(row.E);
         if(!Number.isSafeInteger(at)||Math.abs(this.clock()-at)>120_000)continue;
         try{if(this.recordTicker(normalizeBinanceTicker({symbol,
-          ticker:{symbol,lastPrice:row.c,priceChangePercent:row.P},exchangeSymbol,observedAtMs:at})))
+          ticker:{symbol,lastPrice:row.c,priceChangePercent:row.P,quoteVolume:row.q},exchangeSymbol,observedAtMs:at})))
             {this.lastTickerDataAtMs=this.clock();this.wsRecoveryDataAtMs=this.clock();}}catch{}
       }
     }catch{this.ignored++;}});
@@ -284,6 +285,11 @@ export class YellowLiveMarket {
             this.suppressedLongAEvents++;
             continue; // Preserve state/cursor, never publish a disabled TF.
           }
+          const signalTicker=this.getTickerAsOf(symbol,nextEnd);
+          // Use only the ticker known at candle close, never a later snapshot.
+          if(!productEligible(result.event.price,result.event.binance24hChangePct,signalTicker?.quoteVolume))continue;
+          result.event.quoteVolume24h=signalTicker.quoteVolume;
+          result.event.eligibilityPolicy=PRODUCT_POLICY.version;
           const accepted=await this.ledger.accept(result.event);
           if(accepted.accepted){
              this.eventsEmitted++;
@@ -374,6 +380,10 @@ export class YellowLiveMarket {
           const universe=this.universe();
           const currentEligible=new Set(universe.map(x=>x.symbol));
           for(const [symbol,tracked] of this.covered){
+            const quoteVolume=this.tickers.get(symbol)?.quoteVolume;
+            if(!Number.isFinite(quoteVolume)||quoteVolume<=PRODUCT_POLICY.minQuoteVolumeExclusive){
+              this.covered.delete(symbol);this.unsubscribe(symbol);continue;
+            }
             if(currentEligible.has(symbol)){tracked.ineligibleSinceMs=0;continue;}
             if(!tracked.ineligibleSinceMs)tracked.ineligibleSinceMs=this.clock();
             if(this.clock()-tracked.ineligibleSinceMs>15*60_000){
@@ -428,15 +438,15 @@ export class YellowLiveMarket {
     tracked.drain=job.catch(err=>this.recordFault('DRAIN_'+symbol+'_'+err.message));
     await job;
   }
-  home(){return this.ledger.home().filter(x=>this.alertTimeframes.has(x.timeframe));}
-  events(afterMs){return this.ledger.eventsSince(afterMs).filter(x=>this.alertTimeframes.has(x.timeframe));}
+  home(){return this.ledger.home().filter(x=>this.alertTimeframes.has(x.timeframe)&&eligibleEvent(x));}
+  events(afterMs){return this.ledger.eventsSince(afterMs).filter(x=>this.alertTimeframes.has(x.timeframe)&&eligibleEvent(x));}
   status(){const eligible=this.universe();return {
     ok:this.isRunning&&!this.isHalted,mode:this.isHalted?'STOPPED':this.isRunning?'LIVE_SHADOW':'STARTING',
     exchange:'BINANCE_USDM_PERPETUAL',tickerConnected:this.tickerConnected,
     klineConnected:this.klineConnected,eligible:eligible.length,covered:this.covered.size,
     bootstrapInProgress:this.inProgress.size,coverageRatio:eligible.length?this.covered.size/eligible.length:0,
     feedGeneration:this.feedGeneration,wsRecovering:this.wsRecovering,wsRecoveryAttempts:this.wsRecoveryAttempts,
-    maxTracked:this.maxTracked,alertTimeframes:[...this.alertTimeframes],
+    productPolicy:PRODUCT_POLICY,maxTracked:this.maxTracked,alertTimeframes:[...this.alertTimeframes],
     suppressedLongAEvents:this.suppressedLongAEvents,cooldownSymbols:[...this.retryAfter.values()].filter(t=>t>this.clock()).length,eventsEmitted:this.eventsEmitted,lastClosedCandleMs:this.lastClosedCandleMs,
     coverageComplete:eligible.every(x=>this.covered.has(x.symbol)),
     uncoveredEligible:eligible.filter(x=>!this.covered.has(x.symbol)).length,

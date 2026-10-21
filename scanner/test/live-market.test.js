@@ -21,18 +21,18 @@ test('live mode rejects merged COIN-M ticker data (st=2), accepts USD-M st=1 onl
  market.connectWebsockets();
  const ws=market.tickerWs;
  ws.emit('open');
- ws.emit('message',{data:JSON.stringify([{s:'WALUSDT',c:'0.05',P:'10',E:END,st:2}])});
+ ws.emit('message',{data:JSON.stringify([{s:'WALUSDT',c:'0.05',q:'20000000',P:'10',E:END,st:2}])});
  assert.equal(market.universe().length,0);
- ws.emit('message',{data:JSON.stringify([{s:'WALUSDT',c:'0.05',P:'5.5',E:END,st:1}])});
+ ws.emit('message',{data:JSON.stringify([{s:'WALUSDT',c:'0.05',q:'20000000',P:'5.5',E:END,st:1}])});
  assert.equal(market.universe().length,1);
  market.stop();
 });
 test('UNIVERSE includes all eligible but reports only covered subset',async()=>{
  const market=new YellowLiveMarket(await config());
- for(const [symbol,pct] of [['WALUSDT',3],['ARCUSDT',5],['NILUSDT',.99],['SKDDUSDT',20]]){
+ for(const [symbol,pct] of [['WALUSDT',3],['ARCUSDT',5],['NILUSDT',0],['SKDDUSDT',20]]){
   market.exchangeSymbols.set(symbol,exchange(symbol));
   market.recordTicker({symbol,source:'BINANCE_USDM_FUTURES',status:'TRADING',contractType:'PERPETUAL',
-   priceChangePercent:pct,lastPrice:symbol==='SKDDUSDT'?11:.05,observedAtMs:END});
+   quoteVolume:20_000_000,priceChangePercent:pct,lastPrice:symbol==='SKDDUSDT'?30:.05,observedAtMs:END});
  }
  market.covered.set('WALUSDT',{book:null});
  const list=market.universe();

@@ -27,9 +27,9 @@ async function marketAt(nowMs=END+M+2_000){
   const tracked={book,states};
   market.covered.set(symbol,tracked);
   market.recordTicker({symbol,source:'BINANCE_USDM_FUTURES',status:'TRADING',contractType:'PERPETUAL',
-    lastPrice:0.05,priceChangePercent:5.5,observedAtMs:END-30_000});
+    lastPrice:0.05,quoteVolume:20_000_000,priceChangePercent:5.5,observedAtMs:END-30_000});
   market.recordTicker({symbol,source:'BINANCE_USDM_FUTURES',status:'TRADING',contractType:'PERPETUAL',
-    lastPrice:0.05,priceChangePercent:5.5,observedAtMs:END+M/2});
+    lastPrice:0.05,quoteVolume:20_000_000,priceChangePercent:5.5,observedAtMs:END+M/2});
   return {market,tracked,book,symbol,setNow:x=>now=x};
 }
 

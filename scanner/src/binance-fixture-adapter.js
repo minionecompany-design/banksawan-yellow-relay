@@ -52,7 +52,9 @@ export function normalizeBinanceTicker({symbol,ticker,exchangeSymbol,observedAtM
   const price=Number(ticker.lastPrice),percent=Number(ticker.priceChangePercent);
   if(!positive(price)||!Number.isFinite(percent))throw new Error('TICKER_NUMBERS_INVALID');
   return {symbol,source:'BINANCE_USDM_FUTURES',contractType:'PERPETUAL',status:'TRADING',
-    observedAtMs,lastPrice:price,priceChangePercent:percent};
+    observedAtMs,lastPrice:price,priceChangePercent:percent,
+    quoteVolume: typeof ticker.quoteVolume==='number' || (typeof ticker.quoteVolume==='string' && ticker.quoteVolume.trim()!=='')
+      ? Number(ticker.quoteVolume) : NaN};
 }
 
 /**
