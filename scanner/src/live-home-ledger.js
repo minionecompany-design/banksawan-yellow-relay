@@ -29,7 +29,7 @@ export class LiveHomeLedger {
       const now=this.clock();this.#prune();
       if(!event||!((event.signal==='LONG_A'&&frames.has(event.timeframe))||eligibleOneMinuteB(event))||
         !/^[A-Z0-9]{2,25}USDT$/.test(event.symbol||'')||
-        event.id!==`${event.symbol}:${event.timeframe}:${event.barClosedAtMs}:LONG_A`||
+        event.id!==`${event.symbol}:${event.timeframe}:${event.barClosedAtMs}:${event.signal}`||
         !Number.isSafeInteger(event.barClosedAtMs)||now<event.barClosedAtMs||now-event.barClosedAtMs>MAX_AGE||
         !eligibleEvent(event))
         return {accepted:false,reason:'INVALID_OR_EXPIRED_EVENT'};
