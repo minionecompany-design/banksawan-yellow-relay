@@ -27,12 +27,14 @@ for width,height,label in [(1080,2400,'360dp'),(1236,2748,'412dp')]:
  assert 'Eligible Universe: 4' in text and 'Actively Tracked: 2 / 50' in text,text
  capture(label+'-left')
  # Scroll the shared table to the quote-volume/status columns.
- scrollers=[n for n in nodes() if n.get('class')=='android.widget.HorizontalScrollView' and n.get('scrollable')=='true']
- assert scrollers,'UNIVERSE horizontal scroll container is not visible'
- x1,y1,x2,y2=map(int,re.findall(r'\\d+',scrollers[0].get('bounds')))
- assert x2-x1>160 and y2-y1>80,(x1,y1,x2,y2)
- y=y1+min((y2-y1)//3,180)
- adb('shell','input','swipe',str(x2-24),str(y),str(x1+24),str(y),'450');time.sleep(1)
+ # Android UIAutomator may omit non-accessible HorizontalScrollView nodes.
+ # Anchor gesture to the visible results-counter immediately above the table.
+ labels=[n for n in nodes() if 'hasil' in n.get('text','') and 'Geser tabel' in n.get('text','')]
+ assert labels,'UNIVERSE table counter is not visible'
+ _,_,_,counterBottom=map(int,re.findall(r'\\d+',labels[0].get('bounds')))
+ screenHeight=int(adb('shell','wm','size').decode().strip().split(':')[-1].strip().split('x')[1])
+ y=min(counterBottom+70,screenHeight-300)
+ adb('shell','input','swipe',str(width-45),str(y),'35',str(y),'550');time.sleep(1)
  text=' '.join(n.get('text','') for n in nodes());assert 'TRACKED' in text and 'ELIGIBLE' in text,text
  capture(label+'-right')
  # Search operates on local snapshot and retains fixture totals.
