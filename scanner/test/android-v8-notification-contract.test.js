@@ -8,9 +8,9 @@ test('V8 Android foreground notifications poll YELLOW read-only events every 10s
   assert.match(java,/eventsTask=.*?pollLongAEvents\(\).*?10_000/s);
   assert.match(java,/BuildConfig\.ALERTS_ENABLED/);
   assert.match(java,/\/api\/events\?afterMs=/);
-  assert.match(java,/oneB&&tf\\.equals\\("1m"\\)/);
-  assert.match(java,/!oneB&&\\(tf\\.equals\\("5m"\\)/);
-  assert.match(java,/YellowNotifier\\.claimAndNotify\\(this,signal,id,symbol,tf/);
+  assert.match(java,/oneB&&tf\.equals\("1m"\)/);
+  assert.match(java,/!oneB&&\(tf\.equals\("5m"\)/);
+  assert.match(java,/YellowNotifier\.claimAndNotify\(this,signal,id,symbol,tf/);
   assert.match(java,/handler\.removeCallbacks\(eventsTask\)/);
 });
 
