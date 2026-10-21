@@ -14,10 +14,10 @@ const clone=v=>JSON.parse(JSON.stringify(v));
 function validEntry(e,sym){
   if(!e||!symbolOK(sym)||e.symbol!==sym||!minute(e.firstAAtMs)||
      !productEligible(e.firstAPrice,e.firstAChangePct,e.firstAQuoteVolume24h)||
-     !['OPEN','SELECTED','CANCELLED'].includes(e.status)||
+     !['OPEN','SELECTED','DELIVERED','CANCELLED'].includes(e.status)||
      (e.protectAtMs!==null&&(!minute(e.protectAtMs)||e.protectAtMs<=e.firstAAtMs||
        e.protectAtMs>e.firstAAtMs+EPISODE_WINDOW_MS)))return false;
-  if(e.status==='SELECTED'){
+  if(e.status==='SELECTED'||e.status==='DELIVERED'){ 
     if(!e.selected||e.selected.signal!=='LONG_B'||e.selected.timeframe!=='1m'||
        e.selected.symbol!==sym||!minute(e.selected.barClosedAtMs)||
        e.selected.barClosedAtMs>e.firstAAtMs+EPISODE_WINDOW_MS||
@@ -86,7 +86,14 @@ export class OneMinuteBEpisodes {
   }
   status(){
     const at=this.clock();
-    return {active:this.activeSymbols(at).length,selected:[...this.rows.values()].filter(e=>e.status==='SELECTED').length};
+    return {active:this.activeSymbols(at).length,selected:[...this.rows.values()].filter(e=>e.status==='SELECTED'||e.status==='DELIVERED').length};
+  }
+  async markPublished(event){
+    return this.#serial(async()=>{
+      const e=this.rows.get(event?.symbol);
+      if(!e||e.status!=='SELECTED'||e.selected?.id!==event.id)return false;
+      e.status='DELIVERED';await this.#commit();return true;
+    });
   }
   async cancel(symbol,reason='COVERAGE_LOST'){
     return this.#serial(async()=>{
