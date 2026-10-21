@@ -84,8 +84,9 @@ public final class YellowNotifier {
             !symbol.matches("[A-Z0-9]{2,25}USDT")||
             !id.equals(symbol+":"+timeframe+":"+closedAt+":"+signal)||
             closedAt<=0||closedAt>now||now-closedAt>300_000||expiresAt<=now||
-            !Double.isFinite(price)||price<=0||price>=10||
-            !Double.isFinite(change)||change<1||!Double.isFinite(quoteVolume24h)||quoteVolume24h<=10_000_000)return false;
+            !Double.isFinite(price)||price<=0||(regularA&&price>=10)||
+            !Double.isFinite(change)||(regularA&&change<1)||
+            !Double.isFinite(quoteVolume24h)||quoteVolume24h<=10_000_000)return false;
         if(Build.VERSION.SDK_INT>=33 &&
            context.checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=PackageManager.PERMISSION_GRANTED)
             return false;
