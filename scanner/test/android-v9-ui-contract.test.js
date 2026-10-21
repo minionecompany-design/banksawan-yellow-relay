@@ -42,8 +42,8 @@ test('V9 keeps safety and notification behavior unchanged',async()=>{
  assert.match(main,/root.setOnApplyWindowInsetsListener/);
  assert.match(main,/WindowInsets.Type.statusBars/);
  assert.match(main,/WindowInsets.Type.navigationBars/);
- assert.match(gradle,/versionCode 7/);
- assert.match(gradle,/versionName '0.11.0-volume-filter'/);
+ assert.match(gradle,/versionCode 8/);
+ assert.match(gradle,/versionName '0.12.0-plus1-volume10m'/);
 });
 
 test('Android accepts server-advertised scanner capacity 50 or 200 but rejects invalid coverage',async()=>{
