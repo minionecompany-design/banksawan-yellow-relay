@@ -24,6 +24,7 @@ const alertTimeframes=(process.env.YELLOW_ALERT_TIMEFRAMES||'5m,15m,1h')
   .split(',').map(tf=>tf.trim()).filter(tf=>tf && tf!=='1m');
 const market=new YellowLiveMarket({dataDir,maxTracked:Number(process.env.YELLOW_MAX_TRACKED||200),
   alertTimeframes,
+  oneMinuteLongBEnabled:process.env.YELLOW_1M_LONG_B_ENABLED==='true',
   passiveEvidence:research,
   sendEvent:async event=>{
     const delivery=await fcm.send(event);
