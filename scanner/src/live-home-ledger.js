@@ -31,7 +31,7 @@ export class LiveHomeLedger {
         !/^[A-Z0-9]{2,25}USDT$/.test(event.symbol||'')||
         event.id!==`${event.symbol}:${event.timeframe}:${event.barClosedAtMs}:${event.signal}`||
         !Number.isSafeInteger(event.barClosedAtMs)||now<event.barClosedAtMs||now-event.barClosedAtMs>MAX_AGE||
-        !eligibleEvent(event))
+        !(event.signal==='LONG_B'?eligibleOneMinuteB(event):eligibleEvent(event)))
         return {accepted:false,reason:'INVALID_OR_EXPIRED_EVENT'};
       if(this.doc.claimed.some(x=>x.id===event.id))return {accepted:false,reason:'DUPLICATE'};
       const record={id:event.id,signal:event.signal,symbol:event.symbol,timeframe:event.timeframe,price:event.price,
