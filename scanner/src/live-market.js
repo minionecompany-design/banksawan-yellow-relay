@@ -240,7 +240,7 @@ export class YellowLiveMarket {
   async retireSymbol(symbol,reason){
     if(!this.covered.has(symbol))return;
     this.covered.delete(symbol);
-    if(this.oneMinuteLongBEnabled)await this.episodes.cancel(symbol,'COVERAGE_LOST_'+reason);
+    if(this.oneMinuteLongBEnabled)await this.safeEpisodeWrite(this.episodes.cancel(symbol,'COVERAGE_LOST_'+reason));
     this.retryAfter.set(symbol,this.clock()+10*60_000);
     this.unsubscribe(symbol);
     this.recordFault('SAFE_REBOOTSTRAP_'+symbol+'_'+reason);
@@ -289,7 +289,7 @@ export class YellowLiveMarket {
         // 1M FIRST A and PROTECT are silent; one B may publish from a pinned episode.
         if(tf==='1m'&&this.oneMinuteLongBEnabled&&result.event){
           const qAtA=result.event.signal==='LONG_A'?this.getTickerAsOf(symbol,nextEnd)?.quoteVolume:undefined;
-          const step=await this.episodes.observe(result.event,{quoteVolumeAtA:qAtA});
+          const step=await this.safeEpisodeWrite(this.episodes.observe(result.event,{quoteVolumeAtA:qAtA}));
           if(result.event.signal==='LONG_A')this.suppressedLongAEvents++;
           if(step.status==='LONG_B_SELECTED')await this.publishOneMinuteB(step.event);
           continue;
@@ -331,15 +331,19 @@ export class YellowLiveMarket {
       catch(e){this.halt('CHECKPOINT_WRITE_FAILED');throw e;}
     }
   }
+  async safeEpisodeWrite(operation){
+    try{return await operation;}
+    catch(e){this.halt('YELLOW_1M_EPISODE_PERSISTENCE_ERROR');throw e;}
+  }
   async publishOneMinuteB(event){
     if(!this.oneMinuteLongBEnabled||!eligibleOneMinuteB(event)||
        this.clock()-event.barClosedAtMs>5*60_000||this.clock()<event.barClosedAtMs)return false;
     const accepted=await this.ledger.accept(event);
     if(!accepted.accepted){
-      if(accepted.reason==='DUPLICATE')await this.episodes.markPublished(event);
+      if(accepted.reason==='DUPLICATE')await this.safeEpisodeWrite(this.episodes.markPublished(event));
       return false;
     }
-    await this.episodes.markPublished(event);
+    await this.safeEpisodeWrite(this.episodes.markPublished(event));
     this.longBSelected++;this.eventsEmitted++;
     await this.sendEvent(accepted.event);return true;
   }
@@ -362,7 +366,7 @@ export class YellowLiveMarket {
       const {states,resumed,cold}=await this.checkpoints.restore(symbol,book,this.clock());
       // If any context lane continuity is lost, the pending B cannot be verified.
       if(this.oneMinuteLongBEnabled&&this.episodes.active(symbol)&&cold.length)
-        await this.episodes.cancel(symbol,'COLD_RESTART_NO_PARITY');
+        await this.safeEpisodeWrite(this.episodes.cancel(symbol,'COLD_RESTART_NO_PARITY'));
       if(!this.isHalted&&!this.wsRecovering&&generation===this.feedGeneration){
         await this.checkpoints.save(symbol,states,this.clock());
         if(this.isHalted||this.wsRecovering||generation!==this.feedGeneration)return;
@@ -461,7 +465,7 @@ export class YellowLiveMarket {
     let applied;
     try{applied=tracked.book.ingestKline(message,this.clock());}
     catch(e){this.covered.delete(symbol);this.unsubscribe(symbol);
-      if(this.oneMinuteLongBEnabled)await this.episodes.cancel(symbol,'CANDLE_GAP');
+      if(this.oneMinuteLongBEnabled)await this.safeEpisodeWrite(this.episodes.cancel(symbol,'CANDLE_GAP'));
       this.retryAfter.set(symbol,this.clock()+10*60_000);
       this.recordFault('CANDLE_GAP_'+symbol+'_'+e.message);return;}
     if(applied.status!=='APPENDED')return;
