@@ -32,6 +32,18 @@ test('FCM emits data-only LONG A push with bounded TTL; no other symbols',async(
  assert.equal((await fcm.send({...event,expiresAtMs:now-1})).sent,false);
  assert.equal((await fcm.send({...event,id:`WALUSDT:1m:${now}:LONG_A`,timeframe:'1m'})).sent,false,'main YELLOW must not deliver 1m FCM');
  assert.equal(calls.length,2);
+ // Native 1M B must preserve the first LONG A's volume and timestamp for Android.
+ const selectedB={...event,id:`WALUSDT:1m:${now}:LONG_B`,timeframe:'1m',signal:'LONG_B',
+   episodeStartedAtMs:now-38*60_000,protectAtMs:now-17*60_000,
+   firstAPrice:.05,firstAChangePct:1.25,firstAQuoteVolume24h:20_000_000};
+ assert.equal((await fcm.send(selectedB)).sent,true);
+ assert.equal(calls.length,3);
+ const bp=JSON.parse(calls[2].opts.body);
+ assert.equal(bp.message.data.event,'YELLOW_LONG_B');
+ assert.equal(bp.message.data.timeframe,'1m');
+ assert.equal(bp.message.data.episode_started_at_ms,String(selectedB.episodeStartedAtMs));
+ assert.equal(bp.message.data.protect_at_ms,String(selectedB.protectAtMs));
+ assert.equal(bp.message.data.quote_volume_24h,'20000000');
 });
 
 test('FCM independently rejects orange LONG B and other markers before any HTTP',async()=>{
