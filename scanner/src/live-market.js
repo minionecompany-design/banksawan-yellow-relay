@@ -11,6 +11,7 @@ import {eligibleUniverse} from './long-a.js';
 import path from 'node:path';
 import {PRODUCT_POLICY,productEligible,eligibleEvent} from './product-policy.js';
 import {LaneCheckpoint} from './live-state-checkpoint.js';
+import {OneMinuteBEpisodes,eligibleOneMinuteB} from './one-minute-b-episodes.js';
 
 const API='https://fapi.binance.com';
 const WS_RAW='wss://fstream.binance.com/market/ws';
@@ -22,7 +23,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 export class YellowLiveMarket {
   constructor({dataDir,clock=()=>Date.now(),guard=null,wsClass=globalThis.WebSocket,
     maxTracked=200,fetchIntervalMs=600_000,sendEvent=async()=>{},passiveEvidence=null,
-    alertTimeframes=frames,random=Math.random,
+    alertTimeframes=frames,oneMinuteLongBEnabled=false,random=Math.random,
     log=(...args)=>console.log(...args)}={}){
     if(!dataDir)throw new Error('YELLOW_DATA_DIR_REQUIRED');
     if(!wsClass)throw new Error('WEBSOCKET_NOT_AVAILABLE');
@@ -38,6 +39,9 @@ export class YellowLiveMarket {
        alertTimeframes.some(tf=>!frames.includes(tf)))throw Error('INVALID_ALERT_TIMEFRAMES');
     this.alertTimeframes=new Set(alertTimeframes);
     this.suppressedLongAEvents=0;
+    this.oneMinuteLongBEnabled=oneMinuteLongBEnabled===true;
+    this.episodes=new OneMinuteBEpisodes({filename:path.join(dataDir,'yellow-one-minute-b-episodes.json'),clock});
+    this.longBSelected=0;
     this.checkpoints=new LaneCheckpoint(path.join(dataDir,'lane-checkpoints'));
     this.guard=guard||new RequestGuard({filename:path.join(dataDir,'binance-circuit.json'),clock});
     this.ledger=new LiveHomeLedger({filename:path.join(dataDir,'home-ledger.json'),clock});
@@ -52,6 +56,7 @@ export class YellowLiveMarket {
   async start(){
     if(this.isRunning)throw new Error('ALREADY_RUNNING');
     await this.guard.restore();await this.ledger.restore();
+    if(this.oneMinuteLongBEnabled)await this.episodes.restore();
     if(this.guard.closedReason){this.halt('PERSISTENT_'+this.guard.closedReason);return;}
     this.isRunning=true;
     try{
@@ -232,9 +237,10 @@ export class YellowLiveMarket {
   // A delayed 5m/15m/1h close must not permanently lock the 1m lane.
   // Never invent a candle or ticker. Hold the exact target bar until all
   // CONFIRMED contexts are available; on bounded timeout recycle this symbol.
-  retireSymbol(symbol,reason){
+  async retireSymbol(symbol,reason){
     if(!this.covered.has(symbol))return;
     this.covered.delete(symbol);
+    if(this.oneMinuteLongBEnabled)await this.safeEpisodeWrite(this.episodes.cancel(symbol,'COVERAGE_LOST_'+reason));
     this.retryAfter.set(symbol,this.clock()+10*60_000);
     this.unsubscribe(symbol);
     this.recordFault('SAFE_REBOOTSTRAP_'+symbol+'_'+reason);
@@ -253,17 +259,19 @@ export class YellowLiveMarket {
         const latest=bars.at(-1).endMs;
         if(nextEnd>latest)break;
         if(!bars.some(bar=>bar.endMs===nextEnd)){
-          this.retireSymbol(symbol,'TARGET_SEQUENCE_GAP_'+tf);return;
+          await this.retireSymbol(symbol,'TARGET_SEQUENCE_GAP_'+tf);return;
         }
         // No optimistic decisions if a completed MTF candle is slow to arrive.
         // 120s is a maximum lag budget, not a forward-looking candle shortcut.
         if(this.clock()-nextEnd>120_000){
-          this.retireSymbol(symbol,'PENDING_CANDLE_TIMEOUT_'+tf);return;
+          await this.retireSymbol(symbol,'PENDING_CANDLE_TIMEOUT_'+tf);return;
         }
         const target=bars.filter(bar=>bar.endMs<=nextEnd);
         const result=stepLongAOnTimeframe(symbol,tf,{
           ...snapshot,[key]:target,nowMs:this.clock(),
           ticker24h:this.getTickerAsOf(symbol,nextEnd),
+          oneMinuteEpisodePinned:tf==='1m'&&this.oneMinuteLongBEnabled&&
+            this.episodes.active(symbol,nextEnd),
           contextMode:'CAUSAL_REALTIME'
         },state);
         if(result.reason?.startsWith('CONTEXT_STALE_OR_INCOMPLETE_')||
@@ -276,10 +284,18 @@ export class YellowLiveMarket {
            result.reason==='TARGET_DATA_GAP_REBOOTSTRAP_REQUIRED'||
            result.reason==='TARGET_CANDLES_GAPPED_OR_INSUFFICIENT'||
            result.reason==='ALREADY_PROCESSED'){
-          this.retireSymbol(symbol,'UNTRUSTWORTHY_EVALUATION_'+tf+'_'+result.reason);
+          await this.retireSymbol(symbol,'UNTRUSTWORTHY_EVALUATION_'+tf+'_'+result.reason);
           return;
         }
         tracked.states[tf]=result.state;
+        // 1M FIRST A and PROTECT are silent; one B may publish from a pinned episode.
+        if(tf==='1m'&&this.oneMinuteLongBEnabled&&result.event){
+          const qAtA=result.event.signal==='LONG_A'?this.getTickerAsOf(symbol,nextEnd)?.quoteVolume:undefined;
+          const step=await this.safeEpisodeWrite(this.episodes.observe(result.event,{quoteVolumeAtA:qAtA}));
+          if(result.event.signal==='LONG_A')this.suppressedLongAEvents++;
+          if(step.status==='LONG_B_SELECTED')await this.publishOneMinuteB(step.event);
+          continue;
+        }
         if(result.event?.signal==='LONG_A'){
           if(!this.alertTimeframes.has(tf)){
             this.suppressedLongAEvents++;
@@ -317,6 +333,22 @@ export class YellowLiveMarket {
       catch(e){this.halt('CHECKPOINT_WRITE_FAILED');throw e;}
     }
   }
+  async safeEpisodeWrite(operation){
+    try{return await operation;}
+    catch(e){this.halt('YELLOW_1M_EPISODE_PERSISTENCE_ERROR');throw e;}
+  }
+  async publishOneMinuteB(event){
+    if(!this.oneMinuteLongBEnabled||!eligibleOneMinuteB(event)||
+       this.clock()-event.barClosedAtMs>5*60_000||this.clock()<event.barClosedAtMs)return false;
+    const accepted=await this.ledger.accept(event);
+    if(!accepted.accepted){
+      if(accepted.reason==='DUPLICATE')await this.safeEpisodeWrite(this.episodes.markPublished(event));
+      return false;
+    }
+    await this.safeEpisodeWrite(this.episodes.markPublished(event));
+    this.longBSelected++;this.eventsEmitted++;
+    await this.sendEvent(accepted.event);return true;
+  }
   async bootstrap(symbol){
     if(this.isHalted||this.covered.has(symbol)||this.inProgress.has(symbol)||
       (this.retryAfter.get(symbol)||0)>this.clock())return;
@@ -334,6 +366,9 @@ export class YellowLiveMarket {
         book.bootstrap(tf,closed,this.clock());
       }
       const {states,resumed,cold}=await this.checkpoints.restore(symbol,book,this.clock());
+      // If any context lane continuity is lost, the pending B cannot be verified.
+      if(this.oneMinuteLongBEnabled&&this.episodes.active(symbol)&&cold.length)
+        await this.safeEpisodeWrite(this.episodes.cancel(symbol,'COLD_RESTART_NO_PARITY'));
       if(!this.isHalted&&!this.wsRecovering&&generation===this.feedGeneration){
         await this.checkpoints.save(symbol,states,this.clock());
         if(this.isHalted||this.wsRecovering||generation!==this.feedGeneration)return;
@@ -377,9 +412,13 @@ export class YellowLiveMarket {
           this.onSocketClose('kline',{reason:'DATA_STALE'});continue;
         }
         if(this.tickerConnected&&this.klineConnected){
+          // Retry a durably selected but not yet published B after a safe restart.
+          if(this.oneMinuteLongBEnabled)for(const e of this.episodes.pending(this.clock()))
+            await this.publishOneMinuteB(e);
           const universe=this.universe();
           const currentEligible=new Set(universe.map(x=>x.symbol));
           for(const [symbol,tracked] of this.covered){
+            if(this.oneMinuteLongBEnabled&&this.episodes.active(symbol))continue;
             const quoteVolume=this.tickers.get(symbol)?.quoteVolume;
             if(!Number.isFinite(quoteVolume)||quoteVolume<=PRODUCT_POLICY.minQuoteVolumeExclusive){
               this.covered.delete(symbol);this.unsubscribe(symbol);continue;
@@ -402,7 +441,9 @@ export class YellowLiveMarket {
   }
   async bootstrapNextEligible(universe){
     // One symbol at a time through the unchanged guarded REST gateway.
-    for(const item of universe){
+    for(const item of (this.oneMinuteLongBEnabled
+      ? [...this.episodes.activeSymbols(this.clock()).map(symbol=>({symbol})),...universe]
+      : universe)){
       if(this.covered.size>=this.maxTracked||this.isHalted||this.guard.isRemotePaused?.())break;
       if(this.covered.has(item.symbol)||this.inProgress.has(item.symbol)||
         (this.retryAfter.get(item.symbol)||0)>this.clock())continue;
@@ -425,7 +466,9 @@ export class YellowLiveMarket {
     if(!tracked||this.isHalted||!this.klineConnected||!this.tickerConnected)return;
     let applied;
     try{applied=tracked.book.ingestKline(message,this.clock());}
-    catch(e){this.covered.delete(symbol);this.unsubscribe(symbol);this.retryAfter.set(symbol,this.clock()+10*60_000);
+    catch(e){this.covered.delete(symbol);this.unsubscribe(symbol);
+      if(this.oneMinuteLongBEnabled)await this.safeEpisodeWrite(this.episodes.cancel(symbol,'CANDLE_GAP'));
+      this.retryAfter.set(symbol,this.clock()+10*60_000);
       this.recordFault('CANDLE_GAP_'+symbol+'_'+e.message);return;}
     if(applied.status!=='APPENDED')return;
     this.lastClosedCandleMs=Math.max(this.lastClosedCandleMs,applied.endMs);
@@ -438,8 +481,14 @@ export class YellowLiveMarket {
     tracked.drain=job.catch(err=>this.recordFault('DRAIN_'+symbol+'_'+err.message));
     await job;
   }
-  home(){return this.ledger.home().filter(x=>this.alertTimeframes.has(x.timeframe)&&eligibleEvent(x));}
-  events(afterMs){return this.ledger.eventsSince(afterMs).filter(x=>this.alertTimeframes.has(x.timeframe)&&eligibleEvent(x));}
+  home(){return this.ledger.home().filter(x=>
+    (x.signal==='LONG_A'&&eligibleEvent(x)&&this.alertTimeframes.has(x.timeframe)&&
+      (x.timeframe!=='1m'||!this.oneMinuteLongBEnabled))||
+    (this.oneMinuteLongBEnabled&&eligibleOneMinuteB(x)));}
+  events(afterMs){return this.ledger.eventsSince(afterMs).filter(x=>
+    (x.signal==='LONG_A'&&eligibleEvent(x)&&this.alertTimeframes.has(x.timeframe)&&
+      (x.timeframe!=='1m'||!this.oneMinuteLongBEnabled))||
+    (this.oneMinuteLongBEnabled&&eligibleOneMinuteB(x)));}
   status(){const eligible=this.universe();return {
     ok:this.isRunning&&!this.isHalted,mode:this.isHalted?'STOPPED':this.isRunning?'LIVE_SHADOW':'STARTING',
     exchange:'BINANCE_USDM_PERPETUAL',tickerConnected:this.tickerConnected,
@@ -447,7 +496,8 @@ export class YellowLiveMarket {
     bootstrapInProgress:this.inProgress.size,coverageRatio:eligible.length?this.covered.size/eligible.length:0,
     feedGeneration:this.feedGeneration,wsRecovering:this.wsRecovering,wsRecoveryAttempts:this.wsRecoveryAttempts,
     productPolicy:PRODUCT_POLICY,maxTracked:this.maxTracked,alertTimeframes:[...this.alertTimeframes],
-    suppressedLongAEvents:this.suppressedLongAEvents,cooldownSymbols:[...this.retryAfter.values()].filter(t=>t>this.clock()).length,eventsEmitted:this.eventsEmitted,lastClosedCandleMs:this.lastClosedCandleMs,
+    suppressedLongAEvents:this.suppressedLongAEvents,
+     oneMinuteLongB:{enabled:this.oneMinuteLongBEnabled,...this.episodes.status(),selectedThisRun:this.longBSelected},cooldownSymbols:[...this.retryAfter.values()].filter(t=>t>this.clock()).length,eventsEmitted:this.eventsEmitted,lastClosedCandleMs:this.lastClosedCandleMs,
     coverageComplete:eligible.every(x=>this.covered.has(x.symbol)),
     uncoveredEligible:eligible.filter(x=>!this.covered.has(x.symbol)).length,
     laneRecovery:[...this.covered].map(([symbol,t])=>({symbol,resumed:t.resumedLanes||[],cold:t.coldLanes||[]})),

@@ -25,7 +25,8 @@ test('V9 cards show BR aligned small left labels and bold right values',async()=
  assert.match(main,/row.addView\(left/);
  assert.match(main,/row.addView\(right/);
  assert.match(main,/Mulai HOME/);
- assert.match(main,/Timeframe LONG A/);
+ assert.match(main,/"Timeframe "\+eventType/);
+ assert.match(main,/LONG A awal \(senyap\)/);
  assert.match(main,/tradingView\(symbol,box\)/);
 });
 
@@ -33,7 +34,7 @@ test('V9 keeps safety and notification behavior unchanged',async()=>{
  const main=await src('android/app/src/main/java/id/banksawan/yellow/MainActivity.java');
  const gradle=await src('android/app/build.gradle');
  assert.match(main,/homeExpiresMs/);
- assert.match(main,/YellowNotifier.claimAndNotify\(this,id,symbol,tf/);
+ assert.match(main,/YellowNotifier\.claimAndNotify\(this,signal,id,symbol,tf/);
  assert.match(main,/\/api\/events\?afterMs=/);
  assert.match(main,/getJSONArray\("events"\)/);
  assert.match(main,/BuildConfig.FCM_ENABLED/);
@@ -42,6 +43,6 @@ test('V9 keeps safety and notification behavior unchanged',async()=>{
  assert.match(main,/root.setOnApplyWindowInsetsListener/);
  assert.match(main,/WindowInsets.Type.statusBars/);
  assert.match(main,/WindowInsets.Type.navigationBars/);
- assert.match(gradle,/versionCode 7/);
- assert.match(gradle,/versionName '0.11.0-volume-filter'/);
+ assert.match(gradle,/versionCode 9/);
+ assert.match(gradle,/versionName '0.13.0-one-minute-long-b'/);
 });

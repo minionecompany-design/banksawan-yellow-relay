@@ -1,0 +1,77 @@
+name: YELLOW GOLD +1pct q10M review (offline only)
+
+on:
+  pull_request:
+    branches:
+      - yellow-long-a-v2-20261015
+    paths:
+      - 'scanner/**'
+      - 'android/**'
+      - 'scripts/**'
+      - '.github/workflows/yellow-plus1-volume10m-review.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  scanner:
+    name: Full YELLOW scanner regression (no exchange calls)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      YELLOW_LIVE_ENABLED: 'false'
+      YELLOW_DATA_DIR: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JavaScript syntax and all offline scanner tests
+        run: |
+          node --check scanner/src/product-policy.js
+          node --check scanner/src/long-a.js
+          node --check scanner/src/parallel-long-a.js
+          node --check scanner/src/live-market.js
+          node --test scanner/test/*.test.js
+      - name: Release certificate and config regression (no secrets)
+        run: python3 -m unittest discover -s scripts -p 'test*.py' -v
+
+  android:
+    name: Compile v0.13 Android (debug-only smoke test; NOT installable update)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      YELLOW_API_BASE_URL: ''
+      YELLOW_ALERTS_ENABLED: 'false'
+      YELLOW_RELEASE_SIGNING: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: ''
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Build debug variant without live access or signing secrets
+        run: gradle -p android :app:assembleDebug --no-daemon
+      - name: Verify v0.13 version and safe demo build
+        shell: bash
+        run: |
+          test -s android/app/build/outputs/apk/debug/app-debug.apk
+          CONFIG=android/app/build/generated/source/buildConfig/debug/id/banksawan/yellow/BuildConfig.java
+          grep -Eq 'DEMO_MODE[[:space:]]*=[[:space:]]*true' "$CONFIG"
+          grep -Eq 'FCM_ENABLED[[:space:]]*=[[:space:]]*false' "$CONFIG"
+          grep -Eq 'ALERTS_ENABLED[[:space:]]*=[[:space:]]*false' "$CONFIG"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android/app/build/outputs/apk/debug/app-debug.apk | grep -q "versionCode='9'"
+      - name: Upload smoke-test APK; not an official signed release
+        uses: actions/upload-artifact@v4
+        with:
+          name: banksawan-yellow-v0.13-OFFLINE-DEBUG-NOT-RELEASE
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7

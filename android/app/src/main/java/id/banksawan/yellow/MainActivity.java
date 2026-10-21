@@ -123,17 +123,24 @@ public class MainActivity extends Activity {
                     long detected=e.optLong("detectedAtMs",0);
                     if(detected>maxSeen)maxSeen=detected;
                     long now=System.currentTimeMillis();
-                    if(!"LONG_A".equals(e.optString("signal"))||
+                    String signal=e.optString("signal","");
+                    if(!("LONG_A".equals(signal)||"LONG_B".equals(signal))||
                       e.optLong("expiresAtMs",0)<=now||detected<=cursor)continue;
                     String symbol=e.optString("symbol","");
                     String tf=e.optString("timeframe","");
                     String id=e.optString("id","");
-                    if(!symbol.matches("[A-Z0-9]{2,25}USDT") ||
-                       !(tf.equals("1m")||tf.equals("5m")||tf.equals("15m")||tf.equals("1h"))||
-                       !id.equals(symbol+":"+tf+":"+e.optLong("barClosedAtMs",-1)+":LONG_A")) continue;
-                    YellowNotifier.claimAndNotify(this,id,symbol,tf,
+                    boolean oneB="LONG_B".equals(signal);
+                    if(!symbol.matches("[A-Z0-9]{2,25}USDT")||
+                       !((oneB&&tf.equals("1m"))||(!oneB&&(tf.equals("5m")||tf.equals("15m")||tf.equals("1h"))))||
+                       !id.equals(symbol+":"+tf+":"+e.optLong("barClosedAtMs",-1)+":"+signal))continue;
+                    YellowNotifier.claimAndNotify(this,signal,id,symbol,tf,
                       e.optLong("barClosedAtMs",-1),e.optLong("expiresAtMs",0),
-                      e.optDouble("price",0),e.optDouble("binance24hChangePct",0),e.optDouble("quoteVolume24h",Double.NaN));
+                      e.optDouble("price",0),e.optDouble("binance24hChangePct",0),
+                      e.optDouble("quoteVolume24h",Double.NaN),
+                      oneB?e.optLong("episodeStartedAtMs",0):0,
+                      oneB?e.optLong("protectAtMs",0):0,
+                      oneB?e.optDouble("firstAPrice",Double.NaN):Double.NaN,
+                      oneB?e.optDouble("firstAChangePct",Double.NaN):Double.NaN);
                 }
                 // Subtract 1ms to accommodate events with identical server timestamps;
                 // the durable local event-id claim prevents duplicates.
@@ -212,12 +219,17 @@ public class MainActivity extends Activity {
         box.setBackground(shape(CARD,LINE));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);
         p.setMargins(0,0,0,dp(13));list.addView(box,p);
         box.addView(text(symbol,24,Color.WHITE,true));
-        double price=item.optDouble(isHome?"price":"price",0);
-        line(box,isHome?(BuildConfig.DEMO_MODE?"Harga LONG A (DEMO):":"Harga LONG A:"):
+        double price=item.optDouble("price",0);
+        String eventType=item.optString("signal","LONG_A");
+        line(box,isHome?(BuildConfig.DEMO_MODE?"Harga sinyal (DEMO):":"Harga "+eventType+":"):
             (BuildConfig.DEMO_MODE?"Harga contoh:":"Harga terakhir:"),number(price)+" USDT");
         line(box,BuildConfig.DEMO_MODE?"Perubahan Binance 24H (DEMO):":"Perubahan Binance 24H:",
             String.format(Locale.US,"%+.2f%%",item.optDouble("binance24hChangePct")));
-        if(isHome){line(box,"Timeframe LONG A",item.optString("timeframe","1m").toUpperCase(Locale.ROOT));
+        if(isHome){line(box,"Timeframe "+eventType,item.optString("timeframe","1m").toUpperCase(Locale.ROOT));
+            if("LONG_B".equals(eventType)){
+                line(box,"LONG A awal (senyap)",formattedTime(item.optLong("episodeStartedAtMs",0)));
+                line(box,"PROTECT",formattedTime(item.optLong("protectAtMs",0)));
+            }
             long first=item.optLong("firstSeenMs",0);
             line(box,"Mulai HOME",formattedTime(first));}
         else line(box,"Prioritas:",item.optString("priority","STANDARD"));
@@ -237,8 +249,8 @@ public class MainActivity extends Activity {
             double price = coin.optDouble("price", Double.NaN);
             double change = coin.optDouble("binance24hChangePct", Double.NaN);
             if (!symbol.matches("[A-Z0-9]{2,25}USDT")
-                || !Double.isFinite(price) || price <= 0 || price >= 30.0
-                || !Double.isFinite(change) || change <= 0.0
+                || !Double.isFinite(price) || price <= 0 || price >= 10.0
+                || !Double.isFinite(change) || change < 1.0
                 || !Double.isFinite(coin.optDouble("quoteVolume24h",Double.NaN))
                 || coin.optDouble("quoteVolume24h",0)<=10_000_000) continue;
             eligible.add(coin);
@@ -294,7 +306,7 @@ public class MainActivity extends Activity {
         for (JSONObject coin : eligible) addUniverseRow(coin);
 
         if (eligible.isEmpty()) {
-            TextView empty = text("Belum ada koin yang memenuhi filter harga <30 USDT, perubahan >0%, volume 24H >10 juta USDT.",
+            TextView empty = text("Belum ada koin yang memenuhi filter harga <10 USDT, kenaikan 24H >=+1%, volume 24H >10 juta USDT.",
                 13, MUTED, false);
             empty.setPadding(0, dp(18), 0, 0);
             list.addView(empty);
@@ -375,16 +387,28 @@ public class MainActivity extends Activity {
             double price = item.optDouble("price", Double.NaN);
             double pct = item.optDouble("binance24hChangePct", Double.NaN);
             String tf = item.optString("timeframe", "");
-            if (!Double.isFinite(price) || price <= 0 || price >= 30
-                || !Double.isFinite(pct) || pct <= 0
+            String signal = item.optString("signal", "");
+            boolean oneB = "LONG_B".equals(signal)&&tf.equals("1m");
+            boolean regularA = "LONG_A".equals(signal)&&(tf.equals("5m")||tf.equals("15m")||tf.equals("1h"));
+            if (!(oneB||regularA))continue;
+            if (oneB && !(item.optLong("episodeStartedAtMs",0)>0 &&
+                item.optLong("protectAtMs",0)>item.optLong("episodeStartedAtMs",0) &&
+                item.optLong("barClosedAtMs",0)>item.optLong("protectAtMs",0) &&
+                item.optLong("barClosedAtMs",0)<=item.optLong("episodeStartedAtMs",0)+120*60000L &&
+                item.optLong("barClosedAtMs",0)-item.optLong("protectAtMs",0)<=90*60000L &&
+                item.optDouble("firstAPrice",Double.NaN)>0 &&
+                item.optDouble("firstAPrice",Double.NaN)<10 &&
+                item.optDouble("firstAChangePct",Double.NaN)>=1))continue;
+            if (!Double.isFinite(price) || price <= 0 || (!oneB && price >= 10)
+                || !Double.isFinite(pct) || (!oneB && pct < 1)
                 || !Double.isFinite(item.optDouble("quoteVolume24h",Double.NaN))
                 || item.optDouble("quoteVolume24h",0)<=10_000_000
-                || !(tf.equals("1m") || tf.equals("5m") || tf.equals("15m") || tf.equals("1h"))) continue;
+                 ) continue;
             card(symbol, item, true);
             count++;
         }
         if (count == 0) {
-            list.addView(text("Belum ada LONG A yang dapat ditampilkan", 14, MUTED, false));
+            list.addView(text("Belum ada LONG A / LONG B yang dapat ditampilkan", 14, MUTED, false));
         }
 
     }

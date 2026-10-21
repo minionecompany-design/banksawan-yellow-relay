@@ -46,7 +46,7 @@ test('future, late, wrong signal and price reject fail closed',async()=>{
  const filename=await FILE();let now=BASE+400000;const store=new LiveHomeLedger({filename,clock:()=>now});await store.restore();
  assert.equal((await store.accept(sample())).accepted,false);
  now=BASE-1000;assert.equal((await store.accept(sample())).accepted,false);
- now=BASE+1000;assert.equal((await store.accept({...sample(),price:30})).accepted,false);
+ now=BASE+1000;assert.equal((await store.accept({...sample(),price:10})).accepted,false);
  assert.equal((await store.accept({...sample(),signal:'LONG_B'})).accepted,false);
  assert.equal(store.home().length,0);
 });

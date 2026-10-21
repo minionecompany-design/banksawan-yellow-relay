@@ -48,16 +48,25 @@ test('same symbol can get separate 1M and 15M intents while HOME timer is not ex
  const dupe=routeParallelIntents([a,b],END+3000,second.state);
  assert.equal(dupe.notificationIntents.length,0);
 });
-test('no event for nonpositive Binance change, >=30 USDT, stale/future ticker',()=>{
+test('no event for Binance change <+1%, >=10 USDT, stale/future ticker',()=>{
  for(const bad of ['pct','price','stale','future']){
    const {input,states}=fixture('15m');
-   if(bad==='pct')input.ticker24h.priceChangePercent='0';
-   if(bad==='price')input.ticker24h.lastPrice='30.0';
+   if(bad==='pct')input.ticker24h.priceChangePercent='0.99';
+   if(bad==='price')input.ticker24h.lastPrice='10.0';
    if(bad==='stale')input.ticker24h.observedAtMs=END-300_000;
    if(bad==='future')input.ticker24h.observedAtMs=END+10_000;
    const r=stepLongAOnTimeframe('TESTUSDT','15m',input,states['15m']);
    assert.equal(r.event,null,bad);
  }
+});
+test('1M native LONG B keeps the FIRST A admission after 24h P falls below +1%',()=>{
+ const {input,states}=fixture('1m','0.25');
+ states['1m'].tradeState=2;states['1m'].protectBar=20;
+ input.oneMinuteEpisodePinned=true;
+ const r=stepLongAOnTimeframe('TESTUSDT','1m',input,states['1m']);
+ assert.equal(r.event?.signal,'LONG_B','Pine-like B allowed from verified pinned episode');
+ input.oneMinuteEpisodePinned=false;
+ assert.equal(stepLongAOnTimeframe('TESTUSDT','1m',input,states['1m']).event,null);
 });
 test('priority +5% does not delay LONG A and operates in any lane',()=>{
  const {input,states}=fixture('15m','5.0');
