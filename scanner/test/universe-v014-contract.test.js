@@ -45,3 +45,8 @@ test('partial stale evidence retains valid rows with an explicit incomplete coun
  const m=market(3);m.tickers.get('COIN0USDT').observedAtMs=now-30000;
  const s=universeSnapshot(m);assert.equal(s.dataState,'PARTIAL');assert.equal(s.diagnostics.stale,1);assert.equal(s.coverage.eligible,2);assert.equal(s.universe.length,2);
 });
+test('shared Android fixture is the actual backend snapshot schema, not a second hand-written contract',()=>{
+ const m=market(0);for(const r of fixture.universe){m.exchangeSymbols.set(r.symbol,{symbol:r.symbol,contractType:r.contractType,status:r.status,quoteAsset:r.quoteAsset,marginAsset:r.marginAsset});
+ m.tickers.set(r.symbol,{source:r.source,lastPrice:r.price,priceChangePercent:r.binance24hChangePct,quoteVolume:r.quoteVolume24h,observedAtMs:r.tickerObservedAtMs});if(r.tracked)m.covered.set(r.symbol,{});}
+ assert.deepEqual(universeSnapshot(m),fixture);
+});

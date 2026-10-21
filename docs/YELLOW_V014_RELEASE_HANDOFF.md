@@ -34,7 +34,7 @@ Official sources reviewed: https://www.binance.com/id/terms (eligibility §2, ge
 
 Observed mount: volume `ea9edf2d-7294-443f-854c-001265c06405` (`yellow-journal-singapore`) at `/data`, 512 MB, `asia-southeast1-eqsg3a`. One replica, CPU 0.5, memory 500 MB; no staged changes. Existing start command `node scanner/src/live-main.js`. FCM/API variable names present; secret values not requested or printed. Feature YELLOW_1M_LONG_B_ENABLED absent from variable names; remains default OFF. No runtime files or journal were read/rewritten/deleted, no migration. Capacity config was not increased. No additional Railway resource provisioned. Existing running backend is not authorized anew by this audit.
 
-**Backup is NOT independently verified.** Available connector has no volume-backup listing or file snapshot operation; mounted volume alone is not a backup, and deployment rollback does not restore journal contents. Backup/restore proof remains a second operational hold before future LIVE. Existing successful deployment ID is recorded, but current rollback capability must be refreshed before action.
+**Backup is NOT independently verified.** Available connector has no volume-backup listing or file snapshot operation; mounted volume alone is not a backup, and deployment rollback does not restore journal contents. Backup/restore proof remains a second operational hold before future LIVE. Existing successful deployment ID is recorded, but deployment-history read was denied by Railway (required viewer role) during this audit. Current rollback capability must be verified by an authorized operator before action.
 
 ## Future rollout and rollback (do not execute while NO-GO)
 
