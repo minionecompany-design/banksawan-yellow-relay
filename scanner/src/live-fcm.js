@@ -2,6 +2,7 @@
  * Optional and strictly off by default. Asynchronous best effort: signals must
  * already be persisted before this module is invoked. No shared BR topic.
  */
+import {eligibleEvent} from './product-policy.js';
 import {createSign} from 'node:crypto';
 const TOKEN_URL='https://oauth2.googleapis.com/token';
 const scope='https://www.googleapis.com/auth/firebase.messaging';
@@ -38,7 +39,7 @@ export class YellowFcm {
   async send(record){
     if(!this.enabled)return {sent:false,reason:'FCM_DISABLED'};
     this.attempted++;
-    if(!record||record.signal!=='LONG_A'||record.id!==`${record.symbol}:${record.timeframe}:${record.barClosedAtMs}:LONG_A`||!allowed.test(record.symbol||'')||!['1m','5m','15m','1h'].includes(record.timeframe)||
+    if(!eligibleEvent(record)||record.signal!=='LONG_A'||record.id!==`${record.symbol}:${record.timeframe}:${record.barClosedAtMs}:LONG_A`||!allowed.test(record.symbol||'')||!['1m','5m','15m','1h'].includes(record.timeframe)||
        !Number.isFinite(record.expiresAtMs)||record.expiresAtMs<=this.clock())
       return {sent:false,reason:'EVENT_NOT_DELIVERABLE'};
     try{
@@ -48,7 +49,7 @@ export class YellowFcm {
       const msg={message:{topic:this.topic,
         data:{event:'YELLOW_LONG_A',event_id:String(record.id),symbol:record.symbol,
           timeframe:record.timeframe,price:String(record.price),
-          binance_change:String(record.binance24hChangePct),
+          binance_change:String(record.binance24hChangePct),quote_volume_24h:String(record.quoteVolume24h),
           bar_closed_at_ms:String(record.barClosedAtMs),
           expires_at_ms:String(record.expiresAtMs)},
         android:{priority:'HIGH',ttl:Math.max(1,Math.floor(leftMs/1000))+'s'}}};

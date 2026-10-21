@@ -14,13 +14,13 @@ class Socket {
 const dir=()=>mkdtemp(path.join(os.tmpdir(),'yellow-v10-'));
 const symbol='AGTUSDT';
 const event=(tf,end,s=symbol)=>({id:`${s}:${tf}:${end}:LONG_A`,symbol:s,timeframe:tf,barClosedAtMs:end,
- signal:'LONG_A',price:.04,binance24hChangePct:5});
+ signal:'LONG_A',price:.04,quoteVolume24h:20_000_000,binance24hChangePct:5});
 async function setup(){let now=BASE,rest=0;
  const market=new YellowLiveMarket({dataDir:await dir(),clock:()=>now,random:()=>0,wsClass:Socket,
   guard:{closedReason:null,metrics:()=>({circuitOpen:false}),getJson:async()=>{rest++;throw Error('UNEXPECTED_REST');}},log:()=>{}});
  market.isRunning=true;market.exchangeSymbols.set(symbol,{symbol,quoteAsset:'USDT',contractType:'PERPETUAL',status:'TRADING'});
  const open=()=>{market.tickerWs.emit('open');market.klineWs.emit('open');};
- const tick=(price='.04')=>market.tickerWs.emit('message',{data:JSON.stringify([{s:symbol,c:price,P:'5',E:now,st:1}])});
+ const tick=(price='.04')=>market.tickerWs.emit('message',{data:JSON.stringify([{s:symbol,c:price,q:'20000000',P:'5',E:now,st:1}])});
  market.connectWebsockets();open();tick();
  return {market,open,tick,setNow:x=>now=x,rest:()=>rest};
 }

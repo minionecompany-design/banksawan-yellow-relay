@@ -21,7 +21,7 @@ public final class YellowFirebaseService extends FirebaseMessagingService {
             long expiry=Long.parseLong(data.get("expires_at_ms"));
             double price=Double.parseDouble(data.get("price"));
             double change=Double.parseDouble(data.get("binance_change"));
-            YellowNotifier.claimAndNotify(this,id,symbol,tf,closedAt,expiry,price,change);
+            YellowNotifier.claimAndNotify(this,id,symbol,tf,closedAt,expiry,price,change,Double.parseDouble(data.get("quote_volume_24h")));
         }catch(Exception ignored){/* Malformed messages are not notifications. */}
     }
 }

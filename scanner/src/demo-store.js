@@ -12,10 +12,10 @@ export function makeDemoStore(clock=()=>Date.now()) {
   home=addToHome(home,{id:'DEMO_ARC',symbol:'ARCUSDT',signal:'LONG_A',timeframe:'1m',price:0.03741,
     binance24hChangePct:2.7,priority:'STANDARD',status:'DEMO_ONLY'},now-97*60_000);
   const universe=eligibleUniverse([
-    {symbol:'WALUSDT',contractType:'PERPETUAL',status:'TRADING',lastPrice:'0.05123',priceChangePercent:'5.8'},
-    {symbol:'ARCUSDT',contractType:'PERPETUAL',status:'TRADING',lastPrice:'0.03741',priceChangePercent:'2.7'},
-    {symbol:'NILUSDT',contractType:'PERPETUAL',status:'TRADING',lastPrice:'0.08511',priceChangePercent:'1.5'},
-    {symbol:'SKDDUSDT',contractType:'PERPETUAL',status:'TRADING',lastPrice:'11.87',priceChangePercent:'25.0'}
+    {symbol:'WALUSDT',contractType:'PERPETUAL',status:'TRADING',quoteVolume:20_000_000,lastPrice:'0.05123',priceChangePercent:'5.8'},
+    {symbol:'ARCUSDT',contractType:'PERPETUAL',status:'TRADING',quoteVolume:20_000_000,lastPrice:'0.03741',priceChangePercent:'2.7'},
+    {symbol:'NILUSDT',contractType:'PERPETUAL',status:'TRADING',quoteVolume:20_000_000,lastPrice:'0.08511',priceChangePercent:'1.5'},
+    {symbol:'SKDDUSDT',contractType:'PERPETUAL',status:'TRADING',quoteVolume:20_000_000,lastPrice:'31.87',priceChangePercent:'25.0'}
   ]);
   return {getHome:()=>getActiveHome(home,clock()),getUniverse:()=>universe,
     meta:()=>({mode:'DEMO_OFFLINE',source:'SIMULATED_NOT_LIVE',

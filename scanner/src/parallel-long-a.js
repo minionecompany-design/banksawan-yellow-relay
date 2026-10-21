@@ -76,7 +76,7 @@ function checkTicker(symbol,ticker,signalEndMs){
   }
   if(ticker.observedAtMs>signalEndMs||signalEndMs-ticker.observedAtMs>SETTINGS.maxTickerAgeMs)
     return {error:'STALE_BINANCE_TICKER'};
-  return {pct,price,eligible:pct>=SETTINGS.minBinance24hChangePct &&
+  return {pct,price,eligible:pct>SETTINGS.minBinance24hChangePct &&
      price<SETTINGS.maxPriceExclusive};
 }
 /**

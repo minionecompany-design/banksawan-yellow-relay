@@ -13,7 +13,7 @@ async function withServer(fn,{token=KEY,now=AT+4_000,dir=null}={}){
   const clock={now};
   const server=createOfflineAcceptanceServer({journalFilename:path.join(tmp,'home.json'),
     clock:()=>clock.now,offlineReplayToken:token,
-    universeTickers:[{symbol:'WALUSDT',lastPrice:'0.054',priceChangePercent:'2.2',contractType:'PERPETUAL',status:'TRADING'}]});
+    universeTickers:[{quoteVolume:20_000_000,symbol:'WALUSDT',lastPrice:'0.054',priceChangePercent:'2.2',contractType:'PERPETUAL',status:'TRADING'}]});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   try{await fn({base:`http://127.0.0.1:${server.address().port}`,clock,tmp});}
   finally{await new Promise(resolve=>server.close(resolve));if(!dir)await rm(tmp,{recursive:true,force:true});}

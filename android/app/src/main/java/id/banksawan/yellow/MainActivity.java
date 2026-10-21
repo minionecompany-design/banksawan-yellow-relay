@@ -133,7 +133,7 @@ public class MainActivity extends Activity {
                        !id.equals(symbol+":"+tf+":"+e.optLong("barClosedAtMs",-1)+":LONG_A")) continue;
                     YellowNotifier.claimAndNotify(this,id,symbol,tf,
                       e.optLong("barClosedAtMs",-1),e.optLong("expiresAtMs",0),
-                      e.optDouble("price",0),e.optDouble("binance24hChangePct",0));
+                      e.optDouble("price",0),e.optDouble("binance24hChangePct",0),e.optDouble("quoteVolume24h",Double.NaN));
                 }
                 // Subtract 1ms to accommodate events with identical server timestamps;
                 // the durable local event-id claim prevents duplicates.
@@ -237,8 +237,10 @@ public class MainActivity extends Activity {
             double price = coin.optDouble("price", Double.NaN);
             double change = coin.optDouble("binance24hChangePct", Double.NaN);
             if (!symbol.matches("[A-Z0-9]{2,25}USDT")
-                || !Double.isFinite(price) || price <= 0 || price >= 10.0
-                || !Double.isFinite(change) || change < 1.0) continue;
+                || !Double.isFinite(price) || price <= 0 || price >= 30.0
+                || !Double.isFinite(change) || change <= 0.0
+                || !Double.isFinite(coin.optDouble("quoteVolume24h",Double.NaN))
+                || coin.optDouble("quoteVolume24h",0)<=10_000_000) continue;
             eligible.add(coin);
         }
         eligible.sort((left, right) -> Double.compare(
@@ -292,7 +294,7 @@ public class MainActivity extends Activity {
         for (JSONObject coin : eligible) addUniverseRow(coin);
 
         if (eligible.isEmpty()) {
-            TextView empty = text("Belum ada koin yang memenuhi filter Binance 24H ≥ +1% dan harga <10 USDT.",
+            TextView empty = text("Belum ada koin yang memenuhi filter harga <30 USDT, perubahan >0%, volume 24H >10 juta USDT.",
                 13, MUTED, false);
             empty.setPadding(0, dp(18), 0, 0);
             list.addView(empty);
@@ -373,8 +375,10 @@ public class MainActivity extends Activity {
             double price = item.optDouble("price", Double.NaN);
             double pct = item.optDouble("binance24hChangePct", Double.NaN);
             String tf = item.optString("timeframe", "");
-            if (!Double.isFinite(price) || price <= 0 || price >= 10
-                || !Double.isFinite(pct) || pct < 1
+            if (!Double.isFinite(price) || price <= 0 || price >= 30
+                || !Double.isFinite(pct) || pct <= 0
+                || !Double.isFinite(item.optDouble("quoteVolume24h",Double.NaN))
+                || item.optDouble("quoteVolume24h",0)<=10_000_000
                 || !(tf.equals("1m") || tf.equals("5m") || tf.equals("15m") || tf.equals("1h"))) continue;
             card(symbol, item, true);
             count++;

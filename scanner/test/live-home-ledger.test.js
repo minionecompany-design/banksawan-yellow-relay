@@ -3,7 +3,7 @@ import {mkdtemp,readFile,writeFile} from 'node:fs/promises';import os from 'node
 import {LiveHomeLedger} from '../src/live-home-ledger.js';
 const BASE=Date.UTC(2026,9,15,12),FILE=async()=>path.join(await mkdtemp(path.join(os.tmpdir(),'yellow-home-')),'events.json');
 const sample=(tf='15m',end=BASE,symbol='WALUSDT')=>({id:`${symbol}:${tf}:${end}:LONG_A`,symbol,timeframe:tf,signal:'LONG_A',
- barClosedAtMs:end,price:.05123,binance24hChangePct:5.8,priority:'HIGH'});
+ barClosedAtMs:end,price:.05123,quoteVolume24h:20_000_000,binance24hChangePct:5.8,priority:'HIGH'});
 test('two TF events have independent ten-hour HOME timers and survive restart',async()=>{
  const filename=await FILE();let now=BASE+1000;const first=new LiveHomeLedger({filename,clock:()=>now});await first.restore();
  assert.equal((await first.accept(sample())).accepted,true);
@@ -46,7 +46,7 @@ test('future, late, wrong signal and price reject fail closed',async()=>{
  const filename=await FILE();let now=BASE+400000;const store=new LiveHomeLedger({filename,clock:()=>now});await store.restore();
  assert.equal((await store.accept(sample())).accepted,false);
  now=BASE-1000;assert.equal((await store.accept(sample())).accepted,false);
- now=BASE+1000;assert.equal((await store.accept({...sample(),price:10})).accepted,false);
+ now=BASE+1000;assert.equal((await store.accept({...sample(),price:30})).accepted,false);
  assert.equal((await store.accept({...sample(),signal:'LONG_B'})).accepted,false);
  assert.equal(store.home().length,0);
 });

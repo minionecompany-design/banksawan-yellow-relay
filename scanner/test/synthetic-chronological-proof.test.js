@@ -27,8 +27,8 @@ test('chronological, same-feed 1m/5m/15m/1h reconstruction produces a genuine sy
   }
 });
 
-test('chronological synthetic run at 0.99% cannot trigger LONG A',()=>{
-  const r=replayParallelHistorical(makeSyntheticParallelDataset({change24hPct:0.99}));
+test('chronological synthetic run at 0% cannot trigger LONG A',()=>{
+  const r=replayParallelHistorical(makeSyntheticParallelDataset({change24hPct:0}));
   assert.equal(r.events.length,0);
   assert.ok(r.reasons.BINANCE_24H_FILTER>0);
 });

@@ -36,7 +36,7 @@ test('startup under high shared-IP weight retains WS feed and defers REST withou
     assert.equal(market.isRunning,true);assert.equal(market.isHalted,false);
     assert.equal(guard.isRemotePaused(),true);
     market.tickerWs.emit('open');market.klineWs.emit('open');
-    market.tickerWs.emit('message',{data:JSON.stringify([{s:'WALUSDT',c:'0.05',P:'5.6',E:now,st:1}])});
+    market.tickerWs.emit('message',{data:JSON.stringify([{s:'WALUSDT',c:'0.05',q:'20000000',P:'5.6',E:now,st:1}])});
     assert.equal(market.tickerConnected,true);
     assert.equal(market.universe().length,1,'WebSocket still updates eligible universe');
     assert.equal(getCalls(),1);
