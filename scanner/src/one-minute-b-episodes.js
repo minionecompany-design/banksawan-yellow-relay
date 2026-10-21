@@ -23,9 +23,21 @@ function validEntry(e,sym){
        e.selected.barClosedAtMs>e.firstAAtMs+EPISODE_WINDOW_MS||
        !minute(e.protectAtMs)||e.selected.barClosedAtMs<=e.protectAtMs||
        e.selected.barClosedAtMs-e.protectAtMs>PROTECT_WINDOW_MS||
-       !eligibleEvent(e.selected))return false;
+       !eligibleOneMinuteB(e.selected))return false;
   }
   return true;
+}
+/** Independent public delivery validator: pin q at A, require valid B context. */
+export function eligibleOneMinuteB(e){
+  return !!e&&e.signal==='LONG_B'&&e.timeframe==='1m'&&symbolOK(e.symbol)&&
+    minute(e.barClosedAtMs)&&minute(e.episodeStartedAtMs)&&minute(e.protectAtMs)&&
+    e.id===e.symbol+':1m:'+e.barClosedAtMs+':LONG_B'&&
+    e.protectAtMs>e.episodeStartedAtMs&&
+    e.barClosedAtMs>e.protectAtMs&&
+    e.barClosedAtMs<=e.episodeStartedAtMs+EPISODE_WINDOW_MS&&
+    e.barClosedAtMs-e.protectAtMs<=PROTECT_WINDOW_MS&&
+    productEligible(e.firstAPrice,e.firstAChangePct,e.firstAQuoteVolume24h)&&
+    e.quoteVolume24h===e.firstAQuoteVolume24h&&eligibleEvent(e);
 }
 export class OneMinuteBEpisodes {
   constructor({filename,clock=()=>Date.now()}={}){
@@ -121,7 +133,7 @@ export class OneMinuteBEpisodes {
           episodeStartedAtMs:existing.firstAAtMs,protectAtMs:existing.protectAtMs,
           firstAQuoteVolume24h:existing.firstAQuoteVolume24h,
           firstAChangePct:existing.firstAChangePct,firstAPrice:existing.firstAPrice};
-        if(!eligibleEvent(b))return {status:'LONG_B_INELIGIBLE'};
+        if(!eligibleOneMinuteB(b))return {status:'LONG_B_INELIGIBLE'};
         existing.status='SELECTED';existing.selected=clone(b);
         await this.#commit();return {status:'LONG_B_SELECTED',event:b};
       }
