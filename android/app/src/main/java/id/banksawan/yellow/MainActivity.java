@@ -399,8 +399,8 @@ public class MainActivity extends Activity {
                 item.optDouble("firstAPrice",Double.NaN)>0 &&
                 item.optDouble("firstAPrice",Double.NaN)<10 &&
                 item.optDouble("firstAChangePct",Double.NaN)>=1))continue;
-            if (!Double.isFinite(price) || price <= 0 || price >= 10
-                || !Double.isFinite(pct) || pct < 1
+            if (!Double.isFinite(price) || price <= 0 || (!oneB && price >= 10)
+                || !Double.isFinite(pct) || (!oneB && pct < 1)
                 || !Double.isFinite(item.optDouble("quoteVolume24h",Double.NaN))
                 || item.optDouble("quoteVolume24h",0)<=10_000_000
                  ) continue;
