@@ -4,7 +4,7 @@
  */
 import {readFile,writeFile,rename,mkdir} from 'node:fs/promises';
 import path from 'node:path';
-import {productEligible,eligibleEvent} from './product-policy.js';
+import {productEligible} from './product-policy.js';
 export const EPISODE_WINDOW_MS=120*60_000;
 export const PROTECT_WINDOW_MS=90*60_000;
 const symbolOK=s=>typeof s==='string'&&/^[A-Z0-9]{2,25}USDT$/.test(s);
