@@ -237,8 +237,8 @@ public class MainActivity extends Activity {
             double price = coin.optDouble("price", Double.NaN);
             double change = coin.optDouble("binance24hChangePct", Double.NaN);
             if (!symbol.matches("[A-Z0-9]{2,25}USDT")
-                || !Double.isFinite(price) || price <= 0 || price >= 30.0
-                || !Double.isFinite(change) || change <= 0.0
+                || !Double.isFinite(price) || price <= 0 || price >= 10.0
+                || !Double.isFinite(change) || change < 1.0
                 || !Double.isFinite(coin.optDouble("quoteVolume24h",Double.NaN))
                 || coin.optDouble("quoteVolume24h",0)<=10_000_000) continue;
             eligible.add(coin);
@@ -294,7 +294,7 @@ public class MainActivity extends Activity {
         for (JSONObject coin : eligible) addUniverseRow(coin);
 
         if (eligible.isEmpty()) {
-            TextView empty = text("Belum ada koin yang memenuhi filter harga <30 USDT, perubahan >0%, volume 24H >10 juta USDT.",
+            TextView empty = text("Belum ada koin yang memenuhi filter harga <10 USDT, kenaikan 24H >=+1%, volume 24H >10 juta USDT.",
                 13, MUTED, false);
             empty.setPadding(0, dp(18), 0, 0);
             list.addView(empty);
@@ -375,8 +375,8 @@ public class MainActivity extends Activity {
             double price = item.optDouble("price", Double.NaN);
             double pct = item.optDouble("binance24hChangePct", Double.NaN);
             String tf = item.optString("timeframe", "");
-            if (!Double.isFinite(price) || price <= 0 || price >= 30
-                || !Double.isFinite(pct) || pct <= 0
+            if (!Double.isFinite(price) || price <= 0 || price >= 10
+                || !Double.isFinite(pct) || pct < 1
                 || !Double.isFinite(item.optDouble("quoteVolume24h",Double.NaN))
                 || item.optDouble("quoteVolume24h",0)<=10_000_000
                 || !(tf.equals("1m") || tf.equals("5m") || tf.equals("15m") || tf.equals("1h"))) continue;
