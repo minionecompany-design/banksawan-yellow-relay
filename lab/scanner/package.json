@@ -1,0 +1,15 @@
+{
+  "name": "banksawan-yellow-lab",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Independent research-only FIRST A to B1/B2 and 1H audit engine",
+  "scripts": {
+    "test": "node --test",
+    "start": "node src/server.js",
+    "replay": "node src/replay.js fixtures/SYNTHETIC-DEMO-ONLY.json"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

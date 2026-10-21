@@ -1,0 +1,11 @@
+{
+  "repository": "minionecompany-design/banksawan-yellow-relay",
+  "productionBranch": "yellow-long-a-v2-20261015",
+  "commit": "b31412b36634b207852901aac2cf37325e4c6870",
+  "verifiedAt": "2026-10-21",
+  "referenceBlobs": {
+    "long-a.js": "b8dfef0b5f318c19e7cab3e0601391e15815d1c1",
+    "parallel-long-a.js": "e0e4d35df388eb418cf51912e44fa4a447f0ff5d"
+  },
+  "note": "SHA1 Git blob IDs fetched from production GitHub commit, compared to local Git blob hashes. This proves these two JS reference files are byte-identical; NOT Pine-vs-realtime signal parity."
+}

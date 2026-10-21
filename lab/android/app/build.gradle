@@ -1,0 +1,21 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'id.banksawan.yellowlab'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'id.banksawan.yellowlab'
+        minSdk 26
+        targetSdk 35
+        versionCode 4
+        versionName '0.4.0-live-shadow-ready'
+        def base = System.getenv('LAB_API_BASE_URL') ?: ''
+        if(base && (!base.startsWith('https://') || base.endsWith('/'))) {
+            throw new GradleException('LAB_API_BASE_URL must use HTTPS and omit trailing slash')
+        }
+        buildConfigField 'String', 'API_BASE_URL', '"' + base + '"'
+        // Deliberately no Firebase, no notification permission and no YELLOW GOLD topic.
+        buildConfigField 'boolean', 'NOTIFICATIONS_ENABLED', 'false'
+    }
+    buildFeatures { buildConfig true }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
