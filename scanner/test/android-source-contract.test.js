@@ -25,7 +25,7 @@ test('Android has only HOME and UNIVERSE, 1K icon, Binance .P TradingView shortc
 test('Android rejects offline simulation on configured HTTPS backend and labels live separately',async()=>{
   const activity=await readFile(f('android/app/src/main/java/id/banksawan/yellow/MainActivity.java'),'utf8');
   assert.match(activity,/response\.optBoolean\("simulation",false\)/);
-  assert.match(activity,/Harga sinyal \\(DEMO\\):/);
-  assert.match(activity,/"Harga "\\+eventType/);
+  assert.match(activity,/Harga sinyal \(DEMO\):/);
+  assert.match(activity,/"Harga "\+eventType/);
   assert.match(activity,/System\.currentTimeMillis\(\)/);
 });
