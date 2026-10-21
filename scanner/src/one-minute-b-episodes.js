@@ -79,6 +79,11 @@ export class OneMinuteBEpisodes {
   activeSymbols(atMs=this.clock()){
     return [...this.rows.keys()].filter(s=>this.active(s,atMs));
   }
+  pending(now=this.clock()){
+    return [...this.rows.values()].filter(e=>e.status==='SELECTED'&&
+      now>=e.selected.barClosedAtMs&&now-e.selected.barClosedAtMs<=5*60_000)
+      .map(e=>clone(e.selected));
+  }
   status(){
     const at=this.clock();
     return {active:this.activeSymbols(at).length,selected:[...this.rows.values()].filter(e=>e.status==='SELECTED').length};
