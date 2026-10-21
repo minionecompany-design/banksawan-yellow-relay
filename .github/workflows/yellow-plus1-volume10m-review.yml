@@ -37,7 +37,7 @@ jobs:
         run: python3 -m unittest discover -s scripts -p 'test*.py' -v
 
   android:
-    name: Compile v0.12 Android (debug-only smoke test; NOT installable update)
+    name: Compile v0.13 Android (debug-only smoke test; NOT installable update)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -59,7 +59,7 @@ jobs:
           gradle-version: '8.10.2'
       - name: Build debug variant without live access or signing secrets
         run: gradle -p android :app:assembleDebug --no-daemon
-      - name: Verify v0.12 version and safe demo build
+      - name: Verify v0.13 version and safe demo build
         shell: bash
         run: |
           test -s android/app/build/outputs/apk/debug/app-debug.apk
@@ -67,11 +67,11 @@ jobs:
           grep -Eq 'DEMO_MODE[[:space:]]*=[[:space:]]*true' "$CONFIG"
           grep -Eq 'FCM_ENABLED[[:space:]]*=[[:space:]]*false' "$CONFIG"
           grep -Eq 'ALERTS_ENABLED[[:space:]]*=[[:space:]]*false' "$CONFIG"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android/app/build/outputs/apk/debug/app-debug.apk | grep -q "versionCode='8'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android/app/build/outputs/apk/debug/app-debug.apk | grep -q "versionCode='9'"
       - name: Upload smoke-test APK; not an official signed release
         uses: actions/upload-artifact@v4
         with:
-          name: banksawan-yellow-v0.12-OFFLINE-DEBUG-NOT-RELEASE
+          name: banksawan-yellow-v0.13-OFFLINE-DEBUG-NOT-RELEASE
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
