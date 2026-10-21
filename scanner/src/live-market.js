@@ -335,7 +335,11 @@ export class YellowLiveMarket {
     if(!this.oneMinuteLongBEnabled||!eligibleOneMinuteB(event)||
        this.clock()-event.barClosedAtMs>5*60_000||this.clock()<event.barClosedAtMs)return false;
     const accepted=await this.ledger.accept(event);
-    if(!accepted.accepted)return false;
+    if(!accepted.accepted){
+      if(accepted.reason==='DUPLICATE')await this.episodes.markPublished(event);
+      return false;
+    }
+    await this.episodes.markPublished(event);
     this.longBSelected++;this.eventsEmitted++;
     await this.sendEvent(accepted.event);return true;
   }
@@ -472,10 +476,12 @@ export class YellowLiveMarket {
     await job;
   }
   home(){return this.ledger.home().filter(x=>eligibleEvent(x)&&
-    (x.signal==='LONG_A'&&x.timeframe!=='1m'&&this.alertTimeframes.has(x.timeframe)||
+    (x.signal==='LONG_A'&&this.alertTimeframes.has(x.timeframe)&&
+      (x.timeframe!=='1m'||!this.oneMinuteLongBEnabled)||
      this.oneMinuteLongBEnabled&&eligibleOneMinuteB(x)));}
   events(afterMs){return this.ledger.eventsSince(afterMs).filter(x=>eligibleEvent(x)&&
-    (x.signal==='LONG_A'&&x.timeframe!=='1m'&&this.alertTimeframes.has(x.timeframe)||
+    (x.signal==='LONG_A'&&this.alertTimeframes.has(x.timeframe)&&
+      (x.timeframe!=='1m'||!this.oneMinuteLongBEnabled)||
      this.oneMinuteLongBEnabled&&eligibleOneMinuteB(x)));}
   status(){const eligible=this.universe();return {
     ok:this.isRunning&&!this.isHalted,mode:this.isHalted?'STOPPED':this.isRunning?'LIVE_SHADOW':'STARTING',
