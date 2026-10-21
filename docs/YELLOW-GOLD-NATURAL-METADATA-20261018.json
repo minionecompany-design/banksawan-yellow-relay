@@ -1,0 +1,786 @@
+[
+  {
+    "event": {
+      "id": "AIOTUSDT:15m:1792241100000:LONG_A",
+      "symbol": "AIOTUSDT",
+      "timeframe": "15m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792241100000,
+      "price": 0.05384
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T12:45:09.488138125Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": "Previous first-natural API proof 2026-10-17 19:56 WIB",
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "ALTUSDT:1m:1792242060000:LONG_A",
+      "symbol": "ALTUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792242060000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T13:01:07.676774535Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "AGTUSDT:1m:1792245420000:LONG_A",
+      "symbol": "AGTUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792245420000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T13:57:03.893560988Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "SANDUSDT:1m:1792248360000:LONG_A",
+      "symbol": "SANDUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792248360000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T14:46:04.294463889Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "LSKUSDT:1m:1792249020000:LONG_A",
+      "symbol": "LSKUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792249020000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T14:57:09.461852008Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "AVAUSDT:5m:1792250100000:LONG_A",
+      "symbol": "AVAUSDT",
+      "timeframe": "5m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792250100000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T15:15:07.011119215Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "SPXUSDT:1m:1792251240000:LONG_A",
+      "symbol": "SPXUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792251240000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T15:34:04.045999772Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "JELLYJELLYUSDT:1m:1792253160000:LONG_A",
+      "symbol": "JELLYJELLYUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792253160000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T16:06:08.865644157Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "BTWUSDT:1m:1792255920000:LONG_A",
+      "symbol": "BTWUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792255920000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T16:52:07.924254053Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "BTWUSDT:5m:1792256700000:LONG_A",
+      "symbol": "BTWUSDT",
+      "timeframe": "5m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792256700000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T17:05:04.008774625Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "SANDUSDT:5m:1792260300000:LONG_A",
+      "symbol": "SANDUSDT",
+      "timeframe": "5m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792260300000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T18:05:09.321430614Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "AVAUSDT:1m:1792260360000:LONG_A",
+      "symbol": "AVAUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792260360000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T18:06:09.621044203Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "XPINUSDT:1m:1792260780000:LONG_A",
+      "symbol": "XPINUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792260780000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T18:13:11.939265292Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "GMXUSDT:1m:1792263060000:LONG_A",
+      "symbol": "GMXUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792263060000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T18:51:08.356586325Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "LSKUSDT:1m:1792264260000:LONG_A",
+      "symbol": "LSKUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792264260000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T19:11:06.934784686Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "SPXUSDT:1m:1792264560000:LONG_A",
+      "symbol": "SPXUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792264560000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T19:16:09.804361749Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "AIAUSDT:1m:1792265760000:LONG_A",
+      "symbol": "AIAUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792265760000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T19:36:01.394944565Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "AXLUSDT:1m:1792266360000:LONG_A",
+      "symbol": "AXLUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792266360000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T19:46:06.078831525Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "TAKEUSDT:5m:1792270500000:LONG_A",
+      "symbol": "TAKEUSDT",
+      "timeframe": "5m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792270500000,
+      "price": 0.05622,
+      "detectedAtMs": 1792270500613
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T20:55:08.800635288Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": "HOME API 2026-10-18T04:39Z",
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "GTCUSDT:5m:1792275300000:LONG_A",
+      "symbol": "GTCUSDT",
+      "timeframe": "5m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792275300000,
+      "price": 0.23055,
+      "detectedAtMs": 1792275300241
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T22:15:06.196087271Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": "HOME API 2026-10-18T04:39Z",
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "TRUTHUSDT:1m:1792275480000:LONG_A",
+      "symbol": "TRUTHUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792275480000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T22:18:07.386379718Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "LSKUSDT:1m:1792277160000:LONG_A",
+      "symbol": "LSKUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792277160000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T22:46:08.552301125Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "AGTUSDT:1m:1792277160000:LONG_A",
+      "symbol": "AGTUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792277160000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T22:46:08.552320715Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "LSKUSDT:15m:1792278000000:LONG_A",
+      "symbol": "LSKUSDT",
+      "timeframe": "15m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792278000000,
+      "price": 0.21544,
+      "detectedAtMs": 1792278000579
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T23:00:06.240127229Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": "HOME API 2026-10-18T04:39Z",
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "TRUTHUSDT:15m:1792278900000:LONG_A",
+      "symbol": "TRUTHUSDT",
+      "timeframe": "15m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792278900000,
+      "price": 0.019124,
+      "detectedAtMs": 1792278903074
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T23:15:10.990309506Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": "HOME API 2026-10-18T04:39Z",
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "ARCUSDT:1m:1792278960000:LONG_A",
+      "symbol": "ARCUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792278960000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T23:16:01.043960507Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "SYNUSDT:1m:1792279080000:LONG_A",
+      "symbol": "SYNUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792279080000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T23:18:02.587374108Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "GTCUSDT:1m:1792280760000:LONG_A",
+      "symbol": "GTCUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792280760000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T23:46:03.419568813Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "DUSKUSDT:1m:1792281360000:LONG_A",
+      "symbol": "DUSKUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792281360000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-17T23:56:09.202018909Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "COAIUSDT:1m:1792282260000:LONG_A",
+      "symbol": "COAIUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792282260000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-18T00:11:05.928078079Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "HBARUSDT:1m:1792282680000:LONG_A",
+      "symbol": "HBARUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792282680000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-18T00:18:09.052873209Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "AVAUSDT:1m:1792286460000:LONG_A",
+      "symbol": "AVAUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792286460000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-18T01:21:00.959408871Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "GTCUSDT:5m:1792287000000:LONG_A",
+      "symbol": "GTCUSDT",
+      "timeframe": "5m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792287000000,
+      "price": 0.23757,
+      "detectedAtMs": 1792287000056
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-18T01:30:04.964543667Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": "HOME API 2026-10-18T04:39Z",
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "APEUSDT:1m:1792287660000:LONG_A",
+      "symbol": "APEUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792287660000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-18T01:41:09.554617376Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "SANDUSDT:5m:1792293300000:LONG_A",
+      "symbol": "SANDUSDT",
+      "timeframe": "5m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792293300000,
+      "price": 0.06139,
+      "detectedAtMs": 1792293302019
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-18T03:15:08.454105965Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": "HOME API 2026-10-18T04:39Z",
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "EDUUSDT:5m:1792295400000:LONG_A",
+      "symbol": "EDUUSDT",
+      "timeframe": "5m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792295400000,
+      "price": 0.07977,
+      "detectedAtMs": 1792295401582
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-18T03:50:04.772228190Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": "HOME API 2026-10-18T04:39Z",
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  },
+  {
+    "event": {
+      "id": "AIOTUSDT:1m:1792295460000:LONG_A",
+      "symbol": "AIOTUSDT",
+      "timeframe": "1m",
+      "signal": "LONG_A",
+      "barClosedAtMs": 1792295460000,
+      "price": null
+    },
+    "bars": null,
+    "futureBars": null,
+    "provenance": {
+      "metadataOnly": true,
+      "source": "Railway YELLOW_FCM service logs across deployments",
+      "logTimeUtc": "2026-10-18T03:51:05.513506153Z",
+      "fcmSubmission": "SENT",
+      "phoneReceived": "UNVERIFIED",
+      "priceSource": null,
+      "warning": "No OHLCV snapshot available; quality and outcomes UNVERIFIED"
+    }
+  }
+]
