@@ -27,15 +27,22 @@ for width,height,label in [(1080,2400,'360dp'),(1236,2748,'412dp')]:
  assert 'Eligible Universe: 4' in text and 'Actively Tracked: 2 / 50' in text,text
  capture(label+'-left')
  # Scroll the shared table to the quote-volume/status columns.
- # Android UIAutomator may omit non-accessible HorizontalScrollView nodes.
- # Anchor gesture to the visible results-counter immediately above the table.
- labels=[n for n in nodes() if 'hasil' in n.get('text','') and 'Geser tabel' in n.get('text','')]
- assert labels,'UNIVERSE table counter is not visible'
- _,_,_,counterBottom=map(int,re.findall(r'\\d+',labels[0].get('bounds')))
- screenHeight=int(adb('shell','wm','size').decode().strip().split(':')[-1].strip().split('x')[1])
- y=min(counterBottom+70,screenHeight-300)
- adb('shell','input','swipe',str(width-45),str(y),'35',str(y),'550');time.sleep(1)
- text=' '.join(n.get('text','') for n in nodes());assert 'TRACKED' in text and 'ELIGIBLE' in text,text
+ # Bring table cells into the accessibility viewport before horizontal scrolling.
+ # The top of the page and the table are inside a vertical scroll container.
+ def visible_text():return ' '.join(n.get('text','') for n in nodes())
+ for attempt in range(5):
+  if 'PLAYUSDT' in visible_text():break
+  adb('shell','input','swipe',str(width//2),str(height-220),str(width//2),'330','420');time.sleep(.6)
+ assert 'PLAYUSDT' in visible_text(),'UNIVERSE fixture row did not become visible after vertical scroll'
+ capture(label+'-left')
+ # Swipe across a visible table row. UIAutomator may omit container nodes.
+ matches=[n for n in nodes() if n.get('text','')=='PLAYUSDT']
+ assert matches,'Expected first fixture row is inaccessible'
+ x1,y1,x2,y2=map(int,re.findall(r'\\d+',matches[0].get('bounds')))
+ y=(y1+y2)//2
+ adb('shell','input','swipe',str(width-35),str(y),'35',str(y),'550');time.sleep(1)
+ text=visible_text()
+ assert 'TRACKED' in text or 'ELIGIBLE' in text,'Right status column not visible after horizontal swipe: '+text
  capture(label+'-right')
  # Search operates on local snapshot and retains fixture totals.
  for n in nodes():
