@@ -4,7 +4,7 @@ import path from 'node:path';
 import {alertIsAllowed} from './product-policy.js';
 import {tradingViewUrl} from './api-view.js';
 
-const STATES=new Set(['PENDING','LEASED','SENT']);
+const STATES=new Set(['PENDING','LEASED','SENT','FAILED']);
 function validEvent(e){
  return e&&typeof e==='object'&&alertIsAllowed(e)&&
   /^[A-Z0-9]{2,25}USDT$/.test(e.symbol)&&
@@ -23,7 +23,11 @@ function validateRow(x){
    (x.receipt===null||typeof x.receipt==='string')&&
    (x.state==='LEASED' ? Boolean(x.leaseToken)&&x.leaseUntilMs>0 :
     x.leaseToken===null&&x.leaseUntilMs===0)&&
-   (x.state==='SENT'?Boolean(x.receipt):x.receipt===null);
+   (x.state==='SENT'?Boolean(x.receipt):x.receipt===null)&&
+   (x.failureReason===undefined||x.failureReason===null||
+      typeof x.failureReason==='string'&&x.failureReason.length>0&&x.failureReason.length<=80)&&
+   (x.state==='FAILED'?typeof x.failureReason==='string'&&x.failureReason.length>0:
+       x.failureReason===undefined||x.failureReason===null);
 }
 /** Stage 7 offline FCM delivery queue, NO credentials/network. 
  * Single-process durable lease, restart recovery and idempotent event claim.
@@ -94,6 +98,20 @@ export class OfflineDeliveryOutbox {
    const i=this.rows.findIndex(x=>x.id===id);
    if(i<0||this.rows[i].state!=='LEASED'||this.rows[i].leaseToken!==leaseToken)return false;
    const next={...this.rows[i],state:'SENT',receipt,leaseUntilMs:0,leaseToken:null};
+   await this.#commit(this.rows.map((x,j)=>j===i?next:x));return true;
+  });
+ }
+ /** Terminal device errors (invalid/revoked recipient) must not retry forever.
+  * Exact event remains in journal, never fake an FCM SENT receipt. */
+ fail(id,leaseToken,reason){
+  return this.#inOrder(async()=>{
+   if(!this.restored)throw Error('OUTBOX_RESTORE_REQUIRED');
+   if(typeof reason!=='string'||!/^([A-Z_]{3,80})$/.test(reason))
+    throw Error('INVALID_TERMINAL_REASON');
+   const i=this.rows.findIndex(x=>x.id===id);
+   if(i<0||this.rows[i].state!=='LEASED'||this.rows[i].leaseToken!==leaseToken)return false;
+   const next={...this.rows[i],state:'FAILED',failureReason:reason,
+      leaseUntilMs:0,leaseToken:null,receipt:null};
    await this.#commit(this.rows.map((x,j)=>j===i?next:x));return true;
   });
  }
