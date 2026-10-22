@@ -58,6 +58,13 @@ public final class CleanMainActivity extends Activity {
   header=new LinearLayout(this);header.setPadding(0,dp(3),0,dp(14));header.addView(text("BANKSAWAN YELLOW",24,YELLOW,true));root.addView(header);
   status=text("OFFLINE QA • DATA TIDAK TERSEDIA",13,YELLOW,true);
   status.setGravity(Gravity.CENTER);status.setPadding(dp(8),dp(12),dp(8),dp(12));status.setBackground(shape(CARD,LINE));root.addView(status);
+  // Invisible intentional QA access — preserves final HOME/UNIVERSE appearance.
+  // Long-press the offline status pill, only in the isolated QA debug app.
+  status.setOnLongClickListener(v->{
+   if(!BuildConfig.DEBUG||!"id.banksawan.yellow.qa".equals(getPackageName()))return false;
+   startActivity(new android.content.Intent(this,CleanFcmQaActivity.class));
+   return true;
+  });
   scroller=new ScrollView(this);scroller.setFillViewport(true);
   page=new LinearLayout(this);page.setOrientation(LinearLayout.VERTICAL);page.setPadding(0,dp(14),0,dp(14));scroller.addView(page);
   root.addView(scroller,new LinearLayout.LayoutParams(-1,0,1));
