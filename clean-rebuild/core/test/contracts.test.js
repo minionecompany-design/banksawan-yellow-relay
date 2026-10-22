@@ -19,7 +19,7 @@ test('unavailable is explicitly different from genuinely zero eligible',()=>{
  assert.equal(missing.coverage.eligible,null);assert.equal(missing.dataState,'UNAVAILABLE');
 });
 test('incumbents removed when they fail filter; no more than fifty slots',()=>{
- const slots=new TrackedSlots(2);slots.update([row('AUSDT'),row('BUSDT')]);
- let result=slots.update([row('AUSDT',.5),row('BUSDT'),row('CUSDT')]);
- assert.deepEqual(result.tracked,['BUSDT','CUSDT']);
+ const slots=new TrackedSlots(2);slots.update([row('AAUSDT'),row('BBUSDT')]);
+ let result=slots.update([row('AAUSDT',.5),row('BBUSDT'),row('CCUSDT')]);
+ assert.deepEqual(result.tracked,['BBUSDT','CCUSDT']);
 });
