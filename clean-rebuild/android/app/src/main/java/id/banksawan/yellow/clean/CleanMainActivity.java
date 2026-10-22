@@ -13,6 +13,11 @@ import android.widget.TextView;
 import android.widget.EditText;
 import android.text.TextWatcher;
 import android.text.Editable;
+import org.json.JSONObject;
+import org.json.JSONArray;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Locale;
 /** Offline QA visual shell. Reference: YELLOW V2 HOME/UNIVERSE theme and table.
  * NO external data calls, fabricated symbols or alerts.
  */
@@ -22,6 +27,10 @@ public final class CleanMainActivity extends Activity {
   GREEN=Color.rgb(41,213,141),MUTED=Color.rgb(162,179,198);
  private LinearLayout page,bottom,header;private TextView status;
  private ScrollView scroller;private String tab="home";
+ private CleanViewModel.Home homeData;
+ private JSONObject universeData;
+ private String universeQuery="",sortKey="binance24hChangePct";
+ private boolean descending=true;
  private int dp(float value){return Math.round(value*getResources().getDisplayMetrics().density);}
  private GradientDrawable shape(int fill,int stroke){
   GradientDrawable g=new GradientDrawable();g.setColor(fill);g.setCornerRadius(dp(12));
@@ -43,6 +52,13 @@ public final class CleanMainActivity extends Activity {
   root.addView(scroller,new LinearLayout.LayoutParams(-1,0,1));
   bottom=new LinearLayout(this);bottom.setOrientation(LinearLayout.HORIZONTAL);root.addView(bottom);
   setContentView(root);showPage("home");
+ }
+ /** An explicit, validated offline fixture can be injected by QA tests only. */
+ public void renderContractSnapshots(JSONObject home,JSONObject universe){
+  homeData=CleanViewModel.parseHome(home);
+  CleanViewModel.parseUniverse(universe);
+  universeData=universe;
+  showPage(tab);
  }
  private void showPage(String next){
   tab=next;scroller.scrollTo(0,0);page.removeAllViews();bottom.removeAllViews();
@@ -72,7 +88,21 @@ public final class CleanMainActivity extends Activity {
  private void renderHome(){
   page.addView(text("BANKSAWAN YELLOW • GOLD",14,YELLOW,true));
   TextView h=text("LONG A • 1M / 5M / 15M / 1H",17,Color.WHITE,true);h.setPadding(0,dp(12),0,dp(14));page.addView(h);
-  LinearLayout c=card("BELUM ADA SINYAL");
+  if(homeData!=null&&!homeData.unavailable){
+   for(CleanViewModel.Signal signal:homeData.signals){
+    LinearLayout item=card(signal.symbol);
+    row(item,"Sinyal","LONG A");
+    row(item,"Timeframe",signal.timeframe.toUpperCase(Locale.ROOT));
+    Button chart=new Button(this);chart.setText("BUKA TRADINGVIEW ↗");
+    chart.setOnClickListener(v->{
+     android.content.Intent intent=new android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse(signal.chartUrl));
+     intent.addCategory(android.content.Intent.CATEGORY_BROWSABLE);
+     try{startActivity(intent);}catch(Exception ignored){}
+    });item.addView(chart);
+   }
+   if(!homeData.signals.isEmpty())return;
+  }
+  LinearLayout c=card(homeData!=null&&!homeData.unavailable?"BELUM ADA SINYAL":"DATA TIDAK TERSEDIA");
   row(c,"Status backend","DATA TIDAK TERSEDIA");
   row(c,"Notifikasi","NONAKTIF • QA");
   TextView note=text("Tidak ada kartu LONG A yang dibuat tanpa event valid. Tombol TradingView hanya muncul pada kartu simbol yang sah.",13,MUTED,false);
@@ -83,6 +113,9 @@ public final class CleanMainActivity extends Activity {
   TextView h=text("UNIVERSE",24,Color.WHITE,true);page.addView(h);
   TextView f=text("USDⓈ-M USDT PERPETUAL • AKTIF\n0 < harga < 10 • 24H ≥ +1% • Quote 24H > 10M USDT",12,MUTED,false);
   f.setPadding(0,dp(8),0,dp(12));page.addView(f);
+  if(universeData!=null && "OK".equals(universeData.optString("dataState"))){
+   renderActiveUniverse();return;
+  }
   page.addView(text("DATA TIDAK TERSEDIA",16,YELLOW,true));
   TextView counts=text("Eligible Universe: —\nActively Tracked: — / 50 kapasitas",16,Color.WHITE,true);
   counts.setPadding(0,dp(10),0,dp(10));page.addView(counts);
@@ -103,5 +136,64 @@ public final class CleanMainActivity extends Activity {
   }
   table.addView(headings);TextView unavailable=text("Feed offline: tabel tidak menampilkan simbol palsu.",13,MUTED,false);
   unavailable.setPadding(dp(8),dp(18),dp(8),dp(18));table.addView(unavailable);page.addView(viewport);
+ }
+ private void renderActiveUniverse(){
+  CleanViewModel.Universe parsed=CleanViewModel.parseUniverse(universeData);
+  page.addView(text("Eligible Universe: "+parsed.eligible,18,Color.WHITE,true));
+  page.addView(text("Actively Tracked: "+parsed.tracked+" / 50 kapasitas",14,GREEN,true));
+  EditText search=new EditText(this);search.setSingleLine(true);search.setText(universeQuery);
+  search.setHint("Cari simbol, mis. PLAY");search.setTextColor(Color.WHITE);search.setHintTextColor(MUTED);
+  page.addView(search,new LinearLayout.LayoutParams(-1,dp(52)));
+  TextView count=text("",12,MUTED,false);page.addView(count);
+  HorizontalScrollView viewport=new HorizontalScrollView(this);
+  viewport.setHorizontalScrollBarEnabled(true);page.addView(viewport);
+  LinearLayout rows=new LinearLayout(this);rows.setOrientation(LinearLayout.VERTICAL);viewport.addView(rows);
+  String[] keys={"symbol","price","binance24hChangePct","quoteVolume24h","tracked"};
+  String[] titles={"Symbol","Last Price USDT","Change % 24H","Quote Volume USDT / 24H","Status"};
+  int[] widths={144,128,120,160,112};
+  Runnable rebuild=()->{
+   rows.removeAllViews();
+   LinearLayout headings=new LinearLayout(this);headings.setBackgroundColor(CARD);rows.addView(headings);
+   for(int i=0;i<keys.length;i++){
+    final String key=keys[i];
+    TextView cell=text(titles[i]+(key.equals(sortKey)?(descending?" ↓":" ↑"):" ↕"),12,YELLOW,true);
+    cell.setPadding(dp(8),dp(10),dp(8),dp(10));
+    headings.addView(cell,new LinearLayout.LayoutParams(dp(widths[i]),dp(68)));
+    cell.setOnClickListener(v->{descending=key.equals(sortKey)?!descending:!"symbol".equals(key);
+      sortKey=key;showPage("universe");});
+   }
+   ArrayList<JSONObject> selected=new ArrayList<>();
+   JSONArray source=universeData.optJSONArray("universe");
+   for(int i=0;i<source.length();i++){
+    JSONObject coin=source.optJSONObject(i);
+    if(coin!=null&&coin.optString("symbol").contains(universeQuery.toUpperCase(Locale.ROOT)))selected.add(coin);
+   }
+   selected.sort((a,b)->{
+    int cmp;
+    if("symbol".equals(sortKey))cmp=a.optString("symbol").compareTo(b.optString("symbol"));
+    else if("tracked".equals(sortKey))cmp=Boolean.compare(a.optBoolean("tracked"),b.optBoolean("tracked"));
+    else cmp=Double.compare(a.optDouble(sortKey),b.optDouble(sortKey));
+    return cmp==0?a.optString("symbol").compareTo(b.optString("symbol")):(descending?-cmp:cmp);
+   });
+   count.setText(selected.size()+" hasil • Geser tabel ↔ • Ketuk judul untuk urutkan");
+   for(JSONObject coin:selected){
+    LinearLayout line=new LinearLayout(this);rows.addView(line);
+    String[] values={coin.optString("symbol"),String.format(Locale.US,"%.5f",coin.optDouble("price")),
+      String.format(Locale.US,"%+.2f%%",coin.optDouble("binance24hChangePct")),
+      String.format(Locale.US,"%,.0f",coin.optDouble("quoteVolume24h")),coin.optBoolean("tracked")?"TRACKED":"ELIGIBLE"};
+    for(int i=0;i<values.length;i++){
+     TextView cell=text(values[i],i==0?15:13,i==2?GREEN:Color.WHITE,i==0);
+     cell.setPadding(dp(8),dp(12),dp(8),dp(12));
+     line.addView(cell,new LinearLayout.LayoutParams(dp(widths[i]),dp(58)));
+    }
+   }
+   if(selected.isEmpty())rows.addView(text("Tidak ada hasil pada snapshot yang valid.",13,MUTED,false));
+  };
+  search.addTextChangedListener(new TextWatcher(){
+   public void beforeTextChanged(CharSequence s,int st,int count,int after){}
+   public void onTextChanged(CharSequence s,int st,int before,int count){universeQuery=s.toString();rebuild.run();}
+   public void afterTextChanged(Editable e){}
+  });
+  rebuild.run();
  }
 }
