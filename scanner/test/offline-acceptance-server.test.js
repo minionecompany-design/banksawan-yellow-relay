@@ -6,14 +6,14 @@ import {createOfflineAcceptanceServer} from '../src/offline-acceptance-server.js
 const AT=Date.UTC(2026,9,15,12,0);
 const KEY='offline-diagnostic-token-is-not-a-production-secret';
 const event=(t=AT)=>({symbol:'WALUSDT',timeframe:'15m',signal:'LONG_A',barClosedAtMs:t,
-  id:`WALUSDT:15m:${t}:LONG_A`,price:0.054,binance24hChangePct:2.2,
+  id:`WALUSDT:15m:${t}:LONG_A`,price:0.054,binance24hChangePct:2.2,quoteVolume24h:20_000_000,
   source:'BINANCE_USDM_24H+LOCAL_PARALLEL_MTF_EVALUATOR',status:'RESEARCH_ONLY'});
 async function withServer(fn,{token=KEY,now=AT+4_000,dir=null}={}){
   const tmp=dir??await mkdtemp(path.join(os.tmpdir(),'yellow-offline-test-'));
   const clock={now};
   const server=createOfflineAcceptanceServer({journalFilename:path.join(tmp,'home.json'),
     clock:()=>clock.now,offlineReplayToken:token,
-    universeTickers:[{symbol:'WALUSDT',lastPrice:'0.054',priceChangePercent:'2.2',contractType:'PERPETUAL',status:'TRADING'}]});
+    universeTickers:[{symbol:'WALUSDT',lastPrice:'0.054',priceChangePercent:'2.2',quoteVolume24h:20_000_000,contractType:'PERPETUAL',status:'TRADING'}]});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   try{await fn({base:`http://127.0.0.1:${server.address().port}`,clock,tmp});}
   finally{await new Promise(resolve=>server.close(resolve));if(!dir)await rm(tmp,{recursive:true,force:true});}

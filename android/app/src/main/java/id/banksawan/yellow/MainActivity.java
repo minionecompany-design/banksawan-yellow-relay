@@ -500,9 +500,9 @@ public class MainActivity extends Activity {
         long anchor=getSharedPreferences("yellow_demo",MODE_PRIVATE).getLong("demoAnchorMs",0);
         if(anchor==0){anchor=now;getSharedPreferences("yellow_demo",MODE_PRIVATE).edit().putLong("demoAnchorMs",anchor).apply();}
         try{home=new JSONArray().put(new JSONObject().put("symbol","WALUSDT").put("timeframe","15m").put("price",0.05123)
-          .put("binance24hChangePct",5.8).put("firstSeenMs",anchor-35*60_000).put("homeExpiresMs",anchor+23*60*60_000+25*60_000))
+          .put("binance24hChangePct",5.8).put("quoteVolume24h",20_000_000).put("firstSeenMs",anchor-35*60_000).put("homeExpiresMs",anchor+23*60*60_000+25*60_000))
           .put(new JSONObject().put("symbol","ARCUSDT").put("timeframe","1m").put("price",0.03741)
-          .put("binance24hChangePct",2.7).put("firstSeenMs",anchor-97*60_000).put("homeExpiresMs",anchor+22*60*60_000+23*60_000));
+          .put("binance24hChangePct",2.7).put("quoteVolume24h",20_000_000).put("firstSeenMs",anchor-97*60_000).put("homeExpiresMs",anchor+22*60*60_000+23*60_000));
           universe=new JSONArray().put(new JSONObject().put("symbol","WALUSDT").put("timeframe","15m").put("price",0.05123)
            .put("binance24hChangePct",5.8).put("priority","HIGH"))
            .put(new JSONObject().put("symbol","ARCUSDT").put("timeframe","1m").put("price",0.03741)
