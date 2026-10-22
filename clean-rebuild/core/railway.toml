@@ -1,0 +1,17 @@
+# Stage 6 Railway deployment blueprint — NOT a live deployment
+# Do NOT attach this to legacy Railway service.
+# Build from repo subdirectory clean-rebuild/core. Explicitly set start command:
+# node offline-http.js
+# Verify /health reports ready=false and live=false.
+# Bind 0.0.0.0 only after a separate new staging project is approved.
+# No exchange credentials, Firebase admin secrets, or connected SQL database.
+# No user-facing public domain unless deliberately enabled for QA.
+# YELLOW_LIVE_ENABLED=true intentionally blocks startup.
+[build]
+builder = "RAILPACK"
+
+[deploy]
+startCommand = "node offline-http.js"
+healthcheckPath = "/health"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 1
