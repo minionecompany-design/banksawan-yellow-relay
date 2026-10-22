@@ -33,6 +33,7 @@ public final class CleanMainActivity extends Activity {
  private String universeQuery="",sortKey="binance24hChangePct";
  private boolean descending=true;
  private boolean qaFixtureMode=false;
+ private boolean qaExternalChartTestMode=false;
  private int dp(float value){return Math.round(value*getResources().getDisplayMetrics().density);}
  private GradientDrawable shape(int fill,int stroke){
   GradientDrawable g=new GradientDrawable();g.setColor(fill);g.setCornerRadius(dp(12));
@@ -126,7 +127,22 @@ public final class CleanMainActivity extends Activity {
  private void renderHome(){
   page.addView(text("BANKSAWAN YELLOW • GOLD",14,YELLOW,true));
   TextView h=text("LONG A • 1M / 5M / 15M / 1H",17,Color.WHITE,true);h.setPadding(0,dp(12),0,dp(14));page.addView(h);
-  if(qaFixtureMode)page.addView(text("SIMULASI QA — BUKAN SINYAL PASAR",13,YELLOW,true));
+  if(qaFixtureMode||qaExternalChartTestMode)
+   page.addView(text("SIMULASI QA — BUKAN SINYAL PASAR",13,YELLOW,true));
+  if(BuildConfig.DEBUG&&"id.banksawan.yellow.qa".equals(getPackageName())&&!qaFixtureMode){
+   if(qaExternalChartTestMode){
+    Button closeQa=new Button(this);
+    closeQa.setText("TUTUP KARTU SIMULASI");
+    closeQa.setOnClickListener(v->{qaExternalChartTestMode=false;homeData=null;
+     status.setText("OFFLINE QA • DATA TIDAK TERSEDIA");showPage("home");});
+    page.addView(closeQa);
+   }else if(homeData==null||homeData.unavailable){
+    Button testChart=new Button(this);
+    testChart.setText("UJI SHORTCUT PLAY / FOGO (SIMULASI)");
+    testChart.setOnClickListener(v->{qaExternalChartTestMode=true;loadQaHomeFixture();});
+    page.addView(testChart);
+   }
+  }
   if(homeData!=null&&!homeData.unavailable){
    for(CleanViewModel.Signal signal:homeData.signals){
     LinearLayout item=card(signal.symbol);
