@@ -69,6 +69,7 @@ export function newParallelState(){
 }
 function checkTicker(symbol,ticker,signalEndMs){
   const pct=Number(ticker?.priceChangePercent),price=Number(ticker?.lastPrice);
+  const quoteVolume24h=ticker?.quoteVolume24h;
   if(ticker?.symbol!==symbol||ticker?.source!=='BINANCE_USDM_FUTURES'||
       ticker?.contractType!=='PERPETUAL'||ticker?.status!=='TRADING'||
       !finite(pct)||!finite(price)||price<=0||!finite(ticker?.observedAtMs)){
@@ -76,8 +77,9 @@ function checkTicker(symbol,ticker,signalEndMs){
   }
   if(ticker.observedAtMs>signalEndMs||signalEndMs-ticker.observedAtMs>SETTINGS.maxTickerAgeMs)
     return {error:'STALE_BINANCE_TICKER'};
-  return {pct,price,eligible:pct>=SETTINGS.minBinance24hChangePct &&
-     price<SETTINGS.maxPriceExclusive};
+  return {pct,price,quoteVolume24h,eligible:pct>SETTINGS.minBinance24hChangePct &&
+     price<SETTINGS.maxPriceExclusive && finite(quoteVolume24h) &&
+     quoteVolume24h>SETTINGS.minQuoteVolume24h};
 }
 /**
  * @param {string} symbol Binance USD-M symbol
@@ -152,6 +154,7 @@ export function stepLongAOnTimeframe(symbol,tf,input,state){
   const eventId=`${symbol}:${tf}:${end}:${signal}`;
   const event=signal?{id:eventId,symbol,timeframe:tf,signal,barClosedAtMs:end,
     price:current.close,binance24hChangePct:ticker.pct,
+     quoteVolume24h:ticker.quoteVolume24h,
     priority:ticker.pct>=SETTINGS.highPriorityChangePct?'HIGH':'STANDARD',
     source:'BINANCE_USDM_24H+LOCAL_PARALLEL_MTF_EVALUATOR',status:'RESEARCH_ONLY'}:null;
   if(signal)next.lastEventId=eventId;

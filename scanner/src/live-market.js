@@ -20,14 +20,14 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
 export class YellowLiveMarket {
   constructor({dataDir,clock=()=>Date.now(),guard=null,wsClass=globalThis.WebSocket,
-    maxTracked=200,fetchIntervalMs=600_000,sendEvent=async()=>{},passiveEvidence=null,random=Math.random,
+    maxTracked=50,fetchIntervalMs=600_000,sendEvent=async()=>{},passiveEvidence=null,random=Math.random,
     log=(...args)=>console.log(...args)}={}){
     if(!dataDir)throw new Error('YELLOW_DATA_DIR_REQUIRED');
     if(!wsClass)throw new Error('WEBSOCKET_NOT_AVAILABLE');
     this.random=random;this.feedGeneration=0;this.wsRecovering=false;this.wsRecoveryAttempts=0;
     this.wsReconnectAtMs=0;this.wsReconnectDeadlineMs=0;this.wsHealthySinceMs=0;this.wsRecoveryDataAtMs=0;
     this.clock=clock;this.dataDir=dataDir;this.wsClass=wsClass;this.log=log;
-    if(!Number.isSafeInteger(maxTracked)||maxTracked<1||maxTracked>200)throw Error('INVALID_MAX_TRACKED');
+    if(!Number.isSafeInteger(maxTracked)||maxTracked<1||maxTracked>50)throw Error('INVALID_MAX_TRACKED');
     this.maxTracked=maxTracked;this.fetchIntervalMs=Math.max(300_000,fetchIntervalMs);
     this.checkpoints=new LaneCheckpoint(path.join(dataDir,'lane-checkpoints'));
     this.guard=guard||new RequestGuard({filename:path.join(dataDir,'binance-circuit.json'),clock});
@@ -136,7 +136,7 @@ export class YellowLiveMarket {
         const at=Number(row.E);
         if(!Number.isSafeInteger(at)||Math.abs(this.clock()-at)>120_000)continue;
         try{if(this.recordTicker(normalizeBinanceTicker({symbol,
-          ticker:{symbol,lastPrice:row.c,priceChangePercent:row.P},exchangeSymbol,observedAtMs:at})))
+          ticker:{symbol,lastPrice:row.c,priceChangePercent:row.P,quoteVolume:row.q},exchangeSymbol,observedAtMs:at})))
             {this.lastTickerDataAtMs=this.clock();this.wsRecoveryDataAtMs=this.clock();}}catch{}
       }
     }catch{this.ignored++;}});

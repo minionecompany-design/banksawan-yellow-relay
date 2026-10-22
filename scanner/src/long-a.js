@@ -11,6 +11,7 @@
  */
 export const SETTINGS = Object.freeze({
   minBinance24hChangePct: 1,
+  minQuoteVolume24h: 10_000_000,
   highPriorityChangePct: 5,
   maxPriceExclusive: 10,
   minVolumeRatio: 0.75,
@@ -120,7 +121,7 @@ export function stepLongA(symbol, data, state = newSymbolState()) {
   if (ticker24h.observedAtMs > latest.endMs + 5_000 ||
       latest.endMs - ticker24h.observedAtMs > SETTINGS.maxTickerAgeMs)
     return {event:null, reason:'STALE_BINANCE_TICKER',state};
-  const eligible = pct >= SETTINGS.minBinance24hChangePct &&
+  const eligible = pct > SETTINGS.minBinance24hChangePct &&
     lastPrice < SETTINGS.maxPriceExclusive;
   const one = metrics(oneMinute), five = metrics(fiveMinute);
   const fifteen = metrics(fifteenMinute), hour = metrics(oneHour);
@@ -199,9 +200,10 @@ export function eligibleUniverse(tickers) {
     finite(Number(t.lastPrice)) && Number(t.lastPrice)>0 &&
     Number(t.lastPrice)<SETTINGS.maxPriceExclusive &&
     finite(Number(t.priceChangePercent)) &&
-    Number(t.priceChangePercent)>=SETTINGS.minBinance24hChangePct)
+    Number(t.priceChangePercent)>SETTINGS.minBinance24hChangePct &&
+    Number.isFinite(t.quoteVolume24h) && t.quoteVolume24h>SETTINGS.minQuoteVolume24h)
     .map(t=>({symbol:t.symbol,price:Number(t.lastPrice),
-      binance24hChangePct:Number(t.priceChangePercent),
+      binance24hChangePct:Number(t.priceChangePercent),quoteVolume24h:t.quoteVolume24h,
       priority:Number(t.priceChangePercent)>=SETTINGS.highPriorityChangePct?'HIGH':'STANDARD'}))
     .sort((a,b)=>b.binance24hChangePct-a.binance24hChangePct);
 }
