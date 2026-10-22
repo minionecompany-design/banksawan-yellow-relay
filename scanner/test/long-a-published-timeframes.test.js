@@ -54,6 +54,6 @@ test('delivery gate executes before ledger.accept and sendEvent; evaluator remai
  assert.match(src,/const frames=\['1m','5m','15m','1h'\]/);
  assert.match(src,/await this\.sendEvent\(accepted\.event\)/);
  assert.match(main,/const alertTimeframes=\['1m','5m','15m','1h'\]/);
- assert.match(main,/filter\(tf=>tf && tf!=='1m'\)/);
+ assert.doesNotMatch(main,/filter\(tf=>tf && tf!=='1m'\)/);
  assert.doesNotMatch(main,/YELLOW_ALERT_TIMEFRAMES.*YELLOW_MAX_TRACKED/);
 });
