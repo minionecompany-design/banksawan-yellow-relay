@@ -26,8 +26,8 @@ public final class YellowNotifier {
         if(Build.VERSION.SDK_INT>=26){
             NotificationManager manager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
             if(manager!=null){
-                NotificationChannel c=new NotificationChannel(CHANNEL,"YELLOW LONG A / LONG B (live)",NotificationManager.IMPORTANCE_HIGH);
-                c.setDescription("LONG A 5M/15M/1H and selected LONG B 1M (first A silent)");
+                NotificationChannel c=new NotificationChannel(CHANNEL,"YELLOW LONG A 1M/5M/15M/1H",NotificationManager.IMPORTANCE_HIGH);
+                c.setDescription("LONG A 1M/5M/15M/1H, four independent closed candle timeframes");
                 c.setSound(defaultSound(),soundAttributes());
                 manager.createNotificationChannel(c);
                 NotificationChannel selfTest=new NotificationChannel(TEST_CHANNEL,
@@ -73,8 +73,8 @@ public final class YellowNotifier {
              long firstAAt,long protectAt,double firstAPrice,double firstAChangePct){
         long now=System.currentTimeMillis();
         boolean regularA="LONG_A".equals(signal)&&
-            ("5m".equals(timeframe)||"15m".equals(timeframe)||"1h".equals(timeframe));
-        boolean oneB="LONG_B".equals(signal)&&"1m".equals(timeframe)&&
+            ("1m".equals(timeframe)||"5m".equals(timeframe)||"15m".equals(timeframe)||"1h".equals(timeframe));
+        boolean oneB=false && "LONG_B".equals(signal)&&"1m".equals(timeframe)&&
             firstAAt>0&&firstAAt%60000==0&&protectAt>firstAAt&&protectAt%60000==0&&
             closedAt>protectAt&&closedAt<=firstAAt+120*60000L&&
             closedAt-protectAt<=90*60000L&&
