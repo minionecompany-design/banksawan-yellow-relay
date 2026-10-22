@@ -4,7 +4,7 @@ import pathlib, re, subprocess, time
 from xml.etree import ElementTree as ET
 OUT=pathlib.Path('clean-rebuild/android/qa/screenshots')
 OUT.mkdir(parents=True,exist_ok=True)
-PACKAGE='id.banksawan.yellow'
+PACKAGE='id.banksawan.yellow.qa'
 def adb(*args,output=False):
     p=subprocess.run(['adb',*args],capture_output=True,check=True)
     return p.stdout if output else p.stdout.decode(errors='replace')
@@ -34,7 +34,7 @@ for width,height,tag in [(1080,2400,'360dp'),(1236,2748,'412dp')]:
     adb('shell','wm','size',f'{width}x{height}')
     adb('shell','wm','density','480')
     adb('shell','am','force-stop',PACKAGE)
-    adb('shell','am','start','-n',PACKAGE+'/.clean.CleanMainActivity')
+    adb('shell','am','start','-n',PACKAGE+'/id.banksawan.yellow.clean.CleanMainActivity')
     time.sleep(2)
     root=dump(tag+'-home')
     t=' '.join(texts(root))
