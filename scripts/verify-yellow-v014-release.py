@@ -1,4 +1,4 @@
-"""Exact v0.14 offline-hold release gate. No secrets or market access."""
+"""Exact v0.15 offline-hold release gate. No secrets or market access."""
 import re,sys,pathlib
 
 def verify(badging,config):
@@ -11,4 +11,4 @@ def verify(badging,config):
     return True
 if __name__=='__main__':
     verify(pathlib.Path(sys.argv[1]).read_text(),pathlib.Path(sys.argv[2]).read_text())
-    print('YELLOW_V014_PACKAGE_VERSION_OFFLINE_HOLD_PASS')
+    print('YELLOW_V015_PACKAGE_VERSION_OFFLINE_HOLD_PASS')
