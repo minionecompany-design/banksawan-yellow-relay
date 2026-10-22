@@ -1,5 +1,6 @@
 package id.banksawan.yellow.clean;
 import android.app.Activity;
+import id.banksawan.yellow.BuildConfig;
 import android.os.Bundle;
 import android.graphics.Color;
 import android.graphics.Typeface;
