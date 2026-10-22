@@ -53,7 +53,7 @@ def run_sequence(reversed_order):
             if button:
                 break
             size=adb("shell","wm","size")
-            dims=re.search(r"(?:Override|Physical) size: (\\d+)x(\\d+)",size)
+            dims=re.search(r"(?:Override|Physical) size: (\d+)x(\d+)",size)
             assert dims, ("UNKNOWN_EMULATOR_SIZE",size)
             width,height=int(dims.group(1)),int(dims.group(2))
             adb("shell","input","swipe",str(width//2),str(int(height*.78)),str(width//2),str(int(height*.28)),"350")
