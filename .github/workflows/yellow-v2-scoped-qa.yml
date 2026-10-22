@@ -25,6 +25,8 @@ jobs:
         run: node --test scanner/test/*.test.js
       - name: Android source policy contract
         run: node --test scanner/test/v2-final-policy.test.js
+      - name: Original V2 signer and in-place upgrade policy (offline)
+        run: python3 -m unittest discover -s scripts -p 'test_verify_yellow*.py'
   android-compile:
     runs-on: ubuntu-latest
     timeout-minutes: 30

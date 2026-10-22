@@ -78,12 +78,16 @@ export class YellowLiveMarket {
     if(!this.exchangeSymbols.size || this.clock()>=this.nextExchangeRefresh){
       const info=await this.rest('/fapi/v1/exchangeInfo');
       if(!Array.isArray(info?.symbols))throw new Error('INVALID_EXCHANGE_INFO');
+      if(this.isHalted||generation!==this.feedGeneration)return;
       this.exchangeSymbols=new Map(info.symbols.filter(s=>validSymbol(s.symbol)&&
         s.quoteAsset==='USDT'&&s.contractType==='PERPETUAL'&&s.status==='TRADING')
         .map(s=>[s.symbol,s]));
       this.nextExchangeRefresh=this.clock()+6*60*60_000;
       for(const symbol of this.covered.keys())if(!this.exchangeSymbols.has(symbol)){
         this.covered.delete(symbol);this.unsubscribe(symbol);
+      }
+      for(const symbol of this.tickers.keys())if(!this.exchangeSymbols.has(symbol)){
+        this.tickers.delete(symbol);this.tickerHistory.delete(symbol);
       }
     }
     const result=await this.rest('/fapi/v1/ticker/24hr',{weight:40});
@@ -116,7 +120,8 @@ export class YellowLiveMarket {
     return null;
   }
   universe(){
-    return eligibleUniverse([...this.tickers.values()].filter(t=>this.clock()-t.observedAtMs<120_000))
+    return eligibleUniverse([...this.tickers.values()].filter(t=>this.exchangeSymbols.has(t.symbol)&&
+      this.clock()-t.observedAtMs<120_000))
       .map(row=>({...row,tickerObservedAtMs:this.tickers.get(row.symbol)?.observedAtMs,
         stale:this.clock()-this.tickers.get(row.symbol).observedAtMs>=30000,coverage:this.covered.has(row.symbol)?'SCANNING':
         this.inProgress.has(row.symbol)?'BOOTSTRAPPING':'QUEUED'}));
@@ -301,6 +306,7 @@ export class YellowLiveMarket {
   }
   async bootstrap(symbol){
     if(this.isHalted||this.covered.has(symbol)||this.inProgress.has(symbol)||
+      this.covered.size+this.inProgress.size>=this.maxTracked||
       (this.retryAfter.get(symbol)||0)>this.clock())return;
     this.inProgress.add(symbol);
     const generation=this.feedGeneration;
