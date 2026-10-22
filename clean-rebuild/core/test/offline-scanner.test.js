@@ -42,3 +42,17 @@ test('durable journal must be restored before scanner use',async()=>{
  await s.restoreJournal();
  assert.equal((await s.process({symbol:'PLAYUSDT'})).status,'SYMBOL_NOT_TRACKED');
 });
+
+test('journal-backed lane blocks replay until verified bootstrap',async()=>{
+ const {mkdtemp}=await import('node:fs/promises');
+ const {tmpdir}=await import('node:os');
+ const {join}=await import('node:path');
+ const dir=await mkdtemp(join(tmpdir(),'yellow-restart-'));
+ const m=market(),s=new OfflineYellowScanner({journalPath:join(dir,'events.json'),now:()=>now});
+ s.admit([m]);await s.restoreJournal();
+ const old={symbol:m.symbol,timeframe:'1m',candle:{closed:true,closedAtMs:now-60000},market:m};
+ assert.equal((await s.process(old)).status,'BOOTSTRAP_REQUIRED');
+ s.bootstrapLane(m.symbol,'1m',now-120000);
+ assert.equal((await s.process(old)).status,'INSUFFICIENT_CONFIRMED_MTF');
+ assert.equal(s.emitted().length,0);
+});
