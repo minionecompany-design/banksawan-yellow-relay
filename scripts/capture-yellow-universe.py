@@ -33,7 +33,10 @@ for width,height,label in [(1080,2400,'360dp'),(1236,2748,'412dp')]:
  for attempt in range(5):
   if 'PLAYUSDT' in visible_text():break
   adb('shell','input','swipe',str(width//2),str(height-220),str(width//2),'330','420');time.sleep(.6)
- assert 'PLAYUSDT' in visible_text(),'UNIVERSE fixture row did not become visible after vertical scroll'
+ if 'PLAYUSDT' not in visible_text():
+  capture(label+'-table-missing')
+  print('UNIVERSE_VISIBLE_TEXT:',visible_text(),flush=True)
+  raise AssertionError('UNIVERSE fixture row did not become accessible after vertical scroll; see captured screen and XML')
  capture(label+'-left')
  # Swipe across a visible table row. UIAutomator may omit container nodes.
  matches=[n for n in nodes() if n.get('text','')=='PLAYUSDT']
