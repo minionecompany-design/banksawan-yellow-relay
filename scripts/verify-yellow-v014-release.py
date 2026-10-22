@@ -2,7 +2,7 @@
 import re,sys,pathlib
 
 def verify(badging,config):
-    if not re.search(r"package: name='id\.banksawan\.yellow' versionCode='10' versionName='0\.14\.0-universe'",badging):
+    if not re.search(r"package: name='id\.banksawan\.yellow' versionCode='11' versionName='0\.15\.0-four-long-a'",badging):
         raise ValueError('WRONG_PACKAGE_OR_EXACT_VERSION')
     if 'application-debuggable' in badging: raise ValueError('DEBUG_NOT_RELEASE')
     for key,value in [('DEMO_MODE','true'),('ALERTS_ENABLED','false'),('FCM_ENABLED','false')]:
