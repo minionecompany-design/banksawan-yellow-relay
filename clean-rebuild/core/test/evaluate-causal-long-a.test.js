@@ -26,12 +26,22 @@ test('1m uses strictly previous higher-TF contexts without lookahead',()=>{
  assert.equal(r.ready,true);assert.equal(r.mode,MODE);
  assert.equal(r.longA,false);
 });
-test('higher lanes reject target snapshot masquerading as previous source TF',()=>{
+test('5m, 15m, 1h evaluate with separate previous fully closed context',()=>{
  for(const tf of ['5m','15m','1h']){
-  const q=fixture(tf),r=evaluateCausalLongA(q);
-  assert.equal(r.ready,false,tf);
-  assert.match(r.reason,/MISSING_PREVIOUS_CONFIRMED_/);
+  const q=fixture(tf);
+  // A source TF current bar must never be reused as close[1].
+  // Need at least 112 complete candles through the prior close.
+  q.histories[tf]=bars(tf,q.closedAtMs,120);
+  const r=evaluateCausalLongA(q);
+  assert.equal(r.ready,true,tf+': '+r.reason);
+  assert.equal(r.mode,MODE);
+  assert.equal(r.longA,false);
  }
+});
+test('missing previous candle is rejected even when target closed',()=>{
+ const q=fixture('5m');
+ q.histories['5m']=bars('5m',q.closedAtMs,112);
+ assert.equal(evaluateCausalLongA(q).reason,'MISSING_PREVIOUS_CONFIRMED_5m');
 });
 test('historical lookahead mode never silently accepted as real-time parity',()=>{
  assert.equal(evaluateCausalLongA({...fixture('1m'),mode:'PINE_HISTORICAL'}).reason,'UNSUPPORTED_PARITY_MODE');
