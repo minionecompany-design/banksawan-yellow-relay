@@ -42,15 +42,15 @@ test('V9 keeps safety and notification behavior unchanged',async()=>{
  assert.match(main,/root.setOnApplyWindowInsetsListener/);
  assert.match(main,/WindowInsets.Type.statusBars/);
  assert.match(main,/WindowInsets.Type.navigationBars/);
- assert.match(gradle,/versionCode 8/);
- assert.match(gradle,/versionName '0.12.0-v2-4tf-q10m'/);
+ assert.match(gradle,/versionCode 9/);
+ assert.match(gradle,/versionName '0.12.1-v2-status-q10m'/);
 });
 
 test('Android accepts server-advertised scanner capacity 50 but rejects invalid coverage',async()=>{
  const main=await src('android/app/src/main/java/id/banksawan/yellow/MainActivity.java');
  assert.match(main,/maximum>50/);
  assert.match(main,/covered>maximum/);
- assert.match(main,/newCovered>maximum/);
+ assert.match(main,/verifyUniverseSnapshot\(newUniverse,newCovered,newEligible/);
  assert.doesNotMatch(main,/maximum>24/);
  assert.doesNotMatch(main,/newCovered>24/);
  assert.match(main,/!tickerFresh \|\| !klineFresh/);

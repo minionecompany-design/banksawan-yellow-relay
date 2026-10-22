@@ -52,6 +52,7 @@ public class MainActivity extends Activity {
     private long lastRefreshMs = 0L;
     private volatile long lastEventCursorMs = 0L;
     private volatile boolean connectionHealthy = false;
+    private boolean backendIncompatible = false;
     private boolean pendingSoundSelfTest = false;
     private int lastCovered = 0;
     private int lastEligible = 0;
@@ -304,7 +305,8 @@ public class MainActivity extends Activity {
                 && System.currentTimeMillis() - lastRefreshMs < 180_000L;
             String detail = fresh
                 ? "LIVE SHADOW • " + lastCovered + "/" + lastEligible + " DIPINDAI • PILOT MTF"
-                : "SERVER OFFLINE • DATA TIDAK TERBARU";
+                : backendIncompatible ? "DATA BACKEND BELUM SESUAI • TANPA DATA LIVE"
+                : "SERVER / FEED TIDAK SIAP • DATA TIDAK TERBARU";
             TextView health = text(detail, 11, fresh ? GREEN : YELLOW, true);
             health.setPadding(0, dp(5), 0, dp(8));
             list.addView(health);
@@ -328,11 +330,45 @@ public class MainActivity extends Activity {
         for (JSONObject coin : eligible) addUniverseRow(coin);
 
         if (eligible.isEmpty()) {
-            TextView empty = text("Belum ada koin yang memenuhi filter Binance 24H ≥ +1% dan harga <10 USDT.",
+            TextView empty = text(emptyUniverseMessage(BuildConfig.DEMO_MODE || connectionHealthy, backendIncompatible),
                 13, MUTED, false);
             empty.setPadding(0, dp(18), 0, 0);
             list.addView(empty);
         }
+    }
+
+    static String emptyUniverseMessage(boolean ready, boolean incompatible) {
+        if (incompatible) return "Data backend belum sesuai. Daftar koin belum dapat ditampilkan.";
+        if (!ready) return "Data pasar belum tersedia. Jumlah koin yang memenuhi filter belum dapat ditentukan.";
+        return "Belum ada koin yang memenuhi filter Binance 24H > +1%, 0 < harga < 10 USDT, dan volume 24H > 10.000.000 USDT.";
+    }
+
+    static void verifyCoverage(int covered, int eligible, int maximum) {
+        if(covered<0 || eligible<0 || maximum<1 || maximum>50 || covered>maximum || covered>eligible)
+            throw new IllegalStateException("YELLOW_BACKEND_INCOMPATIBLE");
+    }
+
+    static void verifyUniverseSnapshot(JSONArray rows, int covered, int eligible, int maximum) {
+        verifyCoverage(covered,eligible,maximum);
+        if(rows==null || rows.length()!=eligible) throw new IllegalStateException("YELLOW_BACKEND_INCOMPATIBLE");
+        java.util.HashSet<String> symbols=new java.util.HashSet<>();
+        int scanning=0;
+        for(int i=0;i<rows.length();i++) {
+            JSONObject row=rows.optJSONObject(i);
+            if(row==null) throw new IllegalStateException("YELLOW_BACKEND_INCOMPATIBLE");
+            String symbol=row.optString("symbol","");
+            double price=row.optDouble("price",Double.NaN),change=row.optDouble("binance24hChangePct",Double.NaN);
+            double volume=row.optDouble("quoteVolume24h",Double.NaN);
+            String coverage=row.optString("coverage","");
+            if(!symbol.matches("[A-Z0-9]{2,25}USDT") || !symbols.add(symbol)
+                || !Double.isFinite(price) || price<=0 || price>=10
+                || !Double.isFinite(change) || change<=1
+                || !Double.isFinite(volume) || volume<=10_000_000
+                || !("SCANNING".equals(coverage)||"BOOTSTRAPPING".equals(coverage)||"QUEUED".equals(coverage)))
+                throw new IllegalStateException("YELLOW_BACKEND_INCOMPATIBLE");
+            if("SCANNING".equals(coverage))scanning++;
+        }
+        if(scanning!=covered)throw new IllegalStateException("YELLOW_BACKEND_INCOMPATIBLE");
     }
 
     private String shortTime(long ms) {
@@ -437,6 +473,7 @@ public class MainActivity extends Activity {
                 int covered=statusReply.optInt("covered",-1);
                 int eligible=statusReply.optInt("eligible",-1);
                 int maximum=statusReply.optInt("maxTracked",-1);
+                verifyCoverage(covered,eligible,maximum);
                 boolean tickerFresh=tickerAt>0 && tickerAt<=now+10_000L
                     && now-tickerAt<30_000L;
                 boolean klineFresh=covered==0 || (klineAt>0 && klineAt<=now+10_000L
@@ -459,13 +496,12 @@ public class MainActivity extends Activity {
                 JSONObject coverage=universeReply.getJSONObject("coverage");
                 int newCovered=coverage.getInt("covered");
                 int newEligible=coverage.getInt("eligible");
-                if(newCovered<0||newCovered>maximum||newEligible<0)
-                    throw new IllegalStateException("INVALID_SCANNER_COVERAGE");
+                verifyUniverseSnapshot(newUniverse,newCovered,newEligible,coverage.optInt("maxTracked",-1));
                 runOnUiThread(()->{
                     home=newHome;universe=newUniverse;
                     lastCovered=newCovered;lastEligible=newEligible;
                     lastRefreshMs=System.currentTimeMillis();
-                    connectionHealthy=true;
+                    connectionHealthy=true;backendIncompatible=false;
                     status.setText("LIVE SHADOW • "+newCovered+"/"+newEligible+" DIPINDAI");
                     render();
                 });
@@ -473,9 +509,11 @@ public class MainActivity extends Activity {
                 runOnUiThread(()->{
                     // Clear all last-known prices and signals. Never display stale data as LIVE.
                     connectionHealthy=false;
+                    backendIncompatible="YELLOW_BACKEND_INCOMPATIBLE".equals(err.getMessage());
                     home=new JSONArray();universe=new JSONArray();
                     lastCovered=0;lastEligible=0;lastRefreshMs=0;
-                    status.setText("SERVER / FEED TIDAK SIAP • TANPA DATA LIVE");
+                    if(backendIncompatible)status.setText("DATA BACKEND BELUM SESUAI • TANPA DATA LIVE");
+                    else status.setText("SERVER / FEED TIDAK SIAP • TANPA DATA LIVE");
                     render();
                 });
             }finally{refreshInFlight=false;}
