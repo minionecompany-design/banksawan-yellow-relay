@@ -277,7 +277,13 @@ export class YellowLiveMarket {
         }
         tracked.states[tf]=result.state;
         if(result.event?.signal==='LONG_A'){
-          const accepted=await this.ledger.accept(result.event);
+          let accepted;
+          try{accepted=await this.ledger.accept(result.event);}
+          catch(e){
+            // Do not advance/checkpoint later candles after losing durability.
+            // This follows the same fail-closed policy as checkpoint writes.
+            this.halt('LEDGER_WRITE_FAILED');throw e;
+          }
           if(accepted.accepted){
              this.eventsEmitted++;
              // Research-only hook. No DB/REST/FCM dependency; every exception

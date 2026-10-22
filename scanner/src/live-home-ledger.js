@@ -21,9 +21,9 @@ export class LiveHomeLedger {
       .filter(x=>Number.isSafeInteger(x.homeExpiresMs)&&x.homeExpiresMs>now&&productEligible(x));
     this.doc.events=this.doc.events.filter(x=>x.expiresAtMs>now&&productEligible(x));
     this.doc.claimed=this.doc.claimed.filter(x=>x.expiresAtMs>now);}
-  async #persist(){await mkdir(path.dirname(this.filename),{recursive:true});
+  async #persist(doc){await mkdir(path.dirname(this.filename),{recursive:true});
     const tmp=this.filename+'.tmp.'+process.pid;
-    await writeFile(tmp,JSON.stringify(this.doc),'utf8');await rename(tmp,this.filename);}
+    await writeFile(tmp,JSON.stringify(doc),'utf8');await rename(tmp,this.filename);}
   async accept(event){const job=this.chain.then(async()=>{
       const now=this.clock();this.#prune();
       if(!event||event.signal!=='LONG_A'||!frames.has(event.timeframe)||
@@ -37,10 +37,13 @@ export class LiveHomeLedger {
         binance24hChangePct:event.binance24hChangePct,quoteVolume24h:event.quoteVolume24h,
         priority:event.priority,
         barClosedAtMs:event.barClosedAtMs,detectedAtMs:now,expiresAtMs:event.barClosedAtMs+MAX_AGE};
-      this.doc.claimed.push({id:event.id,expiresAtMs:event.barClosedAtMs+CLAIM_TTL});
-      this.doc.events.push(record);
-      this.doc.home.push({...record,firstSeenMs:now,homeExpiresMs:now+HOME_TTL});
-      await this.#persist();return {accepted:true,event:record};
+      // Publish HOME, polling and duplicate claims only after the atomic disk
+      // commit succeeds. Failed writes must leave the previous snapshot intact.
+      const next={...this.doc,
+        claimed:[...this.doc.claimed,{id:event.id,expiresAtMs:event.barClosedAtMs+CLAIM_TTL}],
+        events:[...this.doc.events,record],
+        home:[...this.doc.home,{...record,firstSeenMs:now,homeExpiresMs:now+HOME_TTL}]};
+      await this.#persist(next);this.doc=next;return {accepted:true,event:record};
     });this.chain=job.catch(()=>{});return job;}
   home(){this.#prune();return this.doc.home.slice().sort((a,b)=>b.firstSeenMs-a.firstSeenMs).map(x=>({...x}));}
   eventsSince(afterMs=0){this.#prune();return this.doc.events.filter(x=>x.detectedAtMs>afterMs).map(x=>({...x}));}

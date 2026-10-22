@@ -89,7 +89,7 @@ test('Market onKline forwards only APPENDED closed bars and research errors do n
 test('source proves ledger claim precedes observer and FCM, new sockets not added',async()=>{
  const source=await readFile(new URL('../src/live-market.js',import.meta.url),'utf8');
  const main=await readFile(new URL('../src/live-main.js',import.meta.url),'utf8');
- assert.match(source,/const accepted=await this\.ledger\.accept\(result\.event\);[\s\S]*?onAcceptedLongA\(result\.event,target\)[\s\S]*?await this\.sendEvent\(accepted\.event\)/);
+ assert.match(source,/accepted=await this\.ledger\.accept\(result\.event\);[\s\S]*?onAcceptedLongA\(result\.event,target\)[\s\S]*?await this\.sendEvent\(accepted\.event\)/);
  assert.match(main,/YELLOW_GOLD_EVIDENCE_ENABLED==='true'/);
  assert.match(main,/passiveEvidence:research/);
  assert.doesNotMatch(source,/quality-capture-(?:store|bridge)-v1/);
