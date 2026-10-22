@@ -62,7 +62,7 @@ jobs:
       - name: Validate same package and planned update version
         run: |
           grep -q "applicationId 'id.banksawan.yellow'" android/app/build.gradle
-          grep -q 'versionCode 9' android/app/build.gradle
+          grep -q 'versionCode 10' android/app/build.gradle
           test -s android/app/build/outputs/apk/debug/app-debug.apk
       - name: Signing protection cannot be bypassed without permanent key
         run: |
