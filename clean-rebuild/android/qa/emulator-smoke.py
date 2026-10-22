@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Offline emulator structural QA. Never claims pixel-identical V2 parity."""
-import pathlib, re, subprocess, time
+import pathlib, re, subprocess, time, struct
 from xml.etree import ElementTree as ET
 OUT=pathlib.Path('clean-rebuild/android/qa/screenshots')
 OUT.mkdir(parents=True,exist_ok=True)
@@ -30,9 +30,25 @@ def tap_label(root,label):
                 time.sleep(1)
                 return
     raise AssertionError('TAB_NOT_FOUND:'+label)
-for width,height,tag in [(1080,2400,'360dp'),(1236,2748,'412dp')]:
-    adb('shell','wm','size',f'{width}x{height}')
-    adb('shell','wm','density','480')
+def measured_pixels():
+    image=adb('exec-out','screencap','-p',output=True)
+    assert image.startswith(b'\\x89PNG\\r\\n\\x1a\\n'), 'SCREENSHOT_NOT_PNG'
+    return struct.unpack('>II',image[16:24])
+
+for preferred_width,preferred_height,target_dp,tag in [
+    (1080,2400,360,'360dp'),(1236,2748,412,'412dp')
+]:
+    adb('shell','wm','size',f'{preferred_width}x{preferred_height}')
+    # Emulator may silently keep a smaller screenshot / touch-display size
+    # than the requested wm dimensions. Trust PNG pixels for real tap/scroll.
+    width,height=measured_pixels()
+    density=max(120,round(width*160/target_dp))
+    adb('shell','wm','density',str(density))
+    time.sleep(.6)
+    width,height=measured_pixels()
+    effective_dp=width*160/density
+    assert abs(effective_dp-target_dp)<2, ('VIEWPORT_NOT_TESTED',tag,width,density,effective_dp)
+    print('QA_MEASURED_VIEWPORT',tag,'px',width,height,'density',density,'effective_dp',effective_dp)
     adb('shell','am','force-stop',PACKAGE)
     adb('shell','am','start','-n',PACKAGE+'/id.banksawan.yellow.clean.CleanMainActivity')
     time.sleep(2)
