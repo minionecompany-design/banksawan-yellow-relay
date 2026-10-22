@@ -12,7 +12,6 @@ def dump(tag):
     adb('shell','uiautomator','dump','/sdcard/window.xml')
     content=adb('exec-out','cat','/sdcard/window.xml',output=True)
     (OUT/(tag+'.xml')).write_bytes(content)
-    adb('exec-out','screencap','-p',output=True)
     png=adb('exec-out','screencap','-p',output=True)
     (OUT/(tag+'.png')).write_bytes(png)
     root=ET.fromstring(content)
@@ -21,7 +20,7 @@ def texts(root):
     return [n.attrib.get('text','') for n in root.iter('node') if n.attrib.get('text')]
 def tap_label(root,label):
     for n in root.iter('node'):
-        if n.attrib.get('text','')==label:
+        if n.attrib.get('text','')==label and n.attrib.get('class','')=='android.widget.Button':
             bbox=n.attrib.get('bounds','')
             m=re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]',bbox)
             if m:
