@@ -16,7 +16,7 @@ public final class YellowFirebaseService extends FirebaseMessagingService {
         Map<String,String> data=message.getData();
         String eventType=data.get("event");
         String signal="YELLOW_LONG_B".equals(eventType)?"LONG_B":"LONG_A";
-        if(!"YELLOW_LONG_A".equals(eventType)&&!"YELLOW_LONG_B".equals(eventType))return;
+        if(!"YELLOW_LONG_A".equals(eventType))return;
         try{
             String symbol=data.get("symbol"),tf=data.get("timeframe"),id=data.get("event_id");
             long closedAt=Long.parseLong(data.get("bar_closed_at_ms"));
