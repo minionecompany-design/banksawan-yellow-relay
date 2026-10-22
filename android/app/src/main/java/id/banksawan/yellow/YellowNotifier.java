@@ -96,7 +96,9 @@ public final class YellowNotifier {
             .setAutoCancel(true);
         if(Build.VERSION.SDK_INT<26)builder.setDefaults(Notification.DEFAULT_SOUND);
         NotificationManager manager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if(manager!=null)manager.notify(id.hashCode(),builder.build());
+        // Android keys notifications by (tag, id). A Java hash alone can
+        // collide across different symbols and silently replace an alert.
+        if(manager!=null)manager.notify(id,0,builder.build());
         return true;
     }
 }

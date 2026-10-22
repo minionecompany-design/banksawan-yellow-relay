@@ -45,6 +45,18 @@ jobs:
           gradle-version: '8.10.2'
       - name: Compile existing Android UI unchanged (NO APK distribution)
         run: gradle -p android :app:assembleDebug --no-daemon --stacktrace
+      - name: Android behavior QA (Robolectric, no phone or real FCM)
+        run: gradle -p android :app:testDebugUnitTest --no-daemon --stacktrace
+      - name: Preserve Android test evidence (NO APK)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yellow-v2-android-unit-test-evidence
+          path: |
+            android/app/build/reports/tests/testDebugUnitTest
+            android/app/build/test-results/testDebugUnitTest
+          if-no-files-found: warn
+          retention-days: 14
       - name: Validate same package and planned update version
         run: |
           grep -q "applicationId 'id.banksawan.yellow'" android/app/build.gradle
