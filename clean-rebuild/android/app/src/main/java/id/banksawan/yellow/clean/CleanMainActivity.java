@@ -106,7 +106,9 @@ public final class CleanMainActivity extends Activity {
   status.setVisibility(android.view.View.VISIBLE);
   for(String label:new String[]{"home","universe"}){
    boolean chosen=tab.equals(label);Button b=new Button(this);
-   b.setText(label.toUpperCase());b.setAllCaps(false);b.setTextSize(16);
+   b.setText(label.toUpperCase());b.setAllCaps(false);b.setTextSize(14);
+   b.setSingleLine(true);b.setMinWidth(0);b.setMinimumWidth(0);
+   b.setPadding(0,0,0,0);
    b.setTextColor(chosen?BG:MUTED);b.setBackground(shape(chosen?YELLOW:CARD,chosen?YELLOW:LINE));
    LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(55),1);p.setMargins(dp(3),dp(3),dp(3),dp(3));
    bottom.addView(b,p);b.setOnClickListener(v->showPage(label));
