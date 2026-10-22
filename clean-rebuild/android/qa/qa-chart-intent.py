@@ -75,3 +75,23 @@ def run_sequence(reversed_order):
 run_sequence(False)
 run_sequence(True)
 print("QA_CHART_INTENT_PLAY_FOGO_ORDER_INDEPENDENT_PASS")
+
+# Prove that Android PendingIntent matching does NOT reuse the previous
+# PLAY/FOGO notification destination when both immutable event intents exist.
+for qa_target in ["PLAYUSDT","FOGOUSDT","PLAYUSDT"]:
+    adb("shell","am","force-stop",PACKAGE)
+    adb("shell","am","start","-n",PACKAGE+"/"+ACTIVITY,
+        "--ez","yellow.qa.fixture","true",
+        "--ez","yellow.qa.pendingIntentProbe","true",
+        "--es","yellow.qa.target",qa_target)
+    time.sleep(1.7)
+    captured=screenshot("pending-intent-"+qa_target)
+    text=" ".join(text_nodes(captured))
+    expected="BINANCE:"+qa_target+".P"
+    assert "QA INTENT CAPTURE" in text, ("PENDING_INTENT_NOT_DELIVERED",qa_target,text)
+    assert expected in text, ("PENDING_INTENT_WRONG_SYMBOL",qa_target,text)
+    wrong="FOGOUSDT" if qa_target=="PLAYUSDT" else "PLAYUSDT"
+    assert "BINANCE:"+wrong+".P" not in text, ("PENDING_INTENT_CROSSED",qa_target,text)
+    print("QA_IMMUTABLE_PENDING_INTENT_PASS",qa_target)
+
+print("QA_PLAY_FOGO_PENDING_INTENT_ORDER_INDEPENDENCE_PASS")
