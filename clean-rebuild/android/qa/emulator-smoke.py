@@ -65,6 +65,15 @@ for width,height,tag in [(1080,2400,'360dp'),(1236,2748,'412dp')]:
     tap_label(root,'HOME')
     root=dump(tag+'-returned-home')
     assert 'BELUM ADA SINYAL' in ' '.join(texts(root)) or 'DATA TIDAK TERSEDIA' in ' '.join(texts(root))
+    # Optional QA card display. No chart button click and no external network.
+    tap_label(root,'UJI SHORTCUT PLAY / FOGO (SIMULASI)')
+    qa_root=dump(tag+'-optin-simulated-cards')
+    qa=' '.join(texts(qa_root))
+    assert 'SIMULASI QA' in qa and 'PLAYUSDT' in qa and 'FOGOUSDT' in qa, ('QA_CARD_OPTIN_FAIL',qa)
+    tap_label(qa_root,'TUTUP KARTU SIMULASI')
+    back=dump(tag+'-after-closing-simulation')
+    assert 'PLAYUSDT' not in ' '.join(texts(back)), 'QA_SIMULATION_LEAKS_TO_HOME'
+
 adb('shell','wm','size','reset')
 adb('shell','wm','density','reset')
 print('OFFLINE_CLEAN_ANDROID_360_412_SMOKE_PASS')
