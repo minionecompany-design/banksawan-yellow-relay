@@ -207,3 +207,12 @@ export function eligibleUniverse(tickers) {
       priority:Number(t.priceChangePercent)>=SETTINGS.highPriorityChangePct?'HIGH':'STANDARD'}))
     .sort((a,b)=>b.binance24hChangePct-a.binance24hChangePct);
 }
+
+/** The immutable market eligibility used on every product surface.
+ * A confirmed LONG A is not a deliverable alert if its as-of market
+ * snapshot failed ANY of the owner's strict 24h screening rules. */
+export function productEligible({price,binance24hChangePct,quoteVolume24h}={}){
+  return [price,binance24hChangePct,quoteVolume24h].every(n=>typeof n==='number'&&Number.isFinite(n))&&
+    price>0&&price<SETTINGS.maxPriceExclusive&&binance24hChangePct>SETTINGS.minBinance24hChangePct&&
+    quoteVolume24h>SETTINGS.minQuoteVolume24h;
+}
