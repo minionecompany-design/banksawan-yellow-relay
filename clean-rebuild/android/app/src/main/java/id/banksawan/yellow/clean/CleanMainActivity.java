@@ -1,6 +1,8 @@
 package id.banksawan.yellow.clean;
 import android.app.Activity;
 import id.banksawan.yellow.BuildConfig;
+import id.banksawan.yellow.R;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -114,6 +116,11 @@ public final class CleanMainActivity extends Activity {
    boolean chosen=tab.equals(label);Button b=new Button(this);
    b.setText(label.toUpperCase(Locale.ROOT));b.setAllCaps(false);b.setTextSize(17);
    b.setTypeface(null,Typeface.BOLD);
+   Drawable navIcon=getDrawable("home".equals(label)?R.drawable.nav_home:R.drawable.nav_globe);
+   navIcon.mutate().setTint(chosen?BG:MUTED);
+   navIcon.setBounds(0,0,dp(21),dp(21));
+   b.setCompoundDrawables(navIcon,null,null,null);
+   b.setCompoundDrawablePadding(dp(9));b.setGravity(Gravity.CENTER);
    b.setSingleLine(true);b.setMinWidth(0);b.setMinimumWidth(0);
    b.setPadding(0,0,0,0);
    b.setTextColor(chosen?BG:MUTED);b.setBackground(shape(chosen?YELLOW:CARD,chosen?YELLOW:LINE));
