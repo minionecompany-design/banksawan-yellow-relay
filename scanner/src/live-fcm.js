@@ -3,6 +3,7 @@
  * already be persisted before this module is invoked. No shared BR topic.
  */
 import {eligibleEvent} from './product-policy.js';
+import {eligibleOneMinuteB} from './one-minute-b-episodes.js';
 import {createSign} from 'node:crypto';
 const TOKEN_URL='https://oauth2.googleapis.com/token';
 const scope='https://www.googleapis.com/auth/firebase.messaging';
@@ -39,7 +40,7 @@ export class YellowFcm {
   async send(record){
     if(!this.enabled)return {sent:false,reason:'FCM_DISABLED'};
     this.attempted++;
-    if(!eligibleEvent(record)||record.signal!=='LONG_A'||record.id!==`${record.symbol}:${record.timeframe}:${record.barClosedAtMs}:LONG_A`||!allowed.test(record.symbol||'')||!['1m','5m','15m','1h'].includes(record.timeframe)||
+    if(!((record.signal==='LONG_A'&&eligibleEvent(record)&&['1m','5m','15m','1h'].includes(record.timeframe)))||record.id!==`${record.symbol}:${record.timeframe}:${record.barClosedAtMs}:${record.signal}`||!allowed.test(record.symbol||'')||
        !Number.isFinite(record.expiresAtMs)||record.expiresAtMs<=this.clock())
       return {sent:false,reason:'EVENT_NOT_DELIVERABLE'};
     try{
@@ -47,9 +48,12 @@ export class YellowFcm {
       const leftMs=record.expiresAtMs-this.clock();if(leftMs<=0)return {sent:false,reason:'EXPIRED'};
       const url=`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(this.account.project_id)}/messages:send`;
       const msg={message:{topic:this.topic,
-        data:{event:'YELLOW_LONG_A',event_id:String(record.id),symbol:record.symbol,
+        data:{event:record.signal==='LONG_B'?'YELLOW_LONG_B':'YELLOW_LONG_A',event_id:String(record.id),symbol:record.symbol,
           timeframe:record.timeframe,price:String(record.price),
           binance_change:String(record.binance24hChangePct),quote_volume_24h:String(record.quoteVolume24h),
+          ...(record.signal==='LONG_B'?{episode_started_at_ms:String(record.episodeStartedAtMs),
+            protect_at_ms:String(record.protectAtMs),first_a_price:String(record.firstAPrice),
+            first_a_change_pct:String(record.firstAChangePct)}:{}),
           bar_closed_at_ms:String(record.barClosedAtMs),
           expires_at_ms:String(record.expiresAtMs)},
         android:{priority:'HIGH',ttl:Math.max(1,Math.floor(leftMs/1000))+'s'}}};

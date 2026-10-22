@@ -14,14 +14,22 @@ public final class YellowFirebaseService extends FirebaseMessagingService {
     @Override public void onMessageReceived(RemoteMessage message){
         if(!BuildConfig.FCM_ENABLED)return;
         Map<String,String> data=message.getData();
-        if(!"YELLOW_LONG_A".equals(data.get("event")))return;
+        String eventType=data.get("event");
+        String signal="YELLOW_LONG_B".equals(eventType)?"LONG_B":"LONG_A";
+        if(!"YELLOW_LONG_A".equals(eventType))return;
         try{
             String symbol=data.get("symbol"),tf=data.get("timeframe"),id=data.get("event_id");
             long closedAt=Long.parseLong(data.get("bar_closed_at_ms"));
             long expiry=Long.parseLong(data.get("expires_at_ms"));
             double price=Double.parseDouble(data.get("price"));
             double change=Double.parseDouble(data.get("binance_change"));
-            YellowNotifier.claimAndNotify(this,id,symbol,tf,closedAt,expiry,price,change,Double.parseDouble(data.get("quote_volume_24h")));
+            boolean oneB="LONG_B".equals(signal);
+            YellowNotifier.claimAndNotify(this,signal,id,symbol,tf,closedAt,expiry,price,change,
+                Double.parseDouble(data.get("quote_volume_24h")),
+                oneB?Long.parseLong(data.get("episode_started_at_ms")):0,
+                oneB?Long.parseLong(data.get("protect_at_ms")):0,
+                oneB?Double.parseDouble(data.get("first_a_price")):Double.NaN,
+                oneB?Double.parseDouble(data.get("first_a_change_pct")):Double.NaN);
         }catch(Exception ignored){/* Malformed messages are not notifications. */}
     }
 }

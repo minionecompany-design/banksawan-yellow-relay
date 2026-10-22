@@ -76,7 +76,7 @@ function checkTicker(symbol,ticker,signalEndMs){
   }
   if(ticker.observedAtMs>signalEndMs||signalEndMs-ticker.observedAtMs>SETTINGS.maxTickerAgeMs)
     return {error:'STALE_BINANCE_TICKER'};
-  return {pct,price,eligible:pct>SETTINGS.minBinance24hChangePct &&
+  return {pct,price,eligible:pct>=SETTINGS.minBinance24hChangePct &&
      price<SETTINGS.maxPriceExclusive};
 }
 /**
@@ -118,6 +118,7 @@ export function stepLongAOnTimeframe(symbol,tf,input,state){
   }
   const ticker=checkTicker(symbol,input.ticker24h,end);
   if(ticker.error)return {event:null,reason:ticker.error,state};
+  const pinnedB=tf==='1m'&&input.oneMinuteEpisodePinned===true&&state.tradeState===2;
   const current=indicators(bars),five=contexts['5m'],fifteen=contexts['15m'],hour=contexts['1h'];
   const closes=bars.map(b=>b.close);
   const index=state.index+1;
@@ -134,7 +135,8 @@ export function stepLongAOnTimeframe(symbol,tf,input,state){
     gt(current.close,current.ma99)&&gt(current.ma7,current.ma25)&&
     gt(current.rsi,50)&&gt(current.rsi,current.rsiAvg)&&lt(current.rsi,75)&&
     current.volumeRatio>=SETTINGS.minVolumeRatio&&
-    dist<=SETTINGS.maxDistanceFromMa7Pct&&current.close<SETTINGS.maxPriceExclusive;
+    dist<=SETTINGS.maxDistanceFromMa7Pct&&
+    (current.close<SETTINGS.maxPriceExclusive||pinnedB);
   const curWeak=lt(current.close,current.ma7)&&lt(current.rsi,current.rsiAvg)&&lt(current.rsi,50);
   const fiveWeak=lt(five.close,five.ma7)&&lt(five.rsi,five.rsiAvg);
   const finalFail=(lt(fifteen.close,fifteen.ma25)&&lt(fifteen.ma7,fifteen.ma25)&&lt(fifteen.rsi,45)) ||
@@ -147,7 +149,7 @@ export function stepLongAOnTimeframe(symbol,tf,input,state){
     signal='LONG_A';next.tradeState=1;
   }else if(state.tradeState===1&&curWeak&&fiveWeak){signal='PROTECT';next.tradeState=2;next.protectBar=index;}
   else if(state.tradeState===2&&state.protectBar!==null&&
-    index-state.protectBar<=SETTINGS.reclaimWindow1mBars&&ticker.eligible&&
+    index-state.protectBar<=SETTINGS.reclaimWindow1mBars&&(ticker.eligible||pinnedB)&&
     hourPass&&fifteenPass&&fivePass&&currentPass){signal='LONG_B';next.tradeState=1;}
   const eventId=`${symbol}:${tf}:${end}:${signal}`;
   const event=signal?{id:eventId,symbol,timeframe:tf,signal,barClosedAtMs:end,

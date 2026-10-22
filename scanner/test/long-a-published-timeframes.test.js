@@ -53,6 +53,7 @@ test('delivery gate executes before ledger.accept and sendEvent; evaluator remai
  assert.match(src,/tracked\.states\[tf\]=result\.state;[\s\S]*?if\(result\.event\?\.signal==='LONG_A'\)[\s\S]*?if\(!this\.alertTimeframes\.has\(tf\)\)[\s\S]*?continue;[\s\S]*?const accepted=await this\.ledger\.accept\(result\.event\);/);
  assert.match(src,/const frames=\['1m','5m','15m','1h'\]/);
  assert.match(src,/await this\.sendEvent\(accepted\.event\)/);
- assert.match(main,/YELLOW_ALERT_TIMEFRAMES\|\|'1m,5m,15m,1h'/);
+ assert.match(main,/const alertTimeframes=\['1m','5m','15m','1h'\]/);
+ assert.doesNotMatch(main,/filter\(tf=>tf && tf!=='1m'\)/);
  assert.doesNotMatch(main,/YELLOW_ALERT_TIMEFRAMES.*YELLOW_MAX_TRACKED/);
 });

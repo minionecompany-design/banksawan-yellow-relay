@@ -18,7 +18,7 @@ const event=(tf,end,s=symbol)=>({id:`${s}:${tf}:${end}:LONG_A`,symbol:s,timefram
 async function setup(){let now=BASE,rest=0;
  const market=new YellowLiveMarket({dataDir:await dir(),clock:()=>now,random:()=>0,wsClass:Socket,
   guard:{closedReason:null,metrics:()=>({circuitOpen:false}),getJson:async()=>{rest++;throw Error('UNEXPECTED_REST');}},log:()=>{}});
- market.isRunning=true;market.exchangeSymbols.set(symbol,{symbol,quoteAsset:'USDT',contractType:'PERPETUAL',status:'TRADING'});
+ market.isRunning=true;market.exchangeSymbols.set(symbol,{symbol,quoteAsset:'USDT',marginAsset:'USDT',contractType:'PERPETUAL',status:'TRADING'});
  const open=()=>{market.tickerWs.emit('open');market.klineWs.emit('open');};
  const tick=(price='.04')=>market.tickerWs.emit('message',{data:JSON.stringify([{s:symbol,c:price,q:'20000000',P:'5',E:now,st:1}])});
  market.connectWebsockets();open();tick();
@@ -77,14 +77,14 @@ test('persistent HTTP 418/429/451 latch prevents any reconnect',async()=>{
  for(const status of [418,429,451]){const {market}=await setup();market.guard.closedReason='HTTP_'+status;
   market.onSocketClose('kline',{});assert.equal(market.isHalted,true);assert.equal(market.wsReconnectAtMs,0);}
 });
-test('ticker received via existing WS appears in API immediately; stale data returns 503',async()=>{
+test('ticker received via existing WS appears in API immediately; stale data reports unavailable without false zero',async()=>{
  const {market,tick,setNow,rest}=await setup();const server=createLiveApi(market);
  await new Promise(r=>server.listen(0,'127.0.0.1',r));
  try{const url=`http://127.0.0.1:${server.address().port}/api/universe`;
   setNow(BASE+1000);tick('.045');const start=performance.now();const response=await fetch(url);const body=await response.json();
   assert.equal(body.universe[0].price,.045);assert.equal(body.universe[0].tickerObservedAtMs,BASE+1000);
   assert.ok(performance.now()-start<10000);assert.equal(rest(),0);
-  setNow(BASE+31000);assert.equal((await fetch(url)).status,503);
+  setNow(BASE+31000);assert.equal((await (await fetch(url)).json()).dataState,'DATA_UNAVAILABLE');
  }finally{await new Promise(r=>server.close(r));market.stop();}
 });
 test('delayed candle callback from old generation cannot enter recovered scanner',async()=>{
