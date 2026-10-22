@@ -35,9 +35,9 @@ export class OfflineYellowScanner {
  }
  async process({symbol,timeframe,candle,market}){
   if(!this.restored)throw Error('JOURNAL_RESTORE_REQUIRED');
+  if(!this.slots.symbols.includes(symbol))return {status:'SYMBOL_NOT_TRACKED',event:null};
   if(this.journal && !this.verifiedBootstraps?.has(symbol+':'+timeframe))
    return {status:'BOOTSTRAP_REQUIRED',event:null};
-  if(!this.slots.symbols.includes(symbol))return {status:'SYMBOL_NOT_TRACKED',event:null};
   if(market?.symbol!==symbol)return {status:'MISMATCHED_MARKET_SYMBOL',event:null};
   const result=this.lanes.process({symbol,timeframe,candle,market});
   if(result.status!=='LONG_A')return result;
