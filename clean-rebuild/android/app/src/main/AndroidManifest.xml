@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
  <application android:label="BANKSAWAN YELLOW" android:theme="@android:style/Theme.Material.NoActionBar" android:icon="@mipmap/ic_launcher" android:usesCleartextTraffic="false">
+  <activity android:name=".clean.QaChartCaptureActivity" android:exported="false" />
   <activity android:name=".clean.CleanMainActivity" android:exported="true">
    <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
   </activity>
