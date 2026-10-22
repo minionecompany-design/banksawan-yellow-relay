@@ -1,4 +1,4 @@
-name: BANKSAWAN YELLOW v0.14 permanently signed OFFLINE HOLD (build-only)
+name: BANKSAWAN YELLOW v0.15 permanently signed OFFLINE HOLD (build-only)
 on:
   workflow_dispatch:
     inputs:
@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   build:
-    name: Build v0.14 OFFLINE HOLD; no deploy or market access
+    name: Build v0.15 OFFLINE HOLD; no deploy or market access
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -101,12 +101,12 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android/app/build/outputs/apk/release/app-release.apk > "$RUNNER_TEMP/yellow-release-badging.txt"
           grep -q "package: name='id.banksawan.yellow'" "$RUNNER_TEMP/yellow-release-badging.txt"
           if grep -q application-debuggable "$RUNNER_TEMP/yellow-release-badging.txt"; then exit 1; fi
-          python3 scripts/verify-yellow-v014-release.py "$RUNNER_TEMP/yellow-release-badging.txt" "$CONFIG"
+          python3 scripts/verify-yellow-v015-release.py "$RUNNER_TEMP/yellow-release-badging.txt" "$CONFIG"
           sha256sum android/app/build/outputs/apk/release/app-release.apk > apk-sha256.txt
       - name: Upload signed APK and public receipts only
         uses: actions/upload-artifact@v4
         with:
-          name: banksawan-yellow-v014-permanent-OFFLINE-HOLD
+          name: banksawan-yellow-v015-permanent-OFFLINE-HOLD
           path: |
             android/app/build/outputs/apk/release/app-release.apk
             source-commit.txt
