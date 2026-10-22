@@ -11,7 +11,7 @@ const candleSet=(tf,end)=>{
 };
 test('independent per-TF raw histories can generate a real positive LONG A through scanner and journal across restart',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'yellow-positive-replay-')),file=join(dir,'journal.json');
- const close=180*3_600_000+60_000;
+ const close=500*3_600_000+60_000;
  const histories={};
  for(const tf of Object.keys(FRAME_MS)){
   const end=tf==='1m'?close:Math.floor((close-1)/FRAME_MS[tf])*FRAME_MS[tf];
