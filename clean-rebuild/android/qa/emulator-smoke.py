@@ -59,24 +59,11 @@ for preferred_width,preferred_height,target_dp,tag in [
     tap_label(root,'UNIVERSE')
     root=dump(tag+'-universe')
     t=' '.join(texts(root))
-    for phrase in ['UNIVERSE','Eligible Universe:', 'Actively Tracked:']:
-        assert phrase in t, ('UNIVERSE_SUMMARY_MISSING',phrase,t)
-    # Accessibility includes only on-screen nodes. Scroll the V2-style
-    # vertical page to expose the horizontally scrolling table headings.
-    visible=t
-    for attempt in range(5):
-        if 'Symbol' in visible and 'Last Price' in visible:
-            break
-        adb('shell','input','swipe',str(width//2),str(height*3//4),
-            str(width//2),str(height//4),'420')
-        time.sleep(.5)
-        table_root=dump(tag+'-table-'+str(attempt))
-        visible=' '.join(texts(table_root))
-    # HorizontalScrollView children may not surface in UIAutomator accessibility
-    # even with valid render. Preserve actual screenshots for manual visual QA.
+    # New V2-style compact UNIVERSE: no wide/scrolling technical table,
+    # no IDR and no status/volume columns, and NO invented feed candidates.
+    assert 'UNIVERSE' in t and 'DATA TIDAK TERSEDIA' in t and 'DIPINDAI' in t, ('UNIVERSE_SUMMARY_MISSING',t)
+    assert 'Quote Volume' not in t and 'ELIGIBLE' not in t and 'Last Price' not in t, ('OLD_TABLE_REAPPEARED',t)
     assert (OUT/(tag+'-universe.png')).stat().st_size>1000, 'NO_UNIVERSE_SCREENSHOT'
-    if 'Symbol' not in visible or 'Last Price' not in visible:
-        print('TABLE_HEADERS_NOT_ACCESSIBLE: visual screenshot review still required',tag)
     assert 'PLAYUSDT' not in t and 'FOGOUSDT' not in t, ('FABRICATED_MARKET_DATA',t)
     tap_label(root,'HOME')
     root=dump(tag+'-returned-home')
