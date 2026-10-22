@@ -43,8 +43,20 @@ for width,height,tag in [(1080,2400,'360dp'),(1236,2748,'412dp')]:
     tap_label(root,'UNIVERSE')
     root=dump(tag+'-universe')
     t=' '.join(texts(root))
-    for phrase in ['UNIVERSE','Eligible Universe:', 'Actively Tracked:', 'Symbol','Last Price']:
-        assert phrase in t, ('UNIVERSE_TABLE_MISSING',phrase,t)
+    for phrase in ['UNIVERSE','Eligible Universe:', 'Actively Tracked:']:
+        assert phrase in t, ('UNIVERSE_SUMMARY_MISSING',phrase,t)
+    # Accessibility includes only on-screen nodes. Scroll the V2-style
+    # vertical page to expose the horizontally scrolling table headings.
+    visible=t
+    for attempt in range(5):
+        if 'Symbol' in visible and 'Last Price' in visible:
+            break
+        adb('shell','input','swipe',str(width//2),str(height*3//4),
+            str(width//2),str(height//4),'420')
+        time.sleep(.5)
+        table_root=dump(tag+'-table-'+str(attempt))
+        visible=' '.join(texts(table_root))
+    assert 'Symbol' in visible and 'Last Price' in visible, ('UNIVERSE_TABLE_MISSING',visible)
     assert 'PLAYUSDT' not in t and 'FOGOUSDT' not in t, ('FABRICATED_MARKET_DATA',t)
     tap_label(root,'HOME')
     root=dump(tag+'-returned-home')
