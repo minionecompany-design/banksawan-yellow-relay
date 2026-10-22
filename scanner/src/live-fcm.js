@@ -40,7 +40,7 @@ export class YellowFcm {
   async send(record){
     if(!this.enabled)return {sent:false,reason:'FCM_DISABLED'};
     this.attempted++;
-    if(!((record.signal==='LONG_A'&&eligibleEvent(record)&&['5m','15m','1h'].includes(record.timeframe))||eligibleOneMinuteB(record))||record.id!==`${record.symbol}:${record.timeframe}:${record.barClosedAtMs}:${record.signal}`||!allowed.test(record.symbol||'')||
+    if(!((record.signal==='LONG_A'&&eligibleEvent(record)&&['1m','5m','15m','1h'].includes(record.timeframe))/* LONG B retired */ false)||record.id!==`${record.symbol}:${record.timeframe}:${record.barClosedAtMs}:${record.signal}`||!allowed.test(record.symbol||'')||
        !Number.isFinite(record.expiresAtMs)||record.expiresAtMs<=this.clock())
       return {sent:false,reason:'EVENT_NOT_DELIVERABLE'};
     try{
