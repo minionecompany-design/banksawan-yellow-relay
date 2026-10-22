@@ -17,7 +17,8 @@ export function handler(req,res,now=Date.now){
 }
 export function createOfflineServer(){return http.createServer((req,res)=>handler(req,res));}
 if(process.argv[1]&&import.meta.url===new URL('file://'+process.argv[1]).href){
- if(process.env.YELLOW_LIVE_ENABLED==='true')throw Error('LIVE_BLOCKED_ON_STAGE6');
+ if(process.env.YELLOW_LIVE_ENABLED==='true'||process.env.FCM_SENDING_ENABLED==='true'||
+    process.env.FEED_MODE==='LIVE')throw Error('LIVE_OR_FCM_BLOCKED_ON_STAGE6');
  const port=Number(process.env.PORT||8080);
  const host=process.env.BIND_HOST||'127.0.0.1';
  if(!Number.isInteger(port)||port<1||port>65535)throw Error('INVALID_PORT');
