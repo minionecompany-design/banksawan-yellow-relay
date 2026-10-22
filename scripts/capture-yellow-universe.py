@@ -44,10 +44,14 @@ for width,height,label in [(1080,2400,'360dp'),(1236,2748,'412dp')]:
  text=visible_text()
  assert 'TRACKED' in text or 'ELIGIBLE' in text,'Right status column not visible after horizontal swipe: '+text
  capture(label+'-right')
- # Search operates on local snapshot and retains fixture totals.
- for n in nodes():
-  if n.get('class')=='android.widget.EditText':
-   x1,y1,x2,y2=map(int,re.findall(r'\d+',n.get('bounds')));adb('shell','input','tap',str((x1+x2)//2),str((y1+y2)//2));break
+ # Return to visible search field; UIAutomator only reports on-screen controls.
+ for attempt in range(6):
+  fields=[n for n in nodes() if n.get('class')=='android.widget.EditText']
+  if fields:break
+  adb('shell','input','swipe',str(width//2),'360',str(width//2),str(height-180),'420');time.sleep(.6)
+ assert fields,'UNIVERSE search field missing after scrolling to top'
+ x1,y1,x2,y2=map(int,re.findall(r'\d+',fields[0].get('bounds')))
+ adb('shell','input','tap',str((x1+x2)//2),str((y1+y2)//2))
  adb('shell','input','text','PLAY');adb('shell','input','keyevent','4');time.sleep(1)
  text=' '.join(n.get('text','') for n in nodes());assert '1 hasil' in text,text
  capture(label+'-search')
