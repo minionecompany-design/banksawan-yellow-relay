@@ -1,0 +1,66 @@
+name: YELLOW Clean Firebase QA build (manual, no LIVE)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qa-debug-firebase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Validate separate QA-only Firebase app config
+        working-directory: clean-rebuild/android
+        env:
+          YELLOW_QA_GOOGLE_SERVICES_JSON: ${{ secrets.YELLOW_QA_GOOGLE_SERVICES_JSON }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, sys
+          raw = os.environ.get('YELLOW_QA_GOOGLE_SERVICES_JSON', '')
+          if not raw:
+              sys.exit('MISSING_YELLOW_QA_GOOGLE_SERVICES_JSON_SECRET')
+          try:
+              data = json.loads(raw)
+          except ValueError:
+              sys.exit('INVALID_FIREBASE_QA_CLIENT_JSON')
+          if data.get('project_info', {}).get('project_id') != 'banksawan-yellow-clean':
+              sys.exit('WRONG_FIREBASE_PROJECT_FOR_QA')
+          clients = data.get('client', [])
+          allowed = any(x.get('client_info', {}).get('android_client_info', {}).get('package_name')
+                        == 'id.banksawan.yellow.qa' for x in clients)
+          if not allowed:
+              sys.exit('NO_MATCHING_ID_BANKSAWAN_YELLOW_QA_CLIENT')
+          folder = pathlib.Path('app/src/debug')
+          folder.mkdir(parents=True, exist_ok=True)
+          target = folder / 'google-services.json'
+          target.write_text(raw, encoding='utf-8')
+          target.chmod(0o600)
+          print('QA_FIREBASE_PROJECT_AND_PACKAGE_VALIDATED')
+          PY
+      - name: Compile isolated QA APK and JVM tests
+        working-directory: clean-rebuild/android
+        run: gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
+      - name: Check manifest package isolation
+        working-directory: clean-rebuild/android
+        run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -Fq "name='id.banksawan.yellow.qa'"
+      - name: Remove source Firebase config from workspace
+        if: always()
+        run: rm -f clean-rebuild/android/app/src/debug/google-services.json
+      - name: Upload manual QA-only APK (not release, not LIVE)
+        uses: actions/upload-artifact@v4
+        with:
+          name: YELLOW-CLEAN-FIREBASE-QA-NOT-LIVE
+          path: clean-rebuild/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 5
