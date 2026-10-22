@@ -32,7 +32,7 @@ def tap_label(root,label):
     raise AssertionError('TAB_NOT_FOUND:'+label)
 def measured_pixels():
     image=adb('exec-out','screencap','-p',output=True)
-    assert image.startswith(b'\\x89PNG\\r\\n\\x1a\\n'), 'SCREENSHOT_NOT_PNG'
+    assert image[:8]==bytes.fromhex('89504e470d0a1a0a'), 'SCREENSHOT_NOT_PNG'
     return struct.unpack('>II',image[16:24])
 
 for preferred_width,preferred_height,target_dp,tag in [
