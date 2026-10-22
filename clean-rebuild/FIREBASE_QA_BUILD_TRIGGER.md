@@ -16,3 +16,10 @@ Acceptance criteria:
 
 This trigger is a user-authorized QA build only. The GitHub Actions result
 must be inspected and accepted before suggesting a new phone APK.
+
+## Stage 7 FCM phone opt-in build
+
+This branch-only QA build includes the private long-press Firebase QA panel,
+permission/opt-in, local simulated notification, and strict remote LONG A
+receiver. It must never be treated as LIVE or as a production V2 replacement.
+Explicit manual Firebase consent remains OFF until the user enables it on HP.
