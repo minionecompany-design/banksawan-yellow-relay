@@ -4,8 +4,12 @@ import {longAFromConfirmed,PullbackWindow} from './long-a-v13-gate.js';
  * lookahead differs; no claim of historical-chart parity. */
 export const MODE='CAUSAL_REALTIME';
 const metricsAt=(histories,tf,end)=>{
- const bars=histories?.[tf];
- return end>0&&validatedBars(bars,tf,end)?metrics(bars):null;
+ const all=histories?.[tf];
+ if(!Array.isArray(all)||end<=0)return null;
+ const index=all.findIndex(b=>b?.closedAtMs===end);
+ if(index<111)return null;
+ const prefix=all.slice(0,index+1);
+ return validatedBars(prefix,tf,end)?metrics(prefix):null;
 };
 export function evaluateCausalLongA({timeframe,closedAtMs,histories,mode=MODE}={}){
  if(mode!==MODE)return {ready:false,longA:false,reason:'UNSUPPORTED_PARITY_MODE'};
