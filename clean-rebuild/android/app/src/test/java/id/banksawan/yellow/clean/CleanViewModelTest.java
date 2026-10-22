@@ -46,4 +46,27 @@ public class CleanViewModelTest {
   CleanViewModel.parseUniverse(new JSONObject().put("schemaVersion","yellow-clean-v1")
    .put("dataState","OK").put("coverage",coverage).put("universe",rows));
  }
+ @Test public void reorderedHomeAlwaysBindsCorrectChart() throws Exception {
+  JSONObject root=new JSONObject().put("schemaVersion","yellow-clean-v1").put("dataState","OK").put("count",2);
+  JSONArray events=new JSONArray();
+  for(String s:new String[]{"FOGOUSDT","PLAYUSDT"}){
+   events.put(new JSONObject().put("id",s+":5m:300000:LONG_A").put("symbol",s)
+    .put("timeframe","5m").put("signal","LONG_A").put("barClosedAtMs",300000)
+    .put("tradingViewUrl",CleanViewModel.chartUrl(s)));
+  }
+  root.put("events",events);
+  CleanViewModel.Home home=CleanViewModel.parseHome(root);
+  assertEquals("FOGOUSDT",home.signals.get(0).symbol);
+  assertEquals(CleanViewModel.chartUrl("FOGOUSDT"),home.signals.get(0).chartUrl);
+  assertEquals("PLAYUSDT",home.signals.get(1).symbol);
+  assertEquals(CleanViewModel.chartUrl("PLAYUSDT"),home.signals.get(1).chartUrl);
+ }
+ @Test(expected=IllegalArgumentException.class)public void forgedChartSymbolCannotReachUi() throws Exception {
+  JSONObject bad=new JSONObject().put("schemaVersion","yellow-clean-v1").put("dataState","OK").put("count",1);
+  bad.put("events",new JSONArray().put(new JSONObject()
+   .put("id","PLAYUSDT:1m:60000:LONG_A").put("symbol","PLAYUSDT")
+   .put("signal","LONG_A").put("timeframe","1m").put("barClosedAtMs",60000)
+   .put("tradingViewUrl",CleanViewModel.chartUrl("FOGOUSDT"))));
+  CleanViewModel.parseHome(bad);
+ }
 }
