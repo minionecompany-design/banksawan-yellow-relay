@@ -133,7 +133,8 @@ public class MainActivity extends Activity {
                        !id.equals(symbol+":"+tf+":"+e.optLong("barClosedAtMs",-1)+":LONG_A")) continue;
                     YellowNotifier.claimAndNotify(this,id,symbol,tf,
                       e.optLong("barClosedAtMs",-1),e.optLong("expiresAtMs",0),
-                      e.optDouble("price",0),e.optDouble("binance24hChangePct",0));
+                      e.optDouble("price",0),e.optDouble("binance24hChangePct",0),
+                       e.optDouble("quoteVolume24h",Double.NaN));
                 }
                 // Subtract 1ms to accommodate events with identical server timestamps;
                 // the durable local event-id claim prevents duplicates.
@@ -198,14 +199,47 @@ public class MainActivity extends Activity {
         row.addView(right,new LinearLayout.LayoutParams(0,-2,1.35f));
         parent.addView(row);
     }
+    private static Uri tradingViewSymbolUri(String symbol){
+        // A symbol-specific, public HTTPS page is less vulnerable to the
+        // last-used chart layout than /chart/?symbol= after TradingView updates.
+        // No private/undocumented TradingView app URI scheme is assumed.
+        if(symbol==null||!symbol.matches("[A-Z0-9]{2,25}USDT"))return null;
+        return new Uri.Builder().scheme("https").authority("www.tradingview.com")
+            .appendPath("symbols").appendPath(symbol+".P")
+            .appendQueryParameter("exchange","BINANCE").build();
+    }
     private void tradingView(String symbol,LinearLayout parent){
         Button b=new Button(this);b.setText("BUKA TRADINGVIEW ↗");b.setTextColor(BG);
         b.setBackground(shape(Color.rgb(51,179,229),0));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(48));
         p.setMargins(0,dp(14),0,0);parent.addView(b,p);
-        b.setOnClickListener(v->{if(!symbol.matches("[A-Z0-9]{2,25}USDT"))return;
-            Uri uri=Uri.parse("https://www.tradingview.com/chart/?symbol="+Uri.encode("BINANCE:"+symbol+".P"));
-            Intent intent=new Intent(Intent.ACTION_VIEW,uri);intent.addCategory(Intent.CATEGORY_BROWSABLE);
-            try{startActivity(intent);}catch(Exception ignored){} });
+        b.setOnClickListener(v->{
+            Uri uri=tradingViewSymbolUri(symbol);if(uri==null)return;
+            Intent app=new Intent(Intent.ACTION_VIEW,uri);
+            app.addCategory(Intent.CATEGORY_BROWSABLE);
+            app.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
+            app.setPackage("com.tradingview.tradingviewapp");
+            try{startActivity(app);}
+            catch(Exception unavailable){
+                Intent browser=new Intent(Intent.ACTION_VIEW,uri);
+                browser.addCategory(Intent.CATEGORY_BROWSABLE);
+                try{startActivity(browser);}catch(Exception ignored){}
+            }
+        });
+        // Same UI: holding the existing button explicitly opens a browser
+        // fallback so an app release that ignores a symbol link is diagnosable.
+        b.setOnLongClickListener(v->{
+            Uri uri=tradingViewSymbolUri(symbol);if(uri==null)return true;
+            Intent chrome=new Intent(Intent.ACTION_VIEW,uri);
+            chrome.addCategory(Intent.CATEGORY_BROWSABLE);
+            chrome.setPackage("com.android.chrome");
+            try{startActivity(chrome);}
+            catch(Exception unavailable){
+                Intent browser=new Intent(Intent.ACTION_VIEW,uri);
+                browser.addCategory(Intent.CATEGORY_BROWSABLE);
+                try{startActivity(browser);}catch(Exception ignored){}
+            }
+            return true;
+        });
     }
     private void card(String symbol,JSONObject item,boolean isHome){
         LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(dp(19),dp(19),dp(19),dp(17));
@@ -236,9 +270,11 @@ public class MainActivity extends Activity {
             String symbol = coin.optString("symbol", "");
             double price = coin.optDouble("price", Double.NaN);
             double change = coin.optDouble("binance24hChangePct", Double.NaN);
+            double quoteVolume = coin.optDouble("quoteVolume24h", Double.NaN);
             if (!symbol.matches("[A-Z0-9]{2,25}USDT")
                 || !Double.isFinite(price) || price <= 0 || price >= 10.0
-                || !Double.isFinite(change) || change < 1.0) continue;
+                || !Double.isFinite(change) || change <= 1.0
+                || !Double.isFinite(quoteVolume) || quoteVolume <= 10_000_000.0) continue;
             eligible.add(coin);
         }
         eligible.sort((left, right) -> Double.compare(
@@ -372,9 +408,11 @@ public class MainActivity extends Activity {
             if (!symbol.matches("[A-Z0-9]{2,25}USDT")) continue;
             double price = item.optDouble("price", Double.NaN);
             double pct = item.optDouble("binance24hChangePct", Double.NaN);
+            double quoteVolume = item.optDouble("quoteVolume24h", Double.NaN);
             String tf = item.optString("timeframe", "");
             if (!Double.isFinite(price) || price <= 0 || price >= 10
-                || !Double.isFinite(pct) || pct < 1
+                || !Double.isFinite(pct) || pct <= 1
+                 || !Double.isFinite(quoteVolume) || quoteVolume <= 10_000_000.0
                 || !(tf.equals("1m") || tf.equals("5m") || tf.equals("15m") || tf.equals("1h"))) continue;
             card(symbol, item, true);
             count++;
@@ -408,7 +446,7 @@ public class MainActivity extends Activity {
                     || !statusReply.optBoolean("tickerConnected",false)
                     || !statusReply.optBoolean("klineConnected",false)
                     || guard==null || guard.optBoolean("circuitOpen",true)
-                    || covered<0 || eligible<0 || maximum<1 || maximum>200 || covered>maximum
+                    || covered<0 || eligible<0 || maximum<1 || maximum>50 || covered>maximum
                     || !tickerFresh || !klineFresh){
                     throw new IllegalStateException("YELLOW_MARKET_NOT_READY_OR_STALE");
                 }

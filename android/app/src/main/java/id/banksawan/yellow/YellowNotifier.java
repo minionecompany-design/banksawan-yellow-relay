@@ -62,7 +62,7 @@ public final class YellowNotifier {
     }
 
     public static boolean claimAndNotify(Context context,String id,String symbol,String timeframe,
-             long closedAt,long expiresAt,double price,double change){
+             long closedAt,long expiresAt,double price,double change,double quoteVolume24h){
         long now=System.currentTimeMillis();
         if(id==null||symbol==null||timeframe==null||
             !symbol.matches("[A-Z0-9]{2,25}USDT")||
@@ -70,7 +70,8 @@ public final class YellowNotifier {
             !id.equals(symbol+":"+timeframe+":"+closedAt+":LONG_A")||
             closedAt<=0||closedAt>now||now-closedAt>300_000||expiresAt<=now||
             !Double.isFinite(price)||price<=0||price>=10||
-            !Double.isFinite(change)||change<1)return false;
+            !Double.isFinite(change)||change<=1||
+             !Double.isFinite(quoteVolume24h)||quoteVolume24h<=10_000_000.0)return false;
         if(Build.VERSION.SDK_INT>=33 &&
            context.checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=PackageManager.PERMISSION_GRANTED)
             return false;
