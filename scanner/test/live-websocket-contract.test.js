@@ -37,7 +37,7 @@ test('ticker stream requires USD-M symbol type even in merged markets',async()=>
   const before=market.lastTickerDataAtMs;
   market.tickerWs.emit('message',{data:JSON.stringify([{s:'WALUSDT',c:'0.05',P:'5.5',E:NOW,st:2}])});
   assert.equal(market.universe().length,0);
-  market.tickerWs.emit('message',{data:JSON.stringify([{s:'WALUSDT',c:'0.05',P:'5.5',E:NOW,st:1}])});
+  market.tickerWs.emit('message',{data:JSON.stringify([{s:'WALUSDT',c:'0.05',P:'5.5',q:'20000000',E:NOW,st:1}])});
   assert.equal(market.universe().length,1);assert.equal(market.lastTickerDataAtMs,before);
   market.stop();
 });

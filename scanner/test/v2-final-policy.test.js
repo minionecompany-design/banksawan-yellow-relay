@@ -73,5 +73,5 @@ test('Android old UI and FCM topic retained; quote volume propagates and TV URL 
  assert.ok(notify.includes('quoteVolume24h<=10_000_000.0'));
  assert.ok(fcm.includes('quote_volume_24h'));
  assert.ok(gradle.includes("applicationId 'id.banksawan.yellow'"));
- assert.ok(!main.includes('chart/?symbol='),'old ambiguous chart handler removed'); 
+ assert.ok(!main.includes('Uri.parse("https://www.tradingview.com/chart/?symbol='),'old ambiguous chart handler removed'); 
 });
