@@ -1,6 +1,6 @@
 # Firebase Stage 7 handoff — BANKSAWAN YELLOW Clean (22 Oct 2026)
 
-**FCM STATUS: NOT CONNECTED / NOT SENDING / NO LIVE.**
+**FCM STATUS: Firebase SDK receiver is compiled into QA source, but NOT CONNECTED / NOT REGISTERED / NOT SENDING / NO LIVE.**
 The Firebase plugin or user-accessible Firebase Console is required to create or bind the project. This handoff makes the inputs deterministic; it is NOT proof that a Firebase project exists.
 
 ## Firebase Console: create the dedicated NEW project
@@ -24,10 +24,16 @@ The Firebase plugin or user-accessible Firebase Console is required to create or
 | Disabled-by-default mock FCM dispatcher | `core/src/offline-fcm-dispatch.js` | offline tests |
 | Android strict push parser | `android/app/src/main/java/id/banksawan/yellow/clean/CleanPushContract.java` | JVM tests |
 | Android immutable per-event PendingIntent QA | `android/app/src/main/java/id/banksawan/yellow/clean/QaPendingIntentProbe.java` | emulator tests |
-| Real Firebase SDK/FirebaseMessagingService | not yet added | **BLOCKED: Firebase project config** |
-| Token/FID or recipient registration and consent | not yet added | **BLOCKED** |
+| Firebase Messaging SDK / passive FirebaseMessagingService | `android/app/build.gradle`, `CleanFirebaseMessagingService.java` | implemented, QA consent OFF by default |
+| Android QA consent / persistent event dedup | `CleanFcmConsent.java`, `CleanAlertLedger.java` | passive code exists, **no opt-in user interface or token registration** |
 | Per-device durable fanout | not yet added | **BLOCKED** |
 | Real backend send + delivery on handset | not yet added | **BLOCKED** |
+
+## GitHub/Android SDK integration rules
+- Android Firebase BoM pinned to **34.19.0**, Messaging dependency included. Gradle plugin **4.5.0** is applied conditionally only if `clean-rebuild/android/app/src/debug/google-services.json` exists **locally**. It must match debug applicationId `id.banksawan.yellow.qa`. This config is gitignored; **never commit any Firebase Admin service-account file**.
+- Firebase auto-init and Analytics are DISABLED in AndroidManifest. The SDK receiver discards all pushes until local explicit QA opt-in AND OS notification permission are present. No consent UI or registration/refresh token upload exists yet, so the current CI APK CANNOT receive end-to-end FCM.
+- When enabled in a subsequent milestone, receiver validates data-only `yellow-clean-v1` LONG A payload and binds notification click to a private per-event intent with the exact trading chart URI. Persisted dedup trades strict exactly-once semantics for crash-window safety: a crash after marking an event before showing notification may drop display. Device delivery QA remains mandatory.
+- No Google Analytics, Crashlytics, Firestore, Cloud Functions or other unrelated SDK has been added.
 
 The current mock transport accepts an injected test recipient only; it cannot safely address multiple devices and is intentionally not connected to any Firebase network endpoint.
 
