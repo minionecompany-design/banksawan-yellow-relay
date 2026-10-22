@@ -8,8 +8,8 @@ test('V8 Android foreground notifications poll YELLOW read-only events every 10s
   assert.match(java,/eventsTask=.*?pollLongAEvents\(\).*?10_000/s);
   assert.match(java,/BuildConfig\.ALERTS_ENABLED/);
   assert.match(java,/\/api\/events\?afterMs=/);
-  assert.match(java,/oneB&&tf\.equals\("1m"\)/);
-  assert.match(java,/!oneB&&\(tf\.equals\("5m"\)/);
+  assert.match(java,/boolean oneB=false/);
+  assert.match(java,/!oneB&&\(tf\.equals\("1m"\)/);
   assert.match(java,/YellowNotifier\.claimAndNotify\(this,signal,id,symbol,tf/);
   assert.match(java,/handler\.removeCallbacks\(eventsTask\)/);
 });
@@ -34,7 +34,7 @@ test('V8 build enables foreground sound, but does not contain Firebase credentia
   assert.match(wf,/YELLOW_ALERTS_ENABLED: 'true'/);
   assert.match(wf,/test ! -f android\/app\/google-services\.json/);
   assert.match(wf,/banksawan-yellow-v8-SOUND-PROOF-debug/);
-  assert.match(gradle,/versionCode 10/);
+  assert.match(gradle,/versionCode 11/);
   assert.match(gradle,/allowAlerts && file\('google-services\.json'\)\.exists\(\)/);
   assert.doesNotMatch(wf,/fapi\.binance\.com|BR_FCM|successful-enchantment/);
 });
