@@ -20,9 +20,9 @@ const research=process.env.YELLOW_GOLD_EVIDENCE_ENABLED==='true'
   ?new QualityCaptureBridgeV1({dataDir,log:(...args)=>console.warn(...args)}):null;
 if(research)await research.initialize();
 // Only publications are filtered. Original four-TF candle/state plane remains intact.
-const alertTimeframes=(process.env.YELLOW_ALERT_TIMEFRAMES||'1m,5m,15m,1h')
-  .split(',').map(tf=>tf.trim()).filter(Boolean);
-const market=new YellowLiveMarket({dataDir,maxTracked:Number(process.env.YELLOW_MAX_TRACKED||200),
+// Product decision 22 Oct: all four LONG A lanes publish, irrespective of the old Railway 3-TF variable.
+const alertTimeframes=['1m','5m','15m','1h'];
+const market=new YellowLiveMarket({dataDir,maxTracked:Math.min(50,Number(process.env.YELLOW_MAX_TRACKED||50)),
   alertTimeframes,
   oneMinuteLongBEnabled:false,
   passiveEvidence:research,
