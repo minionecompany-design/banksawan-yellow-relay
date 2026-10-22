@@ -6,9 +6,9 @@ test('chronological raw-close replay produces a positive 1m LONG A gate after pu
  // Warm rising structure, 13 consecutive lower closes -> countDown pullback,
  // followed by renewed momentum while the 30-bar pullback window remains active.
  const closes=[];
- for(let i=0;i<160;i++)closes.push(4+i*.007);
- for(let i=0;i<14;i++)closes.push(closes.at(-1)-.004);
- for(let i=0;i<12;i++)closes.push(closes.at(-1)+.017);
+ for(let i=0;i<160;i++)closes.push(4+i*.002);
+ for(let i=0;i<14;i++)closes.push(closes.at(-1)-.003);
+ for(let i=0;i<11;i++)closes.push(closes.at(-1)+.003);
  const pull=new PullbackWindow();let active=false;
  for(const c of closes)active=pull.update(c);
  const one=metrics(bars(closes));
