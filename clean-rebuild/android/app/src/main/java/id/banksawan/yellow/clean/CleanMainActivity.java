@@ -31,6 +31,7 @@ public final class CleanMainActivity extends Activity {
  private JSONObject universeData;
  private String universeQuery="",sortKey="binance24hChangePct";
  private boolean descending=true;
+ private boolean qaFixtureMode=false;
  private int dp(float value){return Math.round(value*getResources().getDisplayMetrics().density);}
  private GradientDrawable shape(int fill,int stroke){
   GradientDrawable g=new GradientDrawable();g.setColor(fill);g.setCornerRadius(dp(12));
@@ -52,6 +53,29 @@ public final class CleanMainActivity extends Activity {
   root.addView(scroller,new LinearLayout.LayoutParams(-1,0,1));
   bottom=new LinearLayout(this);bottom.setOrientation(LinearLayout.HORIZONTAL);root.addView(bottom);
   setContentView(root);showPage("home");
+  qaFixtureMode=BuildConfig.DEBUG&&getPackageName().equals("id.banksawan.yellow.qa")&&
+   getIntent()!=null&&getIntent().getBooleanExtra("yellow.qa.fixture",false);
+  if(qaFixtureMode)loadQaHomeFixture();
+ }
+ /** Synthetic signals only for explicitly requested isolated debug emulator QA.
+  * Never sourced from markets, never published to FCM or notifications. */
+ private void loadQaHomeFixture(){
+  try{
+   JSONObject source=new JSONObject().put("schemaVersion","yellow-clean-v1").put("dataState","OK").put("count",2);
+   JSONArray list=new JSONArray();
+   boolean reversed=getIntent().getBooleanExtra("yellow.qa.reversed",false);
+   String[] symbols=reversed?new String[]{"FOGOUSDT","PLAYUSDT"}:new String[]{"PLAYUSDT","FOGOUSDT"};
+   for(String symbol:symbols){
+    String tf="PLAYUSDT".equals(symbol)?"1m":"5m";
+    long end="PLAYUSDT".equals(symbol)?60000L:300000L;
+    list.put(new JSONObject().put("id",symbol+":"+tf+":"+end+":LONG_A")
+     .put("symbol",symbol).put("timeframe",tf).put("barClosedAtMs",end)
+     .put("signal","LONG_A").put("tradingViewUrl",CleanViewModel.chartUrl(symbol)));
+   }
+   homeData=CleanViewModel.parseHome(source.put("events",list));
+   status.setText("SIMULASI QA • BUKAN LIVE / BUKAN SINYAL PASAR");
+   showPage("home");
+  }catch(Exception e){throw new IllegalStateException("QA_FIXTURE_INVALID",e);}
  }
  /** An explicit, validated offline fixture can be injected by QA tests only. */
  public void renderContractSnapshots(JSONObject home,JSONObject universe){
@@ -88,16 +112,19 @@ public final class CleanMainActivity extends Activity {
  private void renderHome(){
   page.addView(text("BANKSAWAN YELLOW • GOLD",14,YELLOW,true));
   TextView h=text("LONG A • 1M / 5M / 15M / 1H",17,Color.WHITE,true);h.setPadding(0,dp(12),0,dp(14));page.addView(h);
+  if(qaFixtureMode)page.addView(text("SIMULASI QA — BUKAN SINYAL PASAR",13,YELLOW,true));
   if(homeData!=null&&!homeData.unavailable){
    for(CleanViewModel.Signal signal:homeData.signals){
     LinearLayout item=card(signal.symbol);
     row(item,"Sinyal","LONG A");
     row(item,"Timeframe",signal.timeframe.toUpperCase(Locale.ROOT));
     Button chart=new Button(this);chart.setText("BUKA TRADINGVIEW ↗");
+    chart.setContentDescription("QA_CHART_"+signal.symbol);
     chart.setOnClickListener(v->{
      android.content.Intent intent=new android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse(signal.chartUrl));
      intent.addCategory(android.content.Intent.CATEGORY_BROWSABLE);
-     try{startActivity(intent);}catch(Exception ignored){}
+     if(qaFixtureMode)intent.setClass(this,QaChartCaptureActivity.class);
+     try{startActivity(intent);}catch(Exception e){android.util.Log.e("YELLOW_CHART","CHART_OPEN_FAILED",e);}
     });item.addView(chart);
    }
    if(!homeData.signals.isEmpty())return;
