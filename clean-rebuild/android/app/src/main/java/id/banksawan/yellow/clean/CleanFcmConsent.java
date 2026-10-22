@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Build;
 import android.Manifest;
 import android.content.pm.PackageManager;
+import id.banksawan.yellow.BuildConfig;
 
 /**
  * Conservative FCM QA gate. Defaults to false on every installation;
@@ -15,7 +16,7 @@ public final class CleanFcmConsent {
  private static final String ENABLED="explicit_opt_in";
  private CleanFcmConsent(){}
  public static boolean allowed(Context context){
-  if(context==null||!"id.banksawan.yellow.qa".equals(context.getPackageName()))return false;
+  if(context==null||!BuildConfig.DEBUG||!"id.banksawan.yellow.qa".equals(context.getPackageName()))return false;
   if(Build.VERSION.SDK_INT>=33&&
      context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)
    return false;
@@ -24,7 +25,7 @@ public final class CleanFcmConsent {
  /** Only invoke after an explicit, logged-in QA opt-in and granted OS permission.
   * This saves consent, but does NOT independently activate Firebase registration. */
  public static void recordConsent(Context context,boolean enabled){
-  if(context==null||!"id.banksawan.yellow.qa".equals(context.getPackageName()))
+  if(context==null||!BuildConfig.DEBUG||!"id.banksawan.yellow.qa".equals(context.getPackageName()))
    throw new SecurityException("QA_ONLY");
   if(enabled&&Build.VERSION.SDK_INT>=33&&
      context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)
