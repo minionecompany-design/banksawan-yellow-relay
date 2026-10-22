@@ -1,6 +1,11 @@
 name: YELLOW Clean Firebase QA build (manual, no LIVE)
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - rebuild/yellow-clean-v1-stage0-20261022
+    paths:
+      - clean-rebuild/FIREBASE_QA_BUILD_TRIGGER.md
 permissions:
   contents: read
 jobs:
