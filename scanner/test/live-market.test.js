@@ -29,10 +29,10 @@ test('live mode rejects merged COIN-M ticker data (st=2), accepts USD-M st=1 onl
 });
 test('UNIVERSE includes all eligible but reports only covered subset',async()=>{
  const market=new YellowLiveMarket(await config());
- for(const [symbol,pct] of [['WALUSDT',3],['ARCUSDT',5],['NILUSDT',0],['SKDDUSDT',20]]){
+ for(const [symbol,pct] of [['WALUSDT',3],['ARCUSDT',5],['NILUSDT',0.99],['SKDDUSDT',20]]){
   market.exchangeSymbols.set(symbol,exchange(symbol));
   market.recordTicker({symbol,source:'BINANCE_USDM_FUTURES',status:'TRADING',contractType:'PERPETUAL',
-   quoteVolume:20_000_000,priceChangePercent:pct,lastPrice:symbol==='SKDDUSDT'?30:.05,observedAtMs:END});
+   quoteVolume:20_000_000,priceChangePercent:pct,lastPrice:symbol==='SKDDUSDT'?10:.05,observedAtMs:END});
  }
  market.covered.set('WALUSDT',{book:null});
  const list=market.universe();
@@ -52,7 +52,7 @@ test('GET API read-only, simulation=false, health liveness independent of readin
  try{
   const url=`http://127.0.0.1:${server.address().port}`;
   const h=await fetch(url+'/health/live');assert.equal(h.status,200);
-  assert.equal((await fetch(url+'/api/universe')).status,503);
+  assert.equal((await (await fetch(url+'/api/universe')).json()).dataState,'DATA_UNAVAILABLE');
   market.tickerConnected=true;market.klineConnected=true;
   const universe=await (await fetch(url+'/api/universe')).json();
   assert.equal(universe.simulation,false);assert.equal(universe.coverage.maxTracked,200);

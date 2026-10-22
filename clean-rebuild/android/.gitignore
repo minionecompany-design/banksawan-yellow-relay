@@ -1,0 +1,11 @@
+# Firebase app-specific configuration must be provided outside PR / CI.
+# It contains client identifiers (not Admin secrets), still keep isolated.
+app/google-services.json
+app/src/*/google-services.json
+**/service-account*.json
+**/firebase-admin*.json
+**/*.keystore
+**/*.jks
+local.properties
+.gradle/
+**/build/

@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "yellow-universe-v1",
+  "productPolicy": {
+    "version": "yellow-10m-plus1-v2",
+    "maxPriceExclusive": 10,
+    "minChangeInclusive": 1,
+    "minQuoteVolumeExclusive": 10000000
+  },
+  "simulation": false,
+  "mode": "LIVE_SHADOW",
+  "generatedAtMs": 1792612800000,
+  "lastTickerDataAtMs": 1792612800000,
+  "dataState": "OK",
+  "reason": null,
+  "diagnostics": {
+    "missing": 0,
+    "invalid": 0,
+    "stale": 0
+  },
+  "universe": [
+    {
+      "symbol": "PLAYUSDT",
+      "price": 0.12452,
+      "binance24hChangePct": 12.45,
+      "quoteVolume24h": 42150000,
+      "source": "BINANCE_USDM_FUTURES",
+      "contractType": "PERPETUAL",
+      "status": "TRADING",
+      "quoteAsset": "USDT",
+      "marginAsset": "USDT",
+      "tickerObservedAtMs": 1792612800000,
+      "stale": false,
+      "tracked": true
+    },
+    {
+      "symbol": "FOGOUSDT",
+      "price": 0.03784,
+      "binance24hChangePct": 8.23,
+      "quoteVolume24h": 18760000,
+      "source": "BINANCE_USDM_FUTURES",
+      "contractType": "PERPETUAL",
+      "status": "TRADING",
+      "quoteAsset": "USDT",
+      "marginAsset": "USDT",
+      "tickerObservedAtMs": 1792612800000,
+      "stale": false,
+      "tracked": true
+    },
+    {
+      "symbol": "ARCUSDT",
+      "price": 0.06129,
+      "binance24hChangePct": 3.18,
+      "quoteVolume24h": 10350000,
+      "source": "BINANCE_USDM_FUTURES",
+      "contractType": "PERPETUAL",
+      "status": "TRADING",
+      "quoteAsset": "USDT",
+      "marginAsset": "USDT",
+      "tickerObservedAtMs": 1792612800000,
+      "stale": false,
+      "tracked": false
+    },
+    {
+      "symbol": "WALUSDT",
+      "price": 0.20231,
+      "binance24hChangePct": 1.0,
+      "quoteVolume24h": 12000001,
+      "source": "BINANCE_USDM_FUTURES",
+      "contractType": "PERPETUAL",
+      "status": "TRADING",
+      "quoteAsset": "USDT",
+      "marginAsset": "USDT",
+      "tickerObservedAtMs": 1792612800000,
+      "stale": false,
+      "tracked": false
+    }
+  ],
+  "coverage": {
+    "eligible": 4,
+    "covered": 2,
+    "maxTracked": 50,
+    "trackedEligible": 2
+  }
+}

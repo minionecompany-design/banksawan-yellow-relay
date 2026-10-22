@@ -9,11 +9,11 @@
  * All histories must be strictly contiguous and sufficiently warmed up.
  * This implementation is NOT yet TradingView-parity-certified.
  */
-import {productEligible} from './product-policy.js';
+import {productEligible,PRODUCT_POLICY} from './product-policy.js';
 export const SETTINGS = Object.freeze({
-  minBinance24hChangePct: 0,
+  minBinance24hChangePct: PRODUCT_POLICY.minChangeInclusive,
   highPriorityChangePct: 5,
-  maxPriceExclusive: 30,
+  maxPriceExclusive: PRODUCT_POLICY.maxPriceExclusive,
   minVolumeRatio: 0.75,
   maxDistanceFromMa7Pct: 2.5,
   entryWindow1mBars: 30,
@@ -121,7 +121,7 @@ export function stepLongA(symbol, data, state = newSymbolState()) {
   if (ticker24h.observedAtMs > latest.endMs + 5_000 ||
       latest.endMs - ticker24h.observedAtMs > SETTINGS.maxTickerAgeMs)
     return {event:null, reason:'STALE_BINANCE_TICKER',state};
-  const eligible = pct > SETTINGS.minBinance24hChangePct &&
+  const eligible = pct >= SETTINGS.minBinance24hChangePct &&
     lastPrice < SETTINGS.maxPriceExclusive;
   const one = metrics(oneMinute), five = metrics(fiveMinute);
   const fifteen = metrics(fifteenMinute), hour = metrics(oneHour);

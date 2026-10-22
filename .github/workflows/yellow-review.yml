@@ -11,6 +11,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -22,6 +24,8 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -34,7 +38,7 @@ jobs:
         with:
           gradle-version: '8.10.2'
       - name: Compile only; no Firebase credentials, no release or installation
-        run: gradle -p android :app:assembleDebug --no-daemon --stacktrace
+        run: gradle -p android :app:testDebugUnitTest :app:assembleDebug --no-daemon --stacktrace
       - name: Refuse release without permanent signing configuration
         shell: bash
         run: |

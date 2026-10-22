@@ -26,8 +26,8 @@ public final class YellowNotifier {
         if(Build.VERSION.SDK_INT>=26){
             NotificationManager manager=(NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
             if(manager!=null){
-                NotificationChannel c=new NotificationChannel(CHANNEL,"YELLOW LONG A (live)",NotificationManager.IMPORTANCE_HIGH);
-                c.setDescription("Research alerts for closed 1M/5M/15M/1H LONG A candles");
+                NotificationChannel c=new NotificationChannel(CHANNEL,"YELLOW LONG A / LONG B (live)",NotificationManager.IMPORTANCE_HIGH);
+                c.setDescription("LONG A 5M/15M/1H and selected LONG B 1M (first A silent)");
                 c.setSound(defaultSound(),soundAttributes());
                 manager.createNotificationChannel(c);
                 NotificationChannel selfTest=new NotificationChannel(TEST_CHANNEL,
@@ -61,16 +61,32 @@ public final class YellowNotifier {
         return true;
     }
 
+    /** Existing callers retain the LONG A-only signature. */
     public static boolean claimAndNotify(Context context,String id,String symbol,String timeframe,
              long closedAt,long expiresAt,double price,double change,double quoteVolume24h){
+        return claimAndNotify(context,"LONG_A",id,symbol,timeframe,closedAt,expiresAt,
+            price,change,quoteVolume24h,0,0,Double.NaN,Double.NaN);
+    }
+    /** Both foreground and FCM validate B's pinned FIRST A origin independently. */
+    public static boolean claimAndNotify(Context context,String signal,String id,String symbol,String timeframe,
+             long closedAt,long expiresAt,double price,double change,double quoteVolume24h,
+             long firstAAt,long protectAt,double firstAPrice,double firstAChangePct){
         long now=System.currentTimeMillis();
-        if(id==null||symbol==null||timeframe==null||
+        boolean regularA="LONG_A".equals(signal)&&
+            ("5m".equals(timeframe)||"15m".equals(timeframe)||"1h".equals(timeframe));
+        boolean oneB="LONG_B".equals(signal)&&"1m".equals(timeframe)&&
+            firstAAt>0&&firstAAt%60000==0&&protectAt>firstAAt&&protectAt%60000==0&&
+            closedAt>protectAt&&closedAt<=firstAAt+120*60000L&&
+            closedAt-protectAt<=90*60000L&&
+            Double.isFinite(firstAPrice)&&firstAPrice>0&&firstAPrice<10&&
+            Double.isFinite(firstAChangePct)&&firstAChangePct>=1;
+        if(id==null||symbol==null||timeframe==null||!(regularA||oneB)||
             !symbol.matches("[A-Z0-9]{2,25}USDT")||
-            !(timeframe.equals("5m")||timeframe.equals("15m")||timeframe.equals("1h"))||
-            !id.equals(symbol+":"+timeframe+":"+closedAt+":LONG_A")||
+            !id.equals(symbol+":"+timeframe+":"+closedAt+":"+signal)||
             closedAt<=0||closedAt>now||now-closedAt>300_000||expiresAt<=now||
-            !Double.isFinite(price)||price<=0||price>=30||
-            !Double.isFinite(change)||change<=0||!Double.isFinite(quoteVolume24h)||quoteVolume24h<=10_000_000)return false;
+            !Double.isFinite(price)||price<=0||(regularA&&price>=10)||
+            !Double.isFinite(change)||(regularA&&change<1)||
+            !Double.isFinite(quoteVolume24h)||quoteVolume24h<=10_000_000)return false;
         if(Build.VERSION.SDK_INT>=33 &&
            context.checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=PackageManager.PERMISSION_GRANTED)
             return false;
@@ -90,7 +106,7 @@ public final class YellowNotifier {
         Notification.Builder builder=Build.VERSION.SDK_INT>=26?
             new Notification.Builder(context,CHANNEL):new Notification.Builder(context);
         builder.setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("BANKSAWAN YELLOW • LONG A "+symbol)
+            .setContentTitle("BANKSAWAN YELLOW • "+signal+" "+symbol)
             .setContentText(timeframe.toUpperCase(Locale.ROOT)+" • "+String.format(Locale.US,"%.6f USDT • Binance 24H %+.2f%%",price,change))
             .setAutoCancel(true);
         if(Build.VERSION.SDK_INT<26)builder.setDefaults(Notification.DEFAULT_SOUND);

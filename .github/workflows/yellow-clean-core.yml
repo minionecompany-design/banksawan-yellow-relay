@@ -1,0 +1,19 @@
+name: YELLOW clean rebuild core (offline only)
+on:
+  pull_request:
+    paths:
+      - 'clean-rebuild/**'
+      - '.github/workflows/yellow-clean-core.yml'
+permissions:
+  contents: read
+jobs:
+  isolated-core-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test clean core without secrets, Firebase or market connections
+        working-directory: clean-rebuild/core
+        run: npm test

@@ -1,49 +1,37 @@
-# YELLOW v0.11 product filter correction
+# BANKSAWAN YELLOW v0.12 — restore +1% UP and strict >10M 24h quote volume
 
-Scope: BANKSAWAN YELLOW (`id.banksawan.yellow`), not LAB or BR.
+Scope **BANKSAWAN YELLOW GOLD only**, never LAB, BR or ONE. Follow-up to PR #14 where rolling 24h quote volume >10M was added but a different universe policy (>0% / <30 USDT) was accidentally introduced.
 
-The user confirmed the screenshot policy: active Binance USDT perpetuals,
-price strictly below 30 USDT, rolling 24h price change strictly above zero,
-and rolling 24h quote turnover strictly above 10,000,000 USDT.
-Quote turnover is Binance REST `quoteVolume` / all-market ticker WS `q`,
-not base asset volume and not the candle-volume ratio used by Pine.
+## Shared YELLOW product eligibility (backend = scanner = HOME = FCM = Android)
 
-The same filter controls universe admission, live event acceptance, persistent
-HOME records, polling, FCM dispatch and the updated Android display/receiver.
-Live event volume is taken from the most recent ticker at or before the signal
-candle close. Missing/invalid volume fails closed; no historical volume is
-invented. Existing HOME records without volume proof are hidden at the API,
-while the original journal and dedupe records remain intact.
+- Official active USD-M USDT-settled **PERPETUAL** contract identity, status TRADING.
+- Last price: **0 < price < 10 USDT** (10.000 exactly is NOT eligible).
+- Official rolling 24h percent change: **P >= +1.00%** (1.00 is eligible; 0.99 is NOT). This is NOT a 1h candle change, a 1m momentum candle, or a daily quota.
+- Official rolling 24h **USDT quote turnover**: **q > 10,000,000 USDT** (10,000,000 exactly is NOT eligible). Read from REST `/fapi/v1/ticker/24hr.quoteVolume` and Binance USD-M WS ticker `q`, never base volume `v`, synthetic candle volume or Coinalyze.
+- Invalid, stale or missing volume evidence must fail closed for both universe and signal delivery.
+- Binance product restriction/permissions must be independently satisfied before activating any market-data calls; this PR is source-only and does not change egress location or runtime.
 
-The Pine state machine still advances independently; product filtering does
-not fabricate replacement LONG A events. Existing ten-hour per-event HOME TTL
-and five-minute notification TTL remain unchanged. Production publication
-remains `YELLOW_ALERT_TIMEFRAMES=5m,15m,1h`; the Android notifier also refuses 1m.
-No new Binance requests or sockets are added. The existing 50-symbol live cap
-is unchanged and must not be described as full-universe scanning.
+`scanner/src/product-policy.js` is the common server gate. `scanner/src/long-a.js` derives its `SETTINGS` from that central policy and both Pine-like LONG A lane evaluators use the same inclusive >=+1 threshold. `scanner/src/live-market.js` checks actual **as-of** q again when accepting a LONG A event; volume is persisted in HOME and passed to polling, FCM, and Android. Android independently filters the same fields; release app and server must be updated in a coordinated release.
 
-## Validation
+Existing 10-hour per-event HOME TTL, 5-minute notification TTL, no false historical volume backfill, stored dedupe/cursors, request budget, and TradingView routing remain unchanged. **1M notifications remain disabled in main YELLOW**: only 5M, 15M, 1H are published. LAB alone owns the 1M research focus.
 
-- 180 Node tests, including strict threshold boundaries, REST/WS quote turnover,
-  missing volume replacing old data, as-of snapshots, ledger persistence,
-  legacy HOME suppression and FCM rejection before networking.
-- 11 existing Python release/signing tests.
-- PR CI must compile Android and run the existing signing safety checks.
-- Release versionCode 7 / versionName 0.11.0-volume-filter.
+**Universe cardinality != concurrently scanned symbol count**: the YELLOW deployment still has an independent max-tracked capacity, which must be displayed honestly; meeting eligibility does not prove the symbol was scanned.
 
-## Coordinated release
+## Code and APK versioning
 
-1. Review PR CI including Android compilation.
-2. Run the existing main-branch `build-yellow-v9-fcm.yml` controller with the exact
-   reviewed source SHA. It uses the original protected permanent signing key.
-   Do not distribute the disposable-key PR CI APK.
-3. Verify package, versionCode 7, FCM enabled and the same certificate as v0.10.
-4. Deploy the reviewed backend commit to the existing Singapore YELLOW service.
-   Preserve the volume and publication-timeframe variables. Check deployment
-   SUCCESS plus fresh /api/status, productPolicy and volume-filtered universe.
-5. Install the signed update over the existing APK. The old v0.10 client still
-   has <10 / >=1% display checks, so it can omit new valid <30 / >0% candidates.
-   An updated client against an old server fails closed because volume is absent.
+- Source branch: `fix/yellow-gold-1pct-volume10m-20261022`, based on existing PR #14 merged YELLOW production branch `yellow-long-a-v2-20261015`.
+- Android package remains `id.banksawan.yellow`.
+- **New versionCode 8 / versionName 0.12.0-plus1-volume10m**, higher than the previously built v0.11 (versionCode 7); this allows an Android upgrade once signed with the same protected permanent certificate.
+- New PR validation workflow builds an **offline, unsigned-release-incompatible debug smoke APK** without access tokens, a live URL or FCM enabled. DO NOT install that debug artifact over the existing signed YELLOW app.
+- The proper deliverable is the main branch's existing **manual, protected** `.github/workflows/build-yellow-v9-fcm.yml`: dispatch with the exact fully reviewed 40-character source SHA; the workflow checks permanent signer certificate, API_BASE_URL, FCM flags, package ID, release mode, APK signature and receipt. No secrets or keystore ever published.
+- **Signed v0.12 APK has NOT been produced by this branch alone** until the protected workflow run succeeds; CI debug is not the new installed app.
 
-TradingView's reported PLAY -> FOGO mobile-link issue is separate and is not
-claimed resolved by this filter release.
+## Release gate, not automatic deployment
+
+1. Run PR scanner/Android tests. Verify inclusive threshold 1.00%, reject 0.99%, strict q 10M and price exactly 10.00. Confirm FCM/HOME notifications for 1M remain blocked.
+2. Review proposed change and secure signing controller run, then verify new APK certificate matches installed APK (versionCode 8).
+3. Only after explicit go/no-go with applicable market-data permissions, perform a **separately approved** LAB/BR-isolated YELLOW backend deploy to the existing Railway Singapore service. Preserve persistent volume and guard, FCM settings and last-good rollback; do not force external provider calls just to test a restricted endpoint.
+4. Verify actual read-only YELLOW /api/status PRODUCT_POLICY version, candidate count, filter as-of q, 5M/15M/1H output and frontend before distributing/installing signed APK.
+5. Never claim historical zero-volume HOME events satisfy the new policy. Never claim this filter fixes separate TradingView mobile PLAY→FOGO external app behavior.
+
+**Present source status**: implementation in review PR, not production-deployed. LIVE cannot be marked ready simply because offline tests and APK compilation succeed.

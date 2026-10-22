@@ -1,0 +1,40 @@
+plugins { id 'com.android.application' }
+// Only the QA debug package may load a locally-provided Firebase configuration.
+// CI and production release must never require or inherit QA Firebase keys.
+if (file('src/debug/google-services.json').exists()) {
+ apply plugin: 'com.google.gms.google-services'
+}
+android {
+ namespace 'id.banksawan.yellow'
+ compileSdk 35
+ defaultConfig {
+  applicationId 'id.banksawan.yellow'
+  minSdk 26
+  targetSdk 35
+  versionCode 12
+  versionName 'clean-0.1-offline'
+  buildConfigField 'boolean','CLEAN_OFFLINE','true'
+ }
+ buildTypes {
+  debug { applicationIdSuffix '.qa'; versionNameSuffix '-qa' }
+ }
+ buildFeatures { buildConfig true }
+ sourceSets {
+  // UI/icon reference assets; temporary direct source reference while
+  // clean rebuild assets are being independently copied and certified.
+  main.res.srcDirs += ['../../../android/app/src/main/res']
+ }
+ compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies {
+ implementation platform('com.google.firebase:firebase-bom:34.19.0')
+ implementation 'com.google.firebase:firebase-messaging'
+ implementation 'org.json:json:20240303'
+ testImplementation 'junit:junit:4.13.2'
+ testImplementation 'org.json:json:20240303'
+}
+gradle.taskGraph.whenReady { graph ->
+ if(graph.allTasks.any { it.name.toLowerCase().contains('release') }) {
+  throw new GradleException('CLEAN_REBUILD_RELEASE_HOLD: no signer, no LIVE approval, offline QA only')
+ }
+}
