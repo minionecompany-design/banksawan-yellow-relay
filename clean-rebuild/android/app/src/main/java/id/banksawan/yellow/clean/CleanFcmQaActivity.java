@@ -144,7 +144,7 @@ public final class CleanFcmQaActivity extends Activity {
   data.put("simulatedLocal","true");
   try{
    CleanViewModel.Signal event=CleanPushContract.parse(data);
-   if(CleanAlertLedger.reserve(this,event,System.currentTimeMillis())){
+   if(CleanAlertLedger.reserveLocal(this,event,System.currentTimeMillis())){
     CleanFirebaseMessagingService.showLongA(this,event,data);
     status.setText("Notifikasi SIMULASI QA PLAY dibuat di Android; bukan FCM dari server.");
    }else status.setText("Notifikasi simulasi untuk candle yang sama sudah ditangani.");
