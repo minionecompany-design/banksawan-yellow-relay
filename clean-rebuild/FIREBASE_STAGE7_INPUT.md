@@ -76,3 +76,40 @@ The downloaded `google-services.json` is a **client configuration**, NOT Firebas
 The isolated GitHub workflow `.github/workflows/yellow-clean-firebase-qa.yml` contains strict package/project checks and produces a debug-only artifact; it does **not** enable FCM opt-in, upload registration tokens, or send any push. It uses `workflow_dispatch`. GitHub normally requires a dispatchable workflow to be registered on the repository's default branch; if the workflow is not yet selectable while only in the PR branch, **do not merge PR #18 into production to work around that**. Review and approve a safe staging activation method separately.
 
 **Next milestone after signed-off QA build:** implement explicit opt-in and Android permission UI without changing the user-locked HOME/UNIVERSE visual layouts, perform device registration with a user-authorized backend, and test one real data-only FCM message with exact event ID/TradingView URL. A Firebase project being enabled is not proof of device notification delivery.
+
+## Stage 7 next: phone QA consent panel (source added; acceptance pending)
+
+The **locked** HOME and UNIVERSE visuals remain unchanged. In a NEWLY
+BUILT Firebase QA debug APK (`id.banksawan.yellow.qa`), long-press the
+`OFFLINE QA` status banner to open a **separate, nonexported FCM QA panel**:
+
+1. Choose **AKTIFKAN FCM QA (IZIN NOTIFIKASI)**. On Android 13+, grant
+   notification permission in the system dialog. Neither auto-enrollment nor
+   token generation happens before explicit consent.
+2. The device may contact Firebase to acquire an FCM registration token.
+   The panel confirms presence without showing its value. The user can
+   explicitly choose **SALIN TOKEN PERANGKAT (PRIVAT)**, but must **never
+   paste that token into chats/screenshots/issues/logs**. There is no
+   automatic backend upload or real FCM sender yet.
+3. Choose **UJI NOTIFIKASI LOKAL • PLAY (SIMULASI)** to test Android
+   notification permission, per-event identity and private chart-click
+   handler **without sending anything through Firebase or Binance**.
+   This is not a real market candidate, and the notification states
+   `TES LOKAL • BUKAN SINYAL PASAR`. Test event IDs are stored in a
+   separate simulator ledger and cannot suppress real LONG_A event IDs.
+4. Choose **NONAKTIFKAN FCM QA / CABUT IZIN APLIKASI** to revoke local
+   consent, turn off FCM auto-init, and request token deletion. Local gating
+   stops notifications immediately; successful provider-side token deletion
+   must be verified later. Android's OS notification permission may need
+   separate revocation in app settings.
+5. **No real FCM** has been sent, no recipient subscription backend exists,
+   and no transport/token database has been created. For genuine remote
+   tests the sender must be a secured Google IAM/Firebase Admin process
+   with per-device consent, an allowed message destination and rate limits.
+   Firebase Console's notification-composer test may send a notification
+   payload (not the strict data-only LONG A contract), so cannot by itself
+   prove end-to-end LONG A delivery.
+
+No default-on FCM behavior is permitted; do not reuse YELLOW V2 Firebase
+project or signing secrets. If a build's Firebase app configuration is
+missing, the panel visibly says so and prevents enrollment.
