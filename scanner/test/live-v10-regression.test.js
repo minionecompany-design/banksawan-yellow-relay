@@ -45,7 +45,7 @@ test('more than 20 independent events persist; non-LONG A never enters HOME',asy
 });
 test('legacy HOME without quote-volume proof stays hidden, without inventing proof',async()=>{
  const filename=path.join(await dir(),'home.json');
- await writeFile(filename,JSON.stringify({version:1,home:[{...event('5m',BASE),firstSeenMs:BASE,homeExpiresMs:BASE+H}],events:[],claimed:[]}));
+ await writeFile(filename,JSON.stringify({version:1,home:[{...event('5m',BASE),quoteVolume24h:undefined,firstSeenMs:BASE,homeExpiresMs:BASE+H}],events:[],claimed:[]}));
  const l=new LiveHomeLedger({filename,clock:()=>BASE+1000});await l.restore();
  assert.equal(l.home().length,0,'volume-less historic event must not be revived');
 });
