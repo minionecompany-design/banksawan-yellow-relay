@@ -168,7 +168,7 @@ public class MainActivity extends Activity {
         header.setGravity(Gravity.CENTER_VERTICAL);header.setPadding(0,dp(3),0,dp(14));
         header.addView(text("BANKSAWAN YELLOW",24,YELLOW,true));
         root.addView(header);
-        status=text("MENUNGGU DATA",13,GREEN,true);status.setGravity(Gravity.CENTER);
+        status=text("MENUNGGU DATA",13,YELLOW,true);status.setGravity(Gravity.CENTER);
         status.setPadding(dp(8),dp(12),dp(8),dp(12));status.setBackground(shape(CARD,LINE));root.addView(status);
         scroll=new ScrollView(this);scroll.setFillViewport(true);
         list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);list.setPadding(0,dp(14),0,dp(14));scroll.addView(list);
@@ -497,27 +497,32 @@ public class MainActivity extends Activity {
                 int newCovered=coverage.getInt("covered");
                 int newEligible=coverage.getInt("eligible");
                 verifyUniverseSnapshot(newUniverse,newCovered,newEligible,coverage.optInt("maxTracked",-1));
-                runOnUiThread(()->{
-                    home=newHome;universe=newUniverse;
-                    lastCovered=newCovered;lastEligible=newEligible;
-                    lastRefreshMs=System.currentTimeMillis();
-                    connectionHealthy=true;backendIncompatible=false;
-                    status.setText("LIVE SHADOW • "+newCovered+"/"+newEligible+" DIPINDAI");
-                    render();
-                });
+                runOnUiThread(()->applyLiveSnapshot(newHome,newUniverse,newCovered,newEligible));
             }catch(Exception err){
-                runOnUiThread(()->{
-                    // Clear all last-known prices and signals. Never display stale data as LIVE.
-                    connectionHealthy=false;
-                    backendIncompatible="YELLOW_BACKEND_INCOMPATIBLE".equals(err.getMessage());
-                    home=new JSONArray();universe=new JSONArray();
-                    lastCovered=0;lastEligible=0;lastRefreshMs=0;
-                    if(backendIncompatible)status.setText("DATA BACKEND BELUM SESUAI • TANPA DATA LIVE");
-                    else status.setText("SERVER / FEED TIDAK SIAP • TANPA DATA LIVE");
-                    render();
-                });
+                runOnUiThread(()->applyRefreshFailure(err));
             }finally{refreshInFlight=false;}
         });
+    }
+    // UI-thread publication shared by the refresh path and offline Activity tests.
+    void applyLiveSnapshot(JSONArray newHome,JSONArray newUniverse,int newCovered,int newEligible) {
+        home=newHome;universe=newUniverse;
+        lastCovered=newCovered;lastEligible=newEligible;
+        lastRefreshMs=System.currentTimeMillis();
+        connectionHealthy=true;backendIncompatible=false;
+        status.setTextColor(GREEN);
+        status.setText("LIVE SHADOW • "+newCovered+"/"+newEligible+" DIPINDAI");
+        render();
+    }
+    void applyRefreshFailure(Exception err) {
+        // Clear all last-known prices and signals. Never display stale data as LIVE.
+        connectionHealthy=false;
+        backendIncompatible="YELLOW_BACKEND_INCOMPATIBLE".equals(err.getMessage());
+        home=new JSONArray();universe=new JSONArray();
+        lastCovered=0;lastEligible=0;lastRefreshMs=0;
+        status.setTextColor(YELLOW);
+        if(backendIncompatible)status.setText("DATA BACKEND BELUM SESUAI • TANPA DATA LIVE");
+        else status.setText("SERVER / FEED TIDAK SIAP • TANPA DATA LIVE");
+        render();
     }
     private void verifyLive(JSONObject response)throws Exception {
         if(response.optBoolean("simulation",true)
