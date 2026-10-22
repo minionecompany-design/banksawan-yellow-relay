@@ -15,7 +15,7 @@ function fixture() {
     fifteenMinute:candles(120,15*MIN,previous(END,15*MIN)),
     oneHour:candles(120,60*MIN,previous(END,60*MIN)),
     ticker24h:{symbol:'TESTUSDT',lastPrice:'1.1',priceChangePercent:'2.3',
-      contractType:'PERPETUAL',source:'BINANCE_USDM_FUTURES',observedAtMs:END},
+      contractType:'PERPETUAL',source:'BINANCE_USDM_FUTURES',quoteVolume24h:20_000_000,observedAtMs:END},
     nowMs:END+1};
 }
 test('incomplete data fails closed',()=>{
@@ -42,6 +42,8 @@ test('filter is exactly Binance 24h +1% and price <10',()=>{
   const f=fixture();f.ticker24h.priceChangePercent='0.99';
   assert.equal(stepLongA('TESTUSDT',f).diagnostics.eligible,false);
   f.ticker24h.priceChangePercent='1.00';
+  assert.equal(stepLongA('TESTUSDT',f).diagnostics.eligible,false);
+  f.ticker24h.priceChangePercent='1.01';
   assert.equal(stepLongA('TESTUSDT',f).diagnostics.eligible,true);
   f.ticker24h.lastPrice='10.000';
   assert.equal(stepLongA('TESTUSDT',f).diagnostics.eligible,false);
@@ -78,8 +80,8 @@ test('HOME is independent 24h per symbol, no extension by duplicates',()=>{
 });
 test('universe requires Binance USD-M eligible status, price<10 and +1%',()=>{
   const a=eligibleUniverse([
-    {symbol:'WALUSDT',contractType:'PERPETUAL',status:'TRADING',lastPrice:'0.05',priceChangePercent:'5.5'},
-    {symbol:'QUSDT',contractType:'PERPETUAL',status:'TRADING',lastPrice:'0.02',priceChangePercent:'1'},
+    {symbol:'WALUSDT',contractType:'PERPETUAL',status:'TRADING',lastPrice:'0.05',priceChangePercent:'5.5',quoteVolume24h:20_000_000},
+    {symbol:'QUSDT',contractType:'PERPETUAL',status:'TRADING',lastPrice:'0.02',priceChangePercent:'1.01',quoteVolume24h:20_000_000},
     {symbol:'SKDDUSDT',contractType:'PERPETUAL',status:'TRADING',lastPrice:'11.8',priceChangePercent:'25'},
     {symbol:'ABCUSDT',contractType:'PERPETUAL',status:'TRADING',lastPrice:'0.2',priceChangePercent:'0.9'},
     {symbol:'ZZZUSDT',contractType:'CURRENT_QUARTER',status:'TRADING',lastPrice:'0.2',priceChangePercent:'6'}

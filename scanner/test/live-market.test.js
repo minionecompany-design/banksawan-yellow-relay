@@ -21,9 +21,9 @@ test('live mode rejects merged COIN-M ticker data (st=2), accepts USD-M st=1 onl
  market.connectWebsockets();
  const ws=market.tickerWs;
  ws.emit('open');
- ws.emit('message',{data:JSON.stringify([{s:'WALUSDT',c:'0.05',P:'10',E:END,st:2}])});
+ ws.emit('message',{data:JSON.stringify([{s:'WALUSDT',c:'0.05',P:'10',q:'30000000',E:END,st:2}])});
  assert.equal(market.universe().length,0);
- ws.emit('message',{data:JSON.stringify([{s:'WALUSDT',c:'0.05',P:'5.5',E:END,st:1}])});
+ ws.emit('message',{data:JSON.stringify([{s:'WALUSDT',c:'0.05',P:'5.5',q:'30000000',E:END,st:1}])});
  assert.equal(market.universe().length,1);
  market.stop();
 });
@@ -32,7 +32,7 @@ test('UNIVERSE includes all eligible but reports only covered subset',async()=>{
  for(const [symbol,pct] of [['WALUSDT',3],['ARCUSDT',5],['NILUSDT',.99],['SKDDUSDT',20]]){
   market.exchangeSymbols.set(symbol,exchange(symbol));
   market.recordTicker({symbol,source:'BINANCE_USDM_FUTURES',status:'TRADING',contractType:'PERPETUAL',
-   priceChangePercent:pct,lastPrice:symbol==='SKDDUSDT'?11:.05,observedAtMs:END});
+   priceChangePercent:pct,lastPrice:symbol==='SKDDUSDT'?11:.05,quoteVolume24h:20_000_000,observedAtMs:END});
  }
  market.covered.set('WALUSDT',{book:null});
  const list=market.universe();
@@ -55,7 +55,7 @@ test('GET API read-only, simulation=false, health liveness independent of readin
   assert.equal((await fetch(url+'/api/universe')).status,503);
   market.tickerConnected=true;market.klineConnected=true;
   const universe=await (await fetch(url+'/api/universe')).json();
-  assert.equal(universe.simulation,false);assert.equal(universe.coverage.maxTracked,200);
+  assert.equal(universe.simulation,false);assert.equal(universe.coverage.maxTracked,50);
   const post=await fetch(url+'/api/universe',{method:'POST'});assert.equal(post.status,405);
   market.halt('TEST_HALT');const stop=await fetch(url+'/health');assert.equal(stop.status,503);
   const alive=await fetch(url+'/health/live');assert.equal(alive.status,200);

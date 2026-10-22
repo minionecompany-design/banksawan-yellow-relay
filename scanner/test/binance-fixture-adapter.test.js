@@ -6,7 +6,7 @@ const END=Date.UTC(2026,9,15,12);
 const span={oneMinute:60_000,fiveMinute:300_000,fifteenMinute:900_000,oneHour:3_600_000};
 function kline(endMs,step=60_000){const start=endMs-step;return [start,'1','1.1','0.9','1.02','100',endMs-1,'105',15,'40','42','0'];}
 const exchange={symbol:'TESTUSDT',quoteAsset:'USDT',contractType:'PERPETUAL',status:'TRADING'};
-const rawTicker={symbol:'TESTUSDT',lastPrice:'1.02',priceChangePercent:'1.8'};
+const rawTicker={symbol:'TESTUSDT',lastPrice:'1.02',priceChangePercent:'1.8',quoteVolume:'20000000'};
 test('Binance USD-M kline closeTime +1 maps precisely to completed candle end',()=>{
   const out=normalizeBinanceKlines([kline(END-60_000),kline(END)],'1m',{asOfMs:END});
   assert.deepEqual(out.map(x=>x.endMs),[END-60_000,END]);

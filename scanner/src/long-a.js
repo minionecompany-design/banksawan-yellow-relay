@@ -111,6 +111,7 @@ export function stepLongA(symbol, data, state = newSymbolState()) {
   }
   const pct = Number(ticker24h?.priceChangePercent);
   const lastPrice = Number(ticker24h?.lastPrice);
+  const quoteVolume24h=ticker24h?.quoteVolume24h;
   // An adapter must join Binance USD-M exchangeInfo with the 24h ticker;
   // the public 24hr endpoint itself does not prove contract type.
   if (ticker24h?.symbol !== symbol || ticker24h?.contractType !== 'PERPETUAL' ||
@@ -122,7 +123,8 @@ export function stepLongA(symbol, data, state = newSymbolState()) {
       latest.endMs - ticker24h.observedAtMs > SETTINGS.maxTickerAgeMs)
     return {event:null, reason:'STALE_BINANCE_TICKER',state};
   const eligible = pct > SETTINGS.minBinance24hChangePct &&
-    lastPrice < SETTINGS.maxPriceExclusive;
+    lastPrice < SETTINGS.maxPriceExclusive && finite(quoteVolume24h) &&
+    quoteVolume24h>SETTINGS.minQuoteVolume24h;
   const one = metrics(oneMinute), five = metrics(fiveMinute);
   const fifteen = metrics(fifteenMinute), hour = metrics(oneHour);
   const c = oneMinute.map(x=>x.close);
@@ -175,7 +177,7 @@ export function stepLongA(symbol, data, state = newSymbolState()) {
     reason: signal ? null : (!eligible?'BINANCE_24H_FILTER':'NO_CONFIRMED_SIGNAL'),
     event:signal ? {id:`${symbol}:${latest.endMs}:${signal}`,symbol,signal,
       barClosedAtMs:latest.endMs,price:one.close,
-      binance24hChangePct:pct,
+      binance24hChangePct:pct,quoteVolume24h,
       priority:pct>=SETTINGS.highPriorityChangePct?'HIGH':'STANDARD',
       source:'BINANCE_USDM_24H+LOCAL_CLOSED_CANDLE_EVALUATOR',
       status:'RESEARCH_ONLY'}:null,

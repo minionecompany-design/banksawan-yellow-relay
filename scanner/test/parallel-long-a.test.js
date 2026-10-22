@@ -12,7 +12,7 @@ function fixture(target='15m',pct='2.4'){
  const input={oneMinute:seq(150,PERIODS['1m'],strong),fiveMinute:seq(150,PERIODS['5m'],strong),
  fifteenMinute:seq(150,PERIODS['15m'],strong),oneHour:seq(150,PERIODS['1h'],strong),
  ticker24h:{symbol:'TESTUSDT',source:'BINANCE_USDM_FUTURES',contractType:'PERPETUAL',status:'TRADING',
- lastPrice:'1.1',priceChangePercent:pct,observedAtMs:END},nowMs:END+1};
+ lastPrice:'1.1',priceChangePercent:pct,quoteVolume24h:20_000_000,observedAtMs:END},nowMs:END+1};
  input[keyByTf[target]]=seq(150,PERIODS[target],target==='5m'?fiveOscillating:oscillating);
  const states=newParallelState();states[target].lastPullbackBar=20;states[target].index=20;
  return {input,states};
