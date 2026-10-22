@@ -14,7 +14,7 @@ android {
  sourceSets {
   // UI/icon reference assets; temporary direct source reference while
   // clean rebuild assets are being independently copied and certified.
-  main.res.srcDirs += ['../../../../android/app/src/main/res']
+  main.res.srcDirs += ['../../../android/app/src/main/res']
  }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
