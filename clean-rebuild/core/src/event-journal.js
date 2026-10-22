@@ -1,4 +1,5 @@
-import {mkdir,readFile,writeFile,rename,open} from 'node:fs/promises';
+import {mkdir,readFile,rename,open,unlink} from 'node:fs/promises';
+import {randomUUID} from 'node:crypto';
 import path from 'node:path';
 /** Offline durable event journal. No credentials/network. Fail closed on corrupt journal.
  * Atomic replace + fsync file and directory, serial writes via promise chain.
@@ -31,13 +32,19 @@ export class EventJournal {
   const data=JSON.stringify({version:1,events:next});
   if(Buffer.byteLength(data)>8*1024*1024)throw Error('JOURNAL_SIZE_LIMIT');
   const dir=path.dirname(this.filename);await mkdir(dir,{recursive:true});
-  const tmp=this.filename+'.'+process.pid+'.tmp';
+  // Unique atomic replacement prevents stale process-ID temp files from
+  // blocking acceptance after crash/reboot. Never overwrite a prior temp.
+  const tmp=this.filename+'.'+randomUUID()+'.tmp';
   try{
    const h=await open(tmp,'wx',0o600);
    try{await h.writeFile(data);await h.sync();}finally{await h.close();}
    await rename(tmp,this.filename);
    const d=await open(dir,'r');try{await d.sync();}finally{await d.close();}
-  }catch(e){throw e;}
+  }finally{
+   // A failed write must not poison all future accepts or leak temp files.
+   // The durable original journal remains authoritative until rename.
+   await unlink(tmp).catch(e=>{if(e.code!=='ENOENT')throw e;});
+  }
   this.events=next;this.ids.add(event.id);return true;
  }
  list(){return structuredClone(this.events);}
