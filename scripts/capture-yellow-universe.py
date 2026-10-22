@@ -38,7 +38,7 @@ for width,height,label in [(1080,2400,'360dp'),(1236,2748,'412dp')]:
  # Swipe across a visible table row. UIAutomator may omit container nodes.
  matches=[n for n in nodes() if n.get('text','')=='PLAYUSDT']
  assert matches,'Expected first fixture row is inaccessible'
- x1,y1,x2,y2=map(int,re.findall(r'\\d+',matches[0].get('bounds')))
+ x1,y1,x2,y2=map(int,re.findall(r'\d+',matches[0].get('bounds')))
  y=(y1+y2)//2
  adb('shell','input','swipe',str(width-35),str(y),'35',str(y),'550');time.sleep(1)
  text=visible_text()
