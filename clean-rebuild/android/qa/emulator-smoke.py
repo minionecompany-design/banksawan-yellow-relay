@@ -32,7 +32,7 @@ def tap_label(root,label):
     raise AssertionError('TAB_NOT_FOUND:'+label)
 for width,height,tag in [(1080,2400,'360dp'),(1236,2748,'412dp')]:
     adb('shell','wm','size',f'{width}x{height}')
-    adb('shell','wm','density','420' if width==1080 else '440')
+    adb('shell','wm','density','480')
     adb('shell','am','force-stop',PACKAGE)
     adb('shell','am','start','-n',PACKAGE+'/.clean.CleanMainActivity')
     time.sleep(2)
