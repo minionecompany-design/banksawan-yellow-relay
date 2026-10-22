@@ -28,4 +28,6 @@ test('v0.15 keeps package and TradingView shortcut, and upgrades version code',a
  assert.match(main,/BUKA TRADINGVIEW/);
  assert.match(main,/Uri\.encode\("BINANCE:"\+symbol\+"\.P"\)/);
  assert.match(main,/tradingView\(symbol,box\)/);
+ assert.match(main,/boolean regularA = "LONG_A"\.equals\(signal\)&&\(tf\.equals\("1m"\)/,'HOME must show LONG A 1m');
+ assert.match(main,/tf\.equals\("1m"\)\|\|tf\.equals\("5m"\)/,'foreground polling must accept LONG A 1m');
 });
