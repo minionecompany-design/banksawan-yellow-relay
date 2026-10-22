@@ -52,3 +52,27 @@ Open `clean-rebuild/RAILWAY_STAGE6_INPUT.md`. First deploy ONLY the `NO_FEED` of
 https://firebase.google.com/docs/cloud-messaging/android/get-started
 and Admin FCM send
 https://firebase.google.com/docs/cloud-messaging/send/admin-sdk
+
+## Cloud Messaging V1 screenshot acceptance (22 October 2026)
+
+The owner's Firebase Console confirms:
+- Firebase project `banksawan-yellow-clean` exists on Spark plan.
+- Android app `id.banksawan.yellow.qa` has been registered.
+- **Firebase Cloud Messaging API (V1): Enabled**.
+- **Cloud Messaging API (Legacy): Disabled**. Legacy need not be enabled.
+- **Web Push certificates:** irrelevant for this Android-only APK; do not generate.
+- Do NOT open Manage Service Accounts or download Admin service-account JSON merely to build the Android QA APK.
+
+## Controlled local Firebase client config — next gate
+
+The downloaded `google-services.json` is a **client configuration**, NOT Firebase Admin credentials. To keep it out of source control, use a repository Actions secret. In the owner-authorized private GitHub repo, open **Settings → Secrets and variables → Actions → New repository secret**:
+- Name: `YELLOW_QA_GOOGLE_SERVICES_JSON`
+- Value: full contents of the previously downloaded `google-services.json` from the **QA Android app**.
+- Do not paste the JSON into chat, commits, issues or PR comments.
+- Source path for local Android Studio builds, if used instead:
+  `clean-rebuild/android/app/src/debug/google-services.json` (ignored by git).
+- The JSON must include Firebase `project_id: banksawan-yellow-clean` and Android client `id.banksawan.yellow.qa` or the QA workflow fails closed.
+
+The isolated GitHub workflow `.github/workflows/yellow-clean-firebase-qa.yml` contains strict package/project checks and produces a debug-only artifact; it does **not** enable FCM opt-in, upload registration tokens, or send any push. It uses `workflow_dispatch`. GitHub normally requires a dispatchable workflow to be registered on the repository's default branch; if the workflow is not yet selectable while only in the PR branch, **do not merge PR #18 into production to work around that**. Review and approve a safe staging activation method separately.
+
+**Next milestone after signed-off QA build:** implement explicit opt-in and Android permission UI without changing the user-locked HOME/UNIVERSE visual layouts, perform device registration with a user-authorized backend, and test one real data-only FCM message with exact event ID/TradingView URL. A Firebase project being enabled is not proof of device notification delivery.
