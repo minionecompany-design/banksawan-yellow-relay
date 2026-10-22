@@ -69,8 +69,24 @@ for width,height,tag in [(1080,2400,'360dp'),(1236,2748,'412dp')]:
     tap_label(root,'UJI SHORTCUT PLAY / FOGO (SIMULASI)')
     qa_root=dump(tag+'-optin-simulated-cards')
     qa=' '.join(texts(qa_root))
-    assert 'SIMULASI QA' in qa and 'PLAYUSDT' in qa and 'FOGOUSDT' in qa, ('QA_CARD_OPTIN_FAIL',qa)
-    tap_label(qa_root,'TUTUP KARTU SIMULASI')
+    assert 'SIMULASI QA' in qa, ('QA_LABEL_MISSING',qa)
+    # A UIAutomator dump exposes only visible nodes. Inspect across several
+    # vertical positions and require both distinct real simulated cards.
+    seen=qa
+    for attempt in range(6):
+        if 'PLAYUSDT' in seen and 'FOGOUSDT' in seen:
+            break
+        adb('shell','input','swipe',str(width//2),str(height*3//4),
+            str(width//2),str(height//4),'350')
+        time.sleep(.45)
+        seen+=' '+' '.join(texts(dump(tag+'-qa-scrolled-'+str(attempt))))
+    assert 'PLAYUSDT' in seen and 'FOGOUSDT' in seen, ('QA_CARD_OPTIN_FAIL',seen)
+    # Scroll back to the top so the opt-in OFF switch is definitely visible.
+    for _ in range(5):
+        adb('shell','input','swipe',str(width//2),str(height//4),
+            str(width//2),str(height*3//4),'240')
+    close_root=dump(tag+'-qa-close-visible')
+    tap_label(close_root,'TUTUP KARTU SIMULASI')
     back=dump(tag+'-after-closing-simulation')
     assert 'PLAYUSDT' not in ' '.join(texts(back)), 'QA_SIMULATION_LEAKS_TO_HOME'
 
