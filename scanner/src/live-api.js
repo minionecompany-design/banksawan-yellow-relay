@@ -13,9 +13,14 @@ export function createLiveApi(market){return http.createServer((req,res)=>{
     (market.lastTickerDataAtMs && market.clock()-market.lastTickerDataAtMs>=30000))
     return response(res,503,{error:'MARKET_NOT_READY_FAIL_CLOSED'});
   if(url.pathname==='/api/home')return response(res,200,{home:market.home(),simulation:false,mode:'LIVE_SHADOW'});
-  if(url.pathname==='/api/universe')return response(res,200,{universe:market.universe(),simulation:false,mode:'LIVE_SHADOW',
-    generatedAtMs:market.clock(),lastTickerDataAtMs:market.lastTickerDataAtMs,
-    coverage:{covered:market.covered.size,eligible:market.universe().length,maxTracked:market.maxTracked}});
+  if(url.pathname==='/api/universe'){
+    const universe=market.universe();
+    const covered=universe.filter(item=>item.coverage==='SCANNING').length;
+    return response(res,200,{universe,simulation:false,mode:'LIVE_SHADOW',
+      generatedAtMs:market.clock(),lastTickerDataAtMs:market.lastTickerDataAtMs,
+      coverage:{covered,eligible:universe.length,maxTracked:market.maxTracked,
+        allocatedScanSlots:market.covered.size}});
+  }
   if(url.pathname==='/api/events'){
     const afterMs=Number(url.searchParams.get('afterMs')||0);
     if(!Number.isSafeInteger(afterMs)||afterMs<0)return response(res,400,{error:'BAD_CURSOR'});

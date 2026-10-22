@@ -418,11 +418,17 @@ export class YellowLiveMarket {
   }
   home(){return this.ledger.home();}
   events(afterMs){return this.ledger.eventsSince(afterMs);}
-  status(){const eligible=this.universe();return {
+  status(){const eligible=this.universe();
+    // Raw retained subscriptions can include briefly ineligible symbols during
+    // the 15-minute churn grace; never claim those still count toward eligible
+    // UNIVERSE coverage shown in Android.
+    const coveredEligible=eligible.filter(x=>x.coverage==='SCANNING').length;
+    return {
     ok:this.isRunning&&!this.isHalted,mode:this.isHalted?'STOPPED':this.isRunning?'LIVE_SHADOW':'STARTING',
     exchange:'BINANCE_USDM_PERPETUAL',tickerConnected:this.tickerConnected,
-    klineConnected:this.klineConnected,eligible:eligible.length,covered:this.covered.size,
-    bootstrapInProgress:this.inProgress.size,coverageRatio:eligible.length?this.covered.size/eligible.length:0,
+    klineConnected:this.klineConnected,eligible:eligible.length,covered:coveredEligible,
+    allocatedScanSlots:this.covered.size,
+    bootstrapInProgress:this.inProgress.size,coverageRatio:eligible.length?coveredEligible/eligible.length:0,
     feedGeneration:this.feedGeneration,wsRecovering:this.wsRecovering,wsRecoveryAttempts:this.wsRecoveryAttempts,
     maxTracked:this.maxTracked,cooldownSymbols:[...this.retryAfter.values()].filter(t=>t>this.clock()).length,eventsEmitted:this.eventsEmitted,lastClosedCandleMs:this.lastClosedCandleMs,
     coverageComplete:eligible.every(x=>this.covered.has(x.symbol)),
