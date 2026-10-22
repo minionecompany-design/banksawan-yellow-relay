@@ -52,7 +52,11 @@ def run_sequence(reversed_order):
             button=find_button(tree,symbol)
             if button:
                 break
-            adb("shell","input","swipe","520","1750","520","450","350")
+            size=adb("shell","wm","size")
+            dims=re.search(r"(?:Override|Physical) size: (\\d+)x(\\d+)",size)
+            assert dims, ("UNKNOWN_EMULATOR_SIZE",size)
+            width,height=int(dims.group(1)),int(dims.group(2))
+            adb("shell","input","swipe",str(width//2),str(int(height*.78)),str(width//2),str(int(height*.28)),"350")
             time.sleep(.4)
         assert button, ("QA_CHART_BUTTON_NOT_VISIBLE",symbol)
         adb("shell","input","tap",str(button[0]),str(button[1]))
