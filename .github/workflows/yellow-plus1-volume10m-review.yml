@@ -94,6 +94,7 @@ jobs:
           disable-animations: true
           script: python3 scripts/capture-yellow-universe.py
       - name: Upload real emulator screenshots and UI hierarchy
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: yellow-v014-offline-ui-proof
