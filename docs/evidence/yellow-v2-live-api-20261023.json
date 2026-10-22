@@ -1,0 +1,460 @@
+{
+  "status": {
+    "ok": true,
+    "mode": "LIVE_SHADOW",
+    "exchange": "BINANCE_USDM_PERPETUAL",
+    "tickerConnected": true,
+    "klineConnected": true,
+    "eligible": 17,
+    "covered": 17,
+    "allocatedScanSlots": 18,
+    "bootstrapInProgress": 0,
+    "coverageRatio": 1,
+    "feedGeneration": 0,
+    "wsRecovering": false,
+    "wsRecoveryAttempts": 0,
+    "maxTracked": 50,
+    "cooldownSymbols": 0,
+    "eventsEmitted": 0,
+    "lastClosedCandleMs": 1792689840000,
+    "coverageComplete": true,
+    "uncoveredEligible": 0,
+    "laneRecovery": [
+      {
+        "symbol": "MAGMAUSDT",
+        "resumed": [
+          "1m",
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": []
+      },
+      {
+        "symbol": "AGTUSDT",
+        "resumed": [
+          "1m",
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": []
+      },
+      {
+        "symbol": "BMTUSDT",
+        "resumed": [
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": [
+          "1m"
+        ]
+      },
+      {
+        "symbol": "BTWUSDT",
+        "resumed": [
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": [
+          "1m"
+        ]
+      },
+      {
+        "symbol": "PTBUSDT",
+        "resumed": [
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": [
+          "1m"
+        ]
+      },
+      {
+        "symbol": "IRYSUSDT",
+        "resumed": [
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": [
+          "1m"
+        ]
+      },
+      {
+        "symbol": "JCTUSDT",
+        "resumed": [
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": [
+          "1m"
+        ]
+      },
+      {
+        "symbol": "AKEUSDT",
+        "resumed": [
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": [
+          "1m"
+        ]
+      },
+      {
+        "symbol": "BILLUSDT",
+        "resumed": [
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": [
+          "1m"
+        ]
+      },
+      {
+        "symbol": "GTCUSDT",
+        "resumed": [
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": [
+          "1m"
+        ]
+      },
+      {
+        "symbol": "ARIAUSDT",
+        "resumed": [
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": [
+          "1m"
+        ]
+      },
+      {
+        "symbol": "MEWUSDT",
+        "resumed": [
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": [
+          "1m"
+        ]
+      },
+      {
+        "symbol": "PHAUSDT",
+        "resumed": [
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": [
+          "1m"
+        ]
+      },
+      {
+        "symbol": "LITUSDT",
+        "resumed": [
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": [
+          "1m"
+        ]
+      },
+      {
+        "symbol": "ARKMUSDT",
+        "resumed": [
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": [
+          "1m"
+        ]
+      },
+      {
+        "symbol": "DOODUSDT",
+        "resumed": [
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": [
+          "1m"
+        ]
+      },
+      {
+        "symbol": "IOTXUSDT",
+        "resumed": [
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": [
+          "1m"
+        ]
+      },
+      {
+        "symbol": "ZEREBROUSDT",
+        "resumed": [
+          "5m",
+          "15m",
+          "1h"
+        ],
+        "cold": [
+          "1m"
+        ]
+      }
+    ],
+    "requestGuard": {
+      "calls": 76,
+      "weight": 189,
+      "statusCounts": {
+        "200": 76
+      },
+      "circuitOpen": false,
+      "circuitReason": null,
+      "remotePaused": false,
+      "remotePauseUntilMs": 1792689850567,
+      "remoteLastObservedWeight": 16,
+      "remotePauses": 1
+    },
+    "fcm": {
+      "enabled": true,
+      "attempted": 0,
+      "sent": 0,
+      "failed": 0
+    },
+    "researchEvidence": {
+      "enabled": true,
+      "initialized": true,
+      "accepted": 0,
+      "updated": 0,
+      "persisted": 0,
+      "rejected": 0,
+      "storageFailures": 0,
+      "lastFault": null,
+      "pendingRecords": 176
+    },
+    "haltReason": "",
+    "lastTickerDataAtMs": 1792689879486,
+    "lastKlineDataAtMs": 1792689879613,
+    "lastFaults": [
+      {
+        "at": 1792689760568,
+        "reason": "BOOTSTRAP_REST_DEFERRED_ZEREBROUSDT"
+      }
+    ]
+  },
+  "universe": {
+    "universe": [
+      {
+        "symbol": "MAGMAUSDT",
+        "price": 0.50015,
+        "binance24hChangePct": 53.031,
+        "quoteVolume24h": 436622344.49892,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1792689879205,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "AGTUSDT",
+        "price": 0.06573,
+        "binance24hChangePct": 20.692,
+        "quoteVolume24h": 105700901.137361,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1792689879255,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "BMTUSDT",
+        "price": 0.02696,
+        "binance24hChangePct": 20.357,
+        "quoteVolume24h": 66056208.01125,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1792689878705,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "BTWUSDT",
+        "price": 1.8056,
+        "binance24hChangePct": 19.174,
+        "quoteVolume24h": 155766791.51539,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1792689879129,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "PTBUSDT",
+        "price": 0.0006142,
+        "binance24hChangePct": 17.889,
+        "quoteVolume24h": 26427972.4702497,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1792689879301,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "IRYSUSDT",
+        "price": 0.02168,
+        "binance24hChangePct": 12.682,
+        "quoteVolume24h": 322120799.70376,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1792689879401,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "AKEUSDT",
+        "price": 0.029282,
+        "binance24hChangePct": 11.44,
+        "quoteVolume24h": 155173823.363472,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1792689879175,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "JCTUSDT",
+        "price": 0.004596,
+        "binance24hChangePct": 10.881,
+        "quoteVolume24h": 188321854.298174,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1792689878665,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "BILLUSDT",
+        "price": 0.006659,
+        "binance24hChangePct": 10.799,
+        "quoteVolume24h": 66552752.113418,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1792689878247,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "GTCUSDT",
+        "price": 0.2893,
+        "binance24hChangePct": 8.053,
+        "quoteVolume24h": 77400446.676031,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1792689879029,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "ARIAUSDT",
+        "price": 0.05981,
+        "binance24hChangePct": 5.578,
+        "quoteVolume24h": 18823440.51769,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1792689878489,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "MEWUSDT",
+        "price": 0.00048,
+        "binance24hChangePct": 4.598,
+        "quoteVolume24h": 13198704.3205173,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1792689878874,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "PHAUSDT",
+        "price": 0.06239,
+        "binance24hChangePct": 3.672,
+        "quoteVolume24h": 73534253.17687,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1792689879119,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "LITUSDT",
+        "price": 3.5802,
+        "binance24hChangePct": 3.304,
+        "quoteVolume24h": 193473684.1874,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1792689878287,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "IOTXUSDT",
+        "price": 0.004301,
+        "binance24hChangePct": 2.649,
+        "quoteVolume24h": 24715776.286716,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1792689879266,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "ARKMUSDT",
+        "price": 0.1325,
+        "binance24hChangePct": 2.08,
+        "quoteVolume24h": 24977272.191,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1792689862742,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "ZEREBROUSDT",
+        "price": 0.028621,
+        "binance24hChangePct": 1.688,
+        "quoteVolume24h": 13837944.496759,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1792689878875,
+        "stale": false,
+        "coverage": "SCANNING"
+      }
+    ],
+    "simulation": false,
+    "mode": "LIVE_SHADOW",
+    "generatedAtMs": 1792689879621,
+    "lastTickerDataAtMs": 1792689879486,
+    "coverage": {
+      "covered": 17,
+      "eligible": 17,
+      "maxTracked": 50,
+      "allocatedScanSlots": 18
+    }
+  },
+  "home": {
+    "home": [],
+    "simulation": false,
+    "mode": "LIVE_SHADOW"
+  },
+  "events": {
+    "events": [],
+    "simulation": false,
+    "mode": "LIVE_SHADOW"
+  },
+  "health": {
+    "ok": true,
+    "mode": "LIVE_SHADOW",
+    "circuitOpen": false
+  },
+  "capturedAtMs": 1792689879800
+}

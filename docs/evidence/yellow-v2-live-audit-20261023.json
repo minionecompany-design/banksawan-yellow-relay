@@ -1,0 +1,18 @@
+{
+  "scope": "OFFLINE_V2_API_CONTRACT_ONLY",
+  "passed": true,
+  "capturedAtMs": 1792689879800,
+  "covered": 17,
+  "eligible": 17,
+  "expectedCoveredWhenSteady": 17,
+  "failures": [],
+  "notVerified": [
+    "DEPLOYED_COMMIT_IDENTITY",
+    "CEX_MEMBERSHIP_PARITY",
+    "FOUR_TF_PUBLICATION_BEHAVIOR",
+    "FOUR_TF_DEVICE_FCM_RECEIPT",
+    "TRADINGVIEW_APP_BEHAVIOR",
+    "APK_SIGNER_AND_UPDATE_IN_PLACE",
+    "CREDENTIAL_SECURITY"
+  ]
+}
