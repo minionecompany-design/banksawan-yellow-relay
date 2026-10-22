@@ -10,6 +10,9 @@ android {
   versionName 'clean-0.1-offline'
   buildConfigField 'boolean','CLEAN_OFFLINE','true'
  }
+ buildTypes {
+  debug { applicationIdSuffix '.qa'; versionNameSuffix '-qa' }
+ }
  buildFeatures { buildConfig true }
  sourceSets {
   // UI/icon reference assets; temporary direct source reference while
