@@ -57,6 +57,19 @@ public final class CleanMainActivity extends Activity {
   qaFixtureMode=BuildConfig.DEBUG&&getPackageName().equals("id.banksawan.yellow.qa")&&
    getIntent()!=null&&getIntent().getBooleanExtra("yellow.qa.fixture",false);
   if(qaFixtureMode)loadQaHomeFixture();
+  // Real Android PendingIntent.send() proof only for explicitly requested QA.
+  if(qaFixtureMode&&getIntent().getBooleanExtra("yellow.qa.pendingIntentProbe",false)){
+   android.app.PendingIntent play=QaPendingIntentProbe.create(this,"PLAYUSDT","1m",60000L);
+   android.app.PendingIntent fogo=QaPendingIntentProbe.create(this,"FOGOUSDT","5m",300000L);
+   String chosen=getIntent().getStringExtra("yellow.qa.target");
+   try{
+    if("PLAYUSDT".equals(chosen))play.send();
+    else if("FOGOUSDT".equals(chosen))fogo.send();
+    else throw new IllegalArgumentException("INVALID_QA_TARGET");
+   }catch(android.app.PendingIntent.CanceledException e){
+    throw new IllegalStateException("QA_PENDING_INTENT_FAILURE",e);
+   }
+  }
  }
  /** Synthetic signals only for explicitly requested isolated debug emulator QA.
   * Never sourced from markets, never published to FCM or notifications. */
