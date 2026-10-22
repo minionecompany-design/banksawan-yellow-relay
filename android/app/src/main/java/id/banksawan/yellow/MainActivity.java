@@ -353,7 +353,7 @@ public class MainActivity extends Activity {
             String tf = item.optString("timeframe", "");
             String signal = item.optString("signal", "");
             boolean oneB = false;
-            boolean regularA = "LONG_A".equals(signal)&&(tf.equals("5m")||tf.equals("15m")||tf.equals("1h"));
+            boolean regularA = "LONG_A".equals(signal)&&(tf.equals("1m")||tf.equals("5m")||tf.equals("15m")||tf.equals("1h"));
             if (!(oneB||regularA))continue;
             if (oneB && !(item.optLong("episodeStartedAtMs",0)>0 &&
                 item.optLong("protectAtMs",0)>item.optLong("episodeStartedAtMs",0) &&
@@ -372,7 +372,7 @@ public class MainActivity extends Activity {
             count++;
         }
         if (count == 0) {
-            list.addView(text("Belum ada LONG A / LONG B yang dapat ditampilkan", 14, MUTED, false));
+            list.addView(text("Belum ada LONG A yang dapat ditampilkan", 14, MUTED, false));
         }
 
     }
