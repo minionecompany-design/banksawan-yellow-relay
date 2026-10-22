@@ -141,9 +141,9 @@ public class MainActivity extends Activity {
                     String symbol=e.optString("symbol","");
                     String tf=e.optString("timeframe","");
                     String id=e.optString("id","");
-                    boolean oneB="LONG_B".equals(signal);
+                    boolean oneB=false;
                     if(!symbol.matches("[A-Z0-9]{2,25}USDT")||
-                       !((oneB&&tf.equals("1m"))||(!oneB&&(tf.equals("5m")||tf.equals("15m")||tf.equals("1h"))))||
+                       !((oneB&&tf.equals("1m"))||(!oneB&&(tf.equals("1m")||tf.equals("5m")||tf.equals("15m")||tf.equals("1h"))))||
                        !id.equals(symbol+":"+tf+":"+e.optLong("barClosedAtMs",-1)+":"+signal))continue;
                     YellowNotifier.claimAndNotify(this,signal,id,symbol,tf,
                       e.optLong("barClosedAtMs",-1),e.optLong("expiresAtMs",0),
@@ -352,7 +352,7 @@ public class MainActivity extends Activity {
             double pct = item.optDouble("binance24hChangePct", Double.NaN);
             String tf = item.optString("timeframe", "");
             String signal = item.optString("signal", "");
-            boolean oneB = "LONG_B".equals(signal)&&tf.equals("1m");
+            boolean oneB = false;
             boolean regularA = "LONG_A".equals(signal)&&(tf.equals("5m")||tf.equals("15m")||tf.equals("1h"));
             if (!(oneB||regularA))continue;
             if (oneB && !(item.optLong("episodeStartedAtMs",0)>0 &&
