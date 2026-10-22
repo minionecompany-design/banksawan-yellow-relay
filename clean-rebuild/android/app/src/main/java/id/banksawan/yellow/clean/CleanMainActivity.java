@@ -25,7 +25,7 @@ import java.util.Locale;
 public final class CleanMainActivity extends Activity {
  private static final int BG=Color.rgb(9,17,28),CARD=Color.rgb(21,32,47),
   LINE=Color.rgb(48,65,85),YELLOW=Color.rgb(248,212,60),
-  GREEN=Color.rgb(41,213,141),MUTED=Color.rgb(162,179,198);
+  GREEN=Color.rgb(41,213,141),BLUE=Color.rgb(52,177,224),MUTED=Color.rgb(162,179,198);
  private LinearLayout page,bottom,header;private TextView status;
  private ScrollView scroller;private String tab="home";
  private CleanViewModel.Home homeData;
@@ -47,6 +47,12 @@ public final class CleanMainActivity extends Activity {
   super.onCreate(state);getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);
   LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);
   root.setBackgroundColor(BG);root.setPadding(dp(16),dp(10),dp(16),dp(8));
+  // Android edge-to-edge: keep both header and bottom tabs clear of system bars.
+  root.setOnApplyWindowInsetsListener((v,insets)->{
+   root.setPadding(dp(16),insets.getSystemWindowInsetTop()+dp(10),
+     dp(16),insets.getSystemWindowInsetBottom()+dp(10));
+   return insets;
+  });
   header=new LinearLayout(this);header.setPadding(0,dp(3),0,dp(14));header.addView(text("BANKSAWAN YELLOW",24,YELLOW,true));root.addView(header);
   status=text("OFFLINE QA • DATA TIDAK TERSEDIA",13,YELLOW,true);
   status.setGravity(Gravity.CENTER);status.setPadding(dp(8),dp(12),dp(8),dp(12));status.setBackground(shape(CARD,LINE));root.addView(status);
@@ -54,7 +60,7 @@ public final class CleanMainActivity extends Activity {
   page=new LinearLayout(this);page.setOrientation(LinearLayout.VERTICAL);page.setPadding(0,dp(14),0,dp(14));scroller.addView(page);
   root.addView(scroller,new LinearLayout.LayoutParams(-1,0,1));
   bottom=new LinearLayout(this);bottom.setOrientation(LinearLayout.HORIZONTAL);root.addView(bottom);
-  setContentView(root);showPage("home");
+  setContentView(root);root.requestApplyInsets();showPage("home");
   qaFixtureMode=BuildConfig.DEBUG&&getPackageName().equals("id.banksawan.yellow.qa")&&
    getIntent()!=null&&getIntent().getBooleanExtra("yellow.qa.fixture",false);
   if(qaFixtureMode)loadQaHomeFixture();
@@ -102,11 +108,12 @@ public final class CleanMainActivity extends Activity {
  private void showPage(String next){
   tab=next;scroller.scrollTo(0,0);page.removeAllViews();bottom.removeAllViews();
   boolean universe="universe".equals(tab);
-  header.setVisibility(universe?android.view.View.GONE:android.view.View.VISIBLE);
+  header.setVisibility(android.view.View.VISIBLE);
   status.setVisibility(android.view.View.VISIBLE);
   for(String label:new String[]{"home","universe"}){
    boolean chosen=tab.equals(label);Button b=new Button(this);
-   b.setText(label.toUpperCase());b.setAllCaps(false);b.setTextSize(14);
+   b.setText(label.toUpperCase(Locale.ROOT));b.setAllCaps(false);b.setTextSize(17);
+   b.setTypeface(null,Typeface.BOLD);
    b.setSingleLine(true);b.setMinWidth(0);b.setMinimumWidth(0);
    b.setPadding(0,0,0,0);
    b.setTextColor(chosen?BG:MUTED);b.setBackground(shape(chosen?YELLOW:CARD,chosen?YELLOW:LINE));
@@ -117,7 +124,7 @@ public final class CleanMainActivity extends Activity {
  }
  private void row(LinearLayout card,String name,String value){
   LinearLayout r=new LinearLayout(this);r.setGravity(Gravity.CENTER_VERTICAL);r.setPadding(0,dp(7),0,dp(7));
-  TextView left=text(name,12,MUTED,false),right=text(value,14,Color.WHITE,true);right.setGravity(Gravity.END);
+  TextView left=text(name,14,MUTED,false),right=text(value,15,Color.WHITE,true);right.setGravity(Gravity.END);
   r.addView(left,new LinearLayout.LayoutParams(0,-2,1.1f));r.addView(right,new LinearLayout.LayoutParams(0,-2,1.35f));card.addView(r);
  }
  private LinearLayout card(String title){
@@ -127,132 +134,124 @@ public final class CleanMainActivity extends Activity {
   page.addView(c,p);c.addView(text(title,22,Color.WHITE,true));return c;
  }
  private void renderHome(){
-  page.addView(text("BANKSAWAN YELLOW • GOLD",14,YELLOW,true));
-  TextView h=text("LONG A • 1M / 5M / 15M / 1H",17,Color.WHITE,true);h.setPadding(0,dp(12),0,dp(14));page.addView(h);
-  if(qaFixtureMode||qaExternalChartTestMode)
-   page.addView(text("SIMULASI QA — BUKAN SINYAL PASAR",13,YELLOW,true));
+  TextView title=text("HOME",24,Color.WHITE,true);
+  title.setPadding(0,dp(10),0,dp(14));page.addView(title);
+  boolean qa=qaFixtureMode||qaExternalChartTestMode;
+  if(qa){
+   TextView warning=text("SIMULASI QA — BUKAN SINYAL PASAR",12,YELLOW,true);
+   warning.setPadding(0,0,0,dp(8));page.addView(warning);
+  }
   if(BuildConfig.DEBUG&&"id.banksawan.yellow.qa".equals(getPackageName())&&!qaFixtureMode){
+   Button qaButton=new Button(this);
    if(qaExternalChartTestMode){
-    Button closeQa=new Button(this);
-    closeQa.setText("TUTUP KARTU SIMULASI");
-    closeQa.setOnClickListener(v->{qaExternalChartTestMode=false;homeData=null;
-     status.setText("OFFLINE QA • DATA TIDAK TERSEDIA");showPage("home");});
-    page.addView(closeQa);
+    qaButton.setText("TUTUP KARTU SIMULASI");
+    qaButton.setOnClickListener(v->{
+     qaExternalChartTestMode=false;homeData=null;
+     status.setText("OFFLINE QA • DATA TIDAK TERSEDIA");showPage("home");
+    });
    }else if(homeData==null||homeData.unavailable){
-    Button testChart=new Button(this);
-    testChart.setText("UJI SHORTCUT PLAY / FOGO (SIMULASI)");
-    testChart.setOnClickListener(v->{qaExternalChartTestMode=true;loadQaHomeFixture();});
-    page.addView(testChart);
+    qaButton.setText("UJI SHORTCUT PLAY / FOGO (SIMULASI)");
+    qaButton.setOnClickListener(v->{qaExternalChartTestMode=true;loadQaHomeFixture();});
+   }
+   if(qaExternalChartTestMode||homeData==null||homeData.unavailable){
+    qaButton.setTextSize(13);qaButton.setAllCaps(false);page.addView(qaButton);
    }
   }
-  if(homeData!=null&&!homeData.unavailable){
+  if(homeData!=null&&!homeData.unavailable&&!homeData.signals.isEmpty()){
    for(CleanViewModel.Signal signal:homeData.signals){
     LinearLayout item=card(signal.symbol);
-    row(item,"Sinyal","LONG A");
-    row(item,"Timeframe",signal.timeframe.toUpperCase(Locale.ROOT));
+    row(item,"Harga LONG A:","—");
+    row(item,"Perubahan Binance 24H:","—");
+    row(item,"Timeframe LONG A:",signal.timeframe.toUpperCase(Locale.ROOT));
+    String time=signal.closedAt<1_577_836_800_000L?"—":
+       new java.text.SimpleDateFormat("dd MMM HH:mm 'WIB'",new Locale("id","ID")){{
+        setTimeZone(java.util.TimeZone.getTimeZone("Asia/Jakarta"));
+       }}.format(new java.util.Date(signal.closedAt));
+    row(item,"Mulai HOME:",time);
+    // Price/change omitted until the event contract carries validated values.
+    // No made-up Rp prices, symbol or market data in the offline QA APK.
     Button chart=new Button(this);chart.setText("BUKA TRADINGVIEW ↗");
+    chart.setAllCaps(false);chart.setTextSize(16);chart.setTextColor(BG);
+    chart.setBackground(shape(BLUE,0));
     chart.setContentDescription("QA_CHART_"+signal.symbol);
+    LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,dp(52));
+    bp.topMargin=dp(12);item.addView(chart,bp);
     chart.setOnClickListener(v->{
-     android.content.Intent intent=new android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse(signal.chartUrl));
+     android.content.Intent intent=new android.content.Intent(
+       android.content.Intent.ACTION_VIEW,android.net.Uri.parse(signal.chartUrl));
      intent.addCategory(android.content.Intent.CATEGORY_BROWSABLE);
      if(qaFixtureMode)intent.setClass(this,QaChartCaptureActivity.class);
-     try{startActivity(intent);}catch(Exception e){android.util.Log.e("YELLOW_CHART","CHART_OPEN_FAILED",e);}
-    });item.addView(chart);
+     try{startActivity(intent);}
+     catch(Exception e){android.util.Log.e("YELLOW_CHART","CHART_OPEN_FAILED",e);}
+    });
    }
-   if(!homeData.signals.isEmpty())return;
+   return;
   }
-  LinearLayout c=card(homeData!=null&&!homeData.unavailable?"BELUM ADA SINYAL":"DATA TIDAK TERSEDIA");
-  row(c,"Status backend","DATA TIDAK TERSEDIA");
-  row(c,"Notifikasi","NONAKTIF • QA");
-  TextView note=text("Tidak ada kartu LONG A yang dibuat tanpa event valid. Tombol TradingView hanya muncul pada kartu simbol yang sah.",13,MUTED,false);
-  note.setPadding(0,dp(12),0,0);c.addView(note);
+  LinearLayout unavailable=card(homeData!=null&&!homeData.unavailable?
+    "BELUM ADA LONG A":"DATA TIDAK TERSEDIA");
+  TextView hint=text("Notifikasi nonaktif • QA offline",14,MUTED,false);
+  hint.setPadding(0,dp(10),0,0);unavailable.addView(hint);
  }
  private void renderUniverse(){
-  page.addView(text("BANKSAWAN YELLOW • GOLD",14,YELLOW,true));
-  TextView h=text("UNIVERSE",24,Color.WHITE,true);page.addView(h);
-  TextView f=text("USDⓈ-M USDT PERPETUAL • AKTIF\n0 < harga < 10 • 24H ≥ +1% • Quote 24H > 10M USDT",12,MUTED,false);
-  f.setPadding(0,dp(8),0,dp(12));page.addView(f);
-  if(universeData!=null && "OK".equals(universeData.optString("dataState"))){
-   renderActiveUniverse();return;
+  TextView title=text("UNIVERSE",24,Color.WHITE,true);
+  title.setPadding(0,dp(10),0,dp(10));page.addView(title);
+  if(universeData==null||!"OK".equals(universeData.optString("dataState"))){
+   TextView info=text("DATA TIDAK TERSEDIA",17,YELLOW,true);
+   info.setPadding(0,dp(16),0,dp(6));page.addView(info);
+   page.addView(text("— / 50 DIPINDAI",15,MUTED,false));
+   return;
   }
-  page.addView(text("DATA TIDAK TERSEDIA",16,YELLOW,true));
-  TextView counts=text("Eligible Universe: —\nActively Tracked: — / 50 kapasitas",16,Color.WHITE,true);
-  counts.setPadding(0,dp(10),0,dp(10));page.addView(counts);
-  page.addView(text("Jumlah kandidat belum dapat diverifikasi. Bukan berarti pasar kosong.",13,MUTED,false));
-  EditText search=new EditText(this);search.setSingleLine(true);search.setHint("Cari simbol, mis. PLAY");
-  search.setTextColor(Color.WHITE);search.setHintTextColor(MUTED);search.setEnabled(false);
-  page.addView(search,new LinearLayout.LayoutParams(-1,dp(52)));
-  TextView result=text("— hasil • Geser tabel ↔ • Ketuk judul untuk urutkan",12,MUTED,false);
-  result.setPadding(0,dp(8),0,dp(8));page.addView(result);
-  HorizontalScrollView viewport=new HorizontalScrollView(this);viewport.setHorizontalScrollBarEnabled(true);
-  LinearLayout table=new LinearLayout(this);table.setOrientation(LinearLayout.VERTICAL);viewport.addView(table);
-  String[] labels={"Symbol ↕","Last Price\nUSDT ↕","Change %\n24H ↓","Quote Volume\nUSDT / 24H ↕","Status ↕"};
-  int[] widths={144,128,120,160,112};
-  LinearLayout headings=new LinearLayout(this);headings.setBackgroundColor(CARD);
-  for(int i=0;i<labels.length;i++){
-   TextView cell=text(labels[i],12,YELLOW,true);cell.setPadding(dp(8),dp(8),dp(8),dp(8));
-   cell.setGravity(i==0?Gravity.START:Gravity.END);headings.addView(cell,new LinearLayout.LayoutParams(dp(widths[i]),dp(64)));
-  }
-  table.addView(headings);TextView unavailable=text("Feed offline: tabel tidak menampilkan simbol palsu.",13,MUTED,false);
-  unavailable.setPadding(dp(8),dp(18),dp(8),dp(18));table.addView(unavailable);page.addView(viewport);
+  renderActiveUniverse();
+ }
+ private String priceUSDT(double price){
+  return java.math.BigDecimal.valueOf(price).stripTrailingZeros().toPlainString().replace('.',',');
+ }
+ private void marketRow(JSONObject coin){
+  LinearLayout line=new LinearLayout(this);line.setGravity(Gravity.CENTER_VERTICAL);
+  line.setPadding(0,dp(11),0,dp(11));page.addView(line);
+  LinearLayout symbolCol=new LinearLayout(this);symbolCol.setOrientation(LinearLayout.VERTICAL);
+  String symbol=coin.optString("symbol");
+  TextView symbolName=text(symbol,16,Color.WHITE,true);
+  symbolName.setSingleLine(true);symbolName.setEllipsize(android.text.TextUtils.TruncateAt.END);
+  symbolCol.addView(symbolName);
+  TextView perp=text("Perp",11,MUTED,false);symbolCol.addView(perp);
+  line.addView(symbolCol,new LinearLayout.LayoutParams(0,-2,1.5f));
+  TextView price=text(priceUSDT(coin.optDouble("price")),15,Color.WHITE,true);
+  price.setSingleLine(true);price.setGravity(Gravity.END);
+  price.setPadding(dp(3),0,dp(6),0);
+  line.addView(price,new LinearLayout.LayoutParams(0,-2,0.85f));
+  double delta=coin.optDouble("binance24hChangePct");
+  TextView change=text(String.format(Locale.US,"%+.2f%%",delta).replace('.',','),14,Color.WHITE,true);
+  change.setGravity(Gravity.CENTER);change.setPadding(dp(3),dp(11),dp(3),dp(11));
+  change.setBackground(shape(delta>=0?Color.rgb(17,183,127):Color.rgb(213,73,79),0));
+  LinearLayout.LayoutParams changeParams=new LinearLayout.LayoutParams(0,-2,0.85f);
+  changeParams.leftMargin=dp(5);line.addView(change,changeParams);
  }
  private void renderActiveUniverse(){
   CleanViewModel.Universe parsed=CleanViewModel.parseUniverse(universeData);
-  page.addView(text("Eligible Universe: "+parsed.eligible,18,Color.WHITE,true));
-  page.addView(text("Actively Tracked: "+parsed.tracked+" / 50 kapasitas",14,GREEN,true));
-  EditText search=new EditText(this);search.setSingleLine(true);search.setText(universeQuery);
-  search.setHint("Cari simbol, mis. PLAY");search.setTextColor(Color.WHITE);search.setHintTextColor(MUTED);
-  page.addView(search,new LinearLayout.LayoutParams(-1,dp(52)));
-  TextView count=text("",12,MUTED,false);page.addView(count);
-  HorizontalScrollView viewport=new HorizontalScrollView(this);
-  viewport.setHorizontalScrollBarEnabled(true);page.addView(viewport);
-  LinearLayout rows=new LinearLayout(this);rows.setOrientation(LinearLayout.VERTICAL);viewport.addView(rows);
-  String[] keys={"symbol","price","binance24hChangePct","quoteVolume24h","tracked"};
-  String[] titles={"Symbol","Last Price USDT","Change % 24H","Quote Volume USDT / 24H","Status"};
-  int[] widths={144,128,120,160,112};
-  Runnable rebuild=()->{
-   rows.removeAllViews();
-   LinearLayout headings=new LinearLayout(this);headings.setBackgroundColor(CARD);rows.addView(headings);
-   for(int i=0;i<keys.length;i++){
-    final String key=keys[i];
-    TextView cell=text(titles[i]+(key.equals(sortKey)?(descending?" ↓":" ↑"):" ↕"),12,YELLOW,true);
-    cell.setPadding(dp(8),dp(10),dp(8),dp(10));
-    headings.addView(cell,new LinearLayout.LayoutParams(dp(widths[i]),dp(68)));
-    cell.setOnClickListener(v->{descending=key.equals(sortKey)?!descending:!"symbol".equals(key);
-      sortKey=key;showPage("universe");});
-   }
-   ArrayList<JSONObject> selected=new ArrayList<>();
-   JSONArray source=universeData.optJSONArray("universe");
-   for(int i=0;i<source.length();i++){
-    JSONObject coin=source.optJSONObject(i);
-    if(coin!=null&&coin.optString("symbol").contains(universeQuery.toUpperCase(Locale.ROOT)))selected.add(coin);
-   }
-   selected.sort((a,b)->{
-    int cmp;
-    if("symbol".equals(sortKey))cmp=a.optString("symbol").compareTo(b.optString("symbol"));
-    else if("tracked".equals(sortKey))cmp=Boolean.compare(a.optBoolean("tracked"),b.optBoolean("tracked"));
-    else cmp=Double.compare(a.optDouble(sortKey),b.optDouble(sortKey));
-    return cmp==0?a.optString("symbol").compareTo(b.optString("symbol")):(descending?-cmp:cmp);
-   });
-   count.setText(selected.size()+" hasil • Geser tabel ↔ • Ketuk judul untuk urutkan");
-   for(JSONObject coin:selected){
-    LinearLayout line=new LinearLayout(this);rows.addView(line);
-    String[] values={coin.optString("symbol"),String.format(Locale.US,"%.5f",coin.optDouble("price")),
-      String.format(Locale.US,"%+.2f%%",coin.optDouble("binance24hChangePct")),
-      String.format(Locale.US,"%,.0f",coin.optDouble("quoteVolume24h")),coin.optBoolean("tracked")?"TRACKED":"ELIGIBLE"};
-    for(int i=0;i<values.length;i++){
-     TextView cell=text(values[i],i==0?15:13,i==2?GREEN:Color.WHITE,i==0);
-     cell.setPadding(dp(8),dp(12),dp(8),dp(12));
-     line.addView(cell,new LinearLayout.LayoutParams(dp(widths[i]),dp(58)));
-    }
-   }
-   if(selected.isEmpty())rows.addView(text("Tidak ada hasil pada snapshot yang valid.",13,MUTED,false));
-  };
-  search.addTextChangedListener(new TextWatcher(){
-   public void beforeTextChanged(CharSequence s,int st,int count,int after){}
-   public void onTextChanged(CharSequence s,int st,int before,int count){universeQuery=s.toString();rebuild.run();}
-   public void afterTextChanged(Editable e){}
+  TextView counts=text(parsed.tracked+"/"+parsed.eligible+" DIPINDAI",15,GREEN,true);
+  counts.setPadding(0,dp(5),0,dp(16));page.addView(counts);
+  LinearLayout headings=new LinearLayout(this);
+  headings.setPadding(0,0,0,dp(6));page.addView(headings);
+  TextView a=text("USDⓈ-M",12,MUTED,false);
+  headings.addView(a,new LinearLayout.LayoutParams(0,-2,1.5f));
+  TextView b=text("Harga Terakhir",12,MUTED,false);
+  b.setGravity(Gravity.END);headings.addView(b,new LinearLayout.LayoutParams(0,-2,0.85f));
+  TextView d=text("Prbh% 24j",12,MUTED,false);
+  d.setGravity(Gravity.END);headings.addView(d,new LinearLayout.LayoutParams(0,-2,0.85f));
+  JSONArray rows=universeData.optJSONArray("universe");
+  ArrayList<JSONObject> selected=new ArrayList<>();
+  for(int i=0;i<rows.length();i++){
+   JSONObject coin=rows.optJSONObject(i);
+   if(coin!=null)selected.add(coin);
+  }
+  // Eligible universe includes every matching coin, not merely 50 tracked slots.
+  selected.sort((x,y)->{
+   int score=Double.compare(y.optDouble("binance24hChangePct"),
+                            x.optDouble("binance24hChangePct"));
+   return score!=0?score:x.optString("symbol").compareTo(y.optString("symbol"));
   });
-  rebuild.run();
+  for(JSONObject coin:selected)marketRow(coin);
+  if(selected.isEmpty())page.addView(text("Belum ada simbol yang memenuhi filter.",15,MUTED,false));
  }
 }
