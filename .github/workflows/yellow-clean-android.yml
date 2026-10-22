@@ -59,6 +59,7 @@ jobs:
             adb install -r clean-rebuild/android/app/build/outputs/apk/debug/app-debug.apk
             python3 clean-rebuild/android/qa/emulator-smoke.py
             python3 clean-rebuild/android/qa/qa-chart-intent.py
+            python3 clean-rebuild/android/qa/fcm-consent-offline-smoke.py
       - name: Preserve emulator screenshots and hierarchy even on failure
         if: always()
         uses: actions/upload-artifact@v4
