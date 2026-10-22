@@ -1,6 +1,7 @@
 package id.banksawan.yellow.clean;
 
 import android.app.Notification;
+import android.content.Context;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -29,14 +30,16 @@ public final class CleanFirebaseMessagingService extends FirebaseMessagingServic
   // bypass our strict per-event contract. Reject such hybrids.
   if(message.getNotification()!=null)return;
   Map<String,String> payload=message.getData();
+  if(payload.containsKey("simulatedLocal"))return; // local QA flag must never come from FCM
   final CleanViewModel.Signal signal;
   try{signal=CleanPushContract.parse(payload);}
   catch(RuntimeException malformed){return;}
   if(!CleanAlertLedger.reserve(this,signal,System.currentTimeMillis()))return;
-  showLongA(signal,payload);
+  showLongA(this,signal,payload);
  }
- private void showLongA(CleanViewModel.Signal signal,Map<String,String> payload){
-  NotificationManager manager=getSystemService(NotificationManager.class);
+ static void showLongA(Context context,CleanViewModel.Signal signal,Map<String,String> payload){
+  if(!CleanFcmConsent.allowed(context))return;
+  NotificationManager manager=context.getSystemService(NotificationManager.class);
   if(manager==null)return;
   if(Build.VERSION.SDK_INT>=26){
    NotificationChannel channel=new NotificationChannel(CHANNEL,
@@ -44,18 +47,19 @@ public final class CleanFirebaseMessagingService extends FirebaseMessagingServic
    channel.setDescription("Explicit QA opt-in LONG A only; not trading advice");
    manager.createNotificationChannel(channel);
   }
-  Intent click=new Intent(this,CleanNotificationOpenActivity.class);
+  Intent click=new Intent(context,CleanNotificationOpenActivity.class);
   click.setAction(Intent.ACTION_VIEW);
   click.setData(Uri.parse(NotificationEventRoute.route(signal.symbol,signal.timeframe,signal.closedAt)));
   for(String field:new String[]{"schemaVersion","signal","eventId","symbol",
         "timeframe","barClosedAtMs","tradingViewUrl"})
    click.putExtra(field,payload.get(field));
-  PendingIntent open=PendingIntent.getActivity(this,0,click,
+  PendingIntent open=PendingIntent.getActivity(context,0,click,
     PendingIntent.FLAG_IMMUTABLE|PendingIntent.FLAG_UPDATE_CURRENT);
-  Notification alert=new Notification.Builder(this,CHANNEL)
+  boolean simulation="true".equals(payload.get("simulatedLocal"));
+  Notification alert=new Notification.Builder(context,CHANNEL)
     .setSmallIcon(id.banksawan.yellow.R.mipmap.ic_launcher)
-    .setContentTitle(signal.symbol+" · LONG A "+signal.timeframe.toUpperCase())
-    .setContentText("Ketuk untuk membuka simbol tepat di TradingView")
+    .setContentTitle((simulation?"SIMULASI QA • ":"")+signal.symbol+" · LONG A "+signal.timeframe.toUpperCase())
+    .setContentText(simulation?"TES LOKAL • BUKAN SINYAL PASAR":"Ketuk untuk membuka simbol tepat di TradingView")
     .setContentIntent(open).setAutoCancel(true).build();
   manager.notify(signal.id,1,alert);
  }
