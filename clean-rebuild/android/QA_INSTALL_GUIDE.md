@@ -22,3 +22,27 @@
 - Secure Railway deployment in isolated environment after credential rotation and entitlement verification.
 - Pine TradingView parity with independent market data, signed release with original certificate.
 - **No release APK** until explicitly approved and all gates pass.
+
+## QA mobile TradingView shortcut — manual, offline
+
+Only use a **new** CI-passing debug build containing the opt-in PLAY/FOGO test
+(and package `id.banksawan.yellow.qa`), not an older debug ZIP.
+
+1. Keep YELLOW V2 installed. Install the isolated QA APK beside it.
+2. On the HOME screen tap **UJI SHORTCUT PLAY / FOGO (SIMULASI)**.
+   A large `SIMULASI QA — BUKAN SINYAL PASAR` label must appear;
+   no real scanner event, FCM or price claim is generated.
+3. On the **PLAYUSDT** card tap **BUKA TRADINGVIEW**. Verify the **chart
+   symbol visible inside the current installed TradingView mobile application**
+   is PLAYUSDT perpetual Binance, not FOGO. If Android presents a browser/app
+   chooser, record that behavior separately as a handoff issue.
+4. Return to QA HOME and repeat for **FOGOUSDT**. The destination must be
+   FOGOUSDT perpetual Binance, not PLAY.
+5. Return and **TUTUP KARTU SIMULASI**. HOME must go back to unavailable;
+   synthetic candidates must not remain or trigger notifications.
+6. Record the app version, whether TradingView/browser/chooser opened, and
+   actual header symbol for both clicks. Do not trade these simulated cards.
+
+The emulator's private QA receiver can prove Android ACTION_VIEW and immutable
+PendingIntent identity, but **cannot prove TradingView's third-party mobile
+deep-link behavior**. This manual device check is still mandatory for release.
