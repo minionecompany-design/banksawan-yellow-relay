@@ -19,6 +19,11 @@ export function auditV2ApiContract(snapshot){
     status.exchange==='BINANCE_USDM_PERPETUAL'&&status.tickerConnected===true&&
     status.klineConnected===true&&status.wsRecovering===false&&
     status.requestGuard?.circuitOpen===false,'BACKEND_NOT_HEALTHY');
+  if(status?.alertTimeframes!==undefined){
+    const lanes=status.alertTimeframes;
+    check(Array.isArray(lanes)&&lanes.length===4&&new Set(lanes).size===4&&lanes.every(tf=>frames.has(tf)),
+      'DECLARED_ALERT_TIMEFRAMES_NOT_FOUR');
+  }
   for(const [name,body,field] of [['universe',universe,'universe'],['home',home,'home'],['events',events,'events']]){
     check(body?.simulation===false&&body.mode==='LIVE_SHADOW',name.toUpperCase()+'_NOT_LIVE_REPLY');
     check(Array.isArray(body?.[field]),name.toUpperCase()+'_ARRAY_REQUIRED');
@@ -79,6 +84,6 @@ export function auditV2ApiContract(snapshot){
   return {scope:'OFFLINE_V2_API_CONTRACT_ONLY',passed:failures.length===0,capturedAtMs,
     covered:scanning,eligible:rows.length,expectedCoveredWhenSteady:target,
     failures:[...new Set(failures)],
-    notVerified:['DEPLOYED_COMMIT_IDENTITY','CEX_MEMBERSHIP_PARITY','FOUR_TF_DEVICE_FCM_RECEIPT',
+    notVerified:['DEPLOYED_COMMIT_IDENTITY','CEX_MEMBERSHIP_PARITY','FOUR_TF_PUBLICATION_BEHAVIOR','FOUR_TF_DEVICE_FCM_RECEIPT',
       'TRADINGVIEW_APP_BEHAVIOR','APK_SIGNER_AND_UPDATE_IN_PLACE','CREDENTIAL_SECURITY']};
 }

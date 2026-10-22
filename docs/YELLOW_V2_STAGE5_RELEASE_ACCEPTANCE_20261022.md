@@ -16,6 +16,9 @@ production API behavior, signing configuration or Railway setting is changed.
   complete eligible UNIVERSE, strict >1% / 0<price<10 / quote turnover>10M,
   timestamps, honest allocated-versus-covered counts, steady min(N,50)/N,
   HOME/polling volume and event identity, duplicate IDs and expiry.
+  If the status declares alert timeframes, all four must be declared. A missing
+  declaration cannot establish four-TF publication; real publication remains
+  explicitly outside this snapshot-only proof.
 - 47/47 and 50/65 acceptance, healthy 0/0 without fabricated kline traffic,
   strict boundary rejection, missing data, stale feeds, malformed identity,
   snapshots whose membership changed, and actual current HTTP API serialization

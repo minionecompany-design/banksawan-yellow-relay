@@ -9,6 +9,7 @@ function snapshot(n=47){
   price:.05,binance24hChangePct:2,quoteVolume24h:20_000_000,
   tickerObservedAtMs:NOW-1000,coverage:i<count?'SCANNING':'QUEUED'}));
  return {capturedAtMs:NOW,status:{ok:true,mode:'LIVE_SHADOW',exchange:'BINANCE_USDM_PERPETUAL',
+  alertTimeframes:['1m','5m','15m','1h'],
   tickerConnected:true,klineConnected:true,wsRecovering:false,requestGuard:{circuitOpen:false},
   lastTickerDataAtMs:NOW-1000,lastKlineDataAtMs:NOW-1000,maxTracked:50,
   covered:count,eligible:n,allocatedScanSlots:count,coverageRatio:count/n,
@@ -56,10 +57,11 @@ test('HOME and polling must both carry volume, matching symbol identity and fres
 });
 test('duplicate symbols, stale feed, open circuit and partial bootstrap cannot pass',()=>{
  const s=snapshot();s.universe.universe[1]={...s.universe.universe[0]};
+ s.status.alertTimeframes=['5m','15m','1h'];
  s.status.requestGuard.circuitOpen=true;s.status.lastKlineDataAtMs=NOW-30_000;
  s.status.bootstrapInProgress=1;
  const r=auditV2ApiContract(s);
- for(const code of ['UNIVERSE_DUPLICATE_SYMBOL','BACKEND_NOT_HEALTHY','KLINE_FEED_NOT_FRESH','STEADY_COVERAGE_NOT_REACHED'])
+ for(const code of ['UNIVERSE_DUPLICATE_SYMBOL','BACKEND_NOT_HEALTHY','KLINE_FEED_NOT_FRESH','STEADY_COVERAGE_NOT_REACHED','DECLARED_ALERT_TIMEFRAMES_NOT_FOUR'])
   assert.ok(r.failures.includes(code),code);
 });
 test('missing input and snapshots with changed membership require recapture, never invented counts',()=>{
