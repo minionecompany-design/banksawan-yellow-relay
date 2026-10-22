@@ -1,4 +1,9 @@
 plugins { id 'com.android.application' }
+// Only the QA debug package may load a locally-provided Firebase configuration.
+// CI and production release must never require or inherit QA Firebase keys.
+if (file('src/debug/google-services.json').exists()) {
+ apply plugin: 'com.google.gms.google-services'
+}
 android {
  namespace 'id.banksawan.yellow'
  compileSdk 35
@@ -22,6 +27,8 @@ android {
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 dependencies {
+ implementation platform('com.google.firebase:firebase-bom:34.19.0')
+ implementation 'com.google.firebase:firebase-messaging'
  implementation 'org.json:json:20240303'
  testImplementation 'junit:junit:4.13.2'
  testImplementation 'org.json:json:20240303'
