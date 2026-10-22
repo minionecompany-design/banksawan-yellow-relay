@@ -27,4 +27,23 @@ public class CleanViewModelTest {
    .put("count",JSONObject.NULL).put("events",new JSONArray());
   assertTrue(CleanViewModel.parseHome(data).unavailable);
  }
+ @Test public void universeSupportsEligibleBeyond50ButTrackedAtMost50() throws Exception {
+  JSONObject coverage=new JSONObject().put("eligible",2).put("covered",1).put("maxTracked",50).put("trackedEligible",1);
+  JSONArray rows=new JSONArray();
+  for(String s:new String[]{"PLAYUSDT","FOGOUSDT"}){
+   rows.put(new JSONObject().put("symbol",s).put("price",2.1).put("binance24hChangePct",1.5)
+    .put("quoteVolume24h",12000001).put("tracked",s.equals("PLAYUSDT")));
+  }
+  JSONObject o=new JSONObject().put("schemaVersion","yellow-clean-v1").put("dataState","OK")
+   .put("coverage",coverage).put("universe",rows);
+  CleanViewModel.Universe u=CleanViewModel.parseUniverse(o);
+  assertEquals(2,u.eligible);assertEquals(1,u.tracked);assertEquals(50,u.capacity);
+ }
+ @Test(expected=IllegalArgumentException.class)public void universeRejectsVolumeAtTenMillion() throws Exception {
+  JSONObject coverage=new JSONObject().put("eligible",1).put("covered",1).put("maxTracked",50).put("trackedEligible",1);
+  JSONArray rows=new JSONArray().put(new JSONObject().put("symbol","PLAYUSDT").put("price",2.1)
+   .put("binance24hChangePct",1.5).put("quoteVolume24h",10000000).put("tracked",true));
+  CleanViewModel.parseUniverse(new JSONObject().put("schemaVersion","yellow-clean-v1")
+   .put("dataState","OK").put("coverage",coverage).put("universe",rows));
+ }
 }
