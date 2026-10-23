@@ -6,6 +6,7 @@ import {YellowLiveMarket} from './live-market.js';
 import {createLiveApi} from './live-api.js';
 import {YellowFcm} from './live-fcm.js';
 import {QualityCaptureBridgeV1} from './quality-capture-bridge-v1.js';
+import {Silent1mHotV1} from './silent-1m-hot-v1.js';
 const enabled=process.env.YELLOW_LIVE_ENABLED==='true';
 const dataDir=process.env.YELLOW_DATA_DIR;
 const port=Number(process.env.PORT||8080);
@@ -19,12 +20,18 @@ const fcm=new YellowFcm({enabled:process.env.YELLOW_FCM_ENABLED==='true',
 const research=process.env.YELLOW_GOLD_EVIDENCE_ENABLED==='true'
   ?new QualityCaptureBridgeV1({dataDir,log:(...args)=>console.warn(...args)}):null;
 if(research)await research.initialize();
+// Completely separate opt-in observer: no FCM, HOME, event feed or extra Binance I/O.
+const silent1mHot=process.env.YELLOW_1M_HOT_SHADOW_ENABLED==='true'
+  ?new Silent1mHotV1({filename:dataDir+'/yellow-1m-hot-research-v1.json',
+      log:(...args)=>console.warn(...args)}):null;
+if(silent1mHot)await silent1mHot.initialize();
 // Only publications are filtered. Original four-TF candle/state plane remains intact.
 const alertTimeframes=(process.env.YELLOW_ALERT_TIMEFRAMES||'1m,5m,15m,1h')
   .split(',').map(tf=>tf.trim()).filter(Boolean);
 const market=new YellowLiveMarket({dataDir,maxTracked:Number(process.env.YELLOW_MAX_TRACKED||200),
   alertTimeframes,
   passiveEvidence:research,
+  silent1mHot,
   sendEvent:async event=>{
     const delivery=await fcm.send(event);
     if(fcm.enabled)console.log('YELLOW_FCM',event.id,delivery.sent?'SENT':delivery.reason);
