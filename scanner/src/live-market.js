@@ -10,6 +10,7 @@ import {normalizeBinanceTicker} from './binance-fixture-adapter.js';
 import {eligibleUniverse} from './long-a.js';
 import path from 'node:path';
 import {LaneCheckpoint} from './live-state-checkpoint.js';
+import {stepPineOneMinute,rebuildPineOneMinute,validPineOneMinuteState} from './pine-v13-one-minute.js';
 
 const API='https://fapi.binance.com';
 const WS_RAW='wss://fstream.binance.com/market/ws';
@@ -257,11 +258,14 @@ export class YellowLiveMarket {
           this.retireSymbol(symbol,'PENDING_CANDLE_TIMEOUT_'+tf);return;
         }
         const target=bars.filter(bar=>bar.endMs<=nextEnd);
-        const result=stepLongAOnTimeframe(symbol,tf,{
-          ...snapshot,[key]:target,nowMs:this.clock(),
+        const laneSnapshot=tf==='1m'?(tracked.book.pineSnapshot?.()??snapshot):snapshot;
+        const laneTarget=laneSnapshot[key].filter(bar=>bar.endMs<=nextEnd);
+        const input={
+          ...laneSnapshot,[key]:laneTarget,nowMs:this.clock(),
           ticker24h:this.getTickerAsOf(symbol,nextEnd),
           contextMode:'CAUSAL_REALTIME'
-        },state);
+        };
+        const result=tf==='1m'?stepPineOneMinute(symbol,input,state):stepLongAOnTimeframe(symbol,tf,input,state);
         if(result.reason?.startsWith('CONTEXT_STALE_OR_INCOMPLETE_')||
            result.reason?.startsWith('CONTEXT_MISSING_')){
           // Next WebSocket context close triggers this drain again.
@@ -271,11 +275,16 @@ export class YellowLiveMarket {
            result.reason==='INVALID_BINANCE_USDM_24H_TICKER'||
            result.reason==='TARGET_DATA_GAP_REBOOTSTRAP_REQUIRED'||
            result.reason==='TARGET_CANDLES_GAPPED_OR_INSUFFICIENT'||
-           result.reason==='ALREADY_PROCESSED'){
+           result.reason==='ALREADY_PROCESSED'||result.reason==='PINE_1M_REBUILD_REQUIRED'){
           this.retireSymbol(symbol,'UNTRUSTWORTHY_EVALUATION_'+tf+'_'+result.reason);
           return;
         }
         tracked.states[tf]=result.state;
+        if(tf==='1m'&&result.diagnostics?.internalSignal){
+          this.log('YELLOW_PINE_1M_SIGNAL',symbol,{barClosedAtMs:nextEnd,
+            signal:result.diagnostics.internalSignal,priorTradeState:state.tradeState,
+            nextTradeState:result.state.tradeState,publishable:!!result.event});
+        }
         if(result.event?.signal==='LONG_A'){
           let accepted;
           try{accepted=await this.ledger.accept(result.event);}
@@ -301,7 +310,7 @@ export class YellowLiveMarket {
            }
         }
         if(result.reason&&result.reason!=='NO_CONFIRMED_SIGNAL'&&
-           result.reason!=='BINANCE_24H_FILTER')
+           result.reason!=='BINANCE_24H_FILTER'&&result.reason!=='PINE_1M_STATE_UNSYNCHRONIZED')
           this.recordFault('EVAL_'+symbol+'_'+tf+'_'+result.reason);
       }
     }
@@ -317,17 +326,27 @@ export class YellowLiveMarket {
     this.inProgress.add(symbol);
     const generation=this.feedGeneration;
     try{
-      const book=new CandleBook(symbol);
-      // Binance gives the most recent 170 bars, including the currently open one.
-      // Only closed, contiguous candles are used; cold-start signals NEVER fire.
+      const book=new CandleBook(symbol,{retainRecoveryHistory:true});
+      // Bounded 1m cycle replay uses deeper history, through the SAME four
+      // guarded requests. Other TF evaluators still see their legacy 190-bar view.
       // Fetch 1M LAST to avoid a budget-window wait creating a 1m stream gap.
       for(const tf of ['1h','15m','5m','1m']){
         if(this.isHalted||generation!==this.feedGeneration||this.wsRecovering)return;
-        const data=await this.rest(`/fapi/v1/klines?symbol=${symbol}&interval=${tf}&limit=170`,{weight:klineWeight(170)});
+        const limit={'1h':170,'15m':249,'5m':499,'1m':999}[tf];
+        const data=await this.rest(`/fapi/v1/klines?symbol=${symbol}&interval=${tf}&limit=${limit}`,{weight:klineWeight(limit)});
         const closed=Array.isArray(data)?data.filter(b=>Number(b[6])+1<=this.clock()):[];
         book.bootstrap(tf,closed,this.clock());
       }
-      const {states,resumed,cold}=await this.checkpoints.restore(symbol,book,this.clock());
+      const {states,resumed,cold,previousOneMinute}=await this.checkpoints.restore(symbol,book,this.clock());
+      if(!resumed.includes('1m')||!validPineOneMinuteState(states['1m'])){
+        const recovery=rebuildPineOneMinute(symbol,book.pineSnapshot(),previousOneMinute);
+        states['1m']=recovery.state;
+        const oldIndex=resumed.indexOf('1m');if(oldIndex>=0)resumed.splice(oldIndex,1);
+        if(recovery.usedCheckpoint){resumed.push('1m');const i=cold.indexOf('1m');if(i>=0)cold.splice(i,1);}
+        else if(!cold.includes('1m'))cold.push('1m');
+        this.log('YELLOW_PINE_1M_RECOVERY',symbol,{replayed:recovery.replayed,usedCheckpoint:recovery.usedCheckpoint,
+          synchronized:recovery.state.pine1m.synchronized,anchorEndMs:recovery.state.pine1m.anchorEndMs});
+      }
       if(!this.isHalted&&!this.wsRecovering&&generation===this.feedGeneration){
         await this.checkpoints.save(symbol,states,this.clock());
         if(this.isHalted||this.wsRecovering||generation!==this.feedGeneration)return;
@@ -446,6 +465,9 @@ export class YellowLiveMarket {
     coverageComplete:eligible.every(x=>this.covered.has(x.symbol)),
     uncoveredEligible:eligible.filter(x=>!this.covered.has(x.symbol)).length,
     laneRecovery:[...this.covered].map(([symbol,t])=>({symbol,resumed:t.resumedLanes||[],cold:t.coldLanes||[]})),
+    pineOneMinute:[...this.covered].map(([symbol,t])=>({symbol,
+      synchronized:t.states?.['1m']?.pine1m?.synchronized===true,
+      anchorEndMs:t.states?.['1m']?.pine1m?.anchorEndMs??null})),
     requestGuard:this.guard.metrics(),fcm:this.fcm?.metrics()||{enabled:false},
     researchEvidence:this.passiveEvidence?.status?.()??{enabled:false},haltReason:this.haltReason,
     lastTickerDataAtMs:this.lastTickerDataAtMs,lastKlineDataAtMs:this.lastKlineDataAtMs,

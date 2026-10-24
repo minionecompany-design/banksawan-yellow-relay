@@ -3,10 +3,12 @@
 import {readFile,writeFile,rename,mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {newParallelState,PERIODS} from './parallel-long-a.js';
+import {validPineOneMinuteState} from './pine-v13-one-minute.js';
 const revision='long-a-v1-causal-realtime';
 const validSymbol=s=>/^[A-Z0-9]{2,25}USDT$/.test(s);
 function valid(s,tf,now){
   return s && [0,1,2].includes(s.tradeState) &&
+    (tf!=='1m'||s.pine1m===undefined||validPineOneMinuteState(s)) &&
     ['index','countDown','countUp'].every(k=>Number.isSafeInteger(s[k])&&s[k]>= (k==='index'?-1:0)) &&
     ['lastPullbackBar','protectBar'].every(k=>s[k]===null||Number.isSafeInteger(s[k])&&s[k]>=0&&s[k]<=s.index) &&
     Number.isSafeInteger(s.lastProcessedEndMs)&&s.lastProcessedEndMs>0&&
@@ -38,6 +40,6 @@ export class LaneCheckpoint {
       if(doc&&doc.states[tf].lastProcessedEndMs===end){states[tf]={...doc.states[tf]};resumed.push(tf);}
       else {states[tf].lastProcessedEndMs=end;cold.push(tf);}
     }
-    return {states,resumed,cold};
+    return {states,resumed,cold,previousOneMinute:doc&&validPineOneMinuteState(doc.states['1m'])?doc.states['1m']:null};
   }
 }

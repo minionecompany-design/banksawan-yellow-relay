@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {YellowLiveMarket} from '../src/live-market.js';
 import {newParallelState,PERIODS,stepLongAOnTimeframe} from '../src/parallel-long-a.js';
+import {newPineOneMinuteState,stepPineOneMinute} from '../src/pine-v13-one-minute.js';
 
 test('actual LONG_A disk failure halts scanning before FCM or a later checkpoint',async()=>{
  const dir=await mkdtemp(path.join(os.tmpdir(),'yellow-storage-halt-'));
@@ -19,8 +20,10 @@ test('actual LONG_A disk failure halts scanning before FCM or a later checkpoint
   const states=newParallelState();
   for(const state of Object.values(states))state.lastProcessedEndMs=end;
   Object.assign(states['1m'],{lastProcessedEndMs:end-60_000,lastPullbackBar:20,index:20});
+  states['1m']={...newPineOneMinuteState(),...states['1m'],pine1m:{revision:1,synchronized:true,
+    downCountKnown:true,unknownPullbackBars:0,anchorEndMs:end-60_000}};
   // Prove this fixture really reaches the production event path, without a fake signal evaluator.
-  assert.equal(stepLongAOnTimeframe(symbol,'1m',{...snapshot,ticker24h:ticker,nowMs:end+1000},states['1m']).event?.signal,'LONG_A');
+  assert.equal(stepPineOneMinute(symbol,{...snapshot,ticker24h:ticker,nowMs:end+1000},states['1m']).event?.signal,'LONG_A');
   let sends=0,checkpoints=0;
   const market=new YellowLiveMarket({dataDir:dir,clock:()=>end+1000,wsClass:class{},
    guard:{closedReason:null,metrics:()=>({})},sendEvent:async()=>sends++,log:()=>{}});

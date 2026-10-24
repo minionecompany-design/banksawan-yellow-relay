@@ -5,6 +5,7 @@ import os from 'node:os';import path from 'node:path';
 import {LaneCheckpoint} from '../src/live-state-checkpoint.js';
 import {newParallelState,PERIODS} from '../src/parallel-long-a.js';
 import {YellowLiveMarket} from '../src/live-market.js';
+import {newPineOneMinuteState} from '../src/pine-v13-one-minute.js';
 const END=Date.UTC(2026,9,17,6),symbol='AGTUSDT';
 const temp=()=>mkdtemp(path.join(os.tmpdir(),'yellow-checkpoint-'));
 const book=(ends={})=>({latest:tf=>({endMs:ends[tf]??END})});
@@ -69,7 +70,8 @@ test('real bootstrap restores only matching TF cursors, uses exactly four guarde
    return [end-period,'.05','.051','.049','.05','100',end-1,'5',10,'50','2.5'];});
  }};
  const config={dataDir,clock:()=>END+1000,wsClass:class {},guard,log:()=>{},sendEvent:async()=>sends++};
- const original=states();await new LaneCheckpoint(path.join(dataDir,'lane-checkpoints')).save(symbol,original,END);
+ const original=states();original['1m']={...newPineOneMinuteState(),...original['1m']};
+ await new LaneCheckpoint(path.join(dataDir,'lane-checkpoints')).save(symbol,original,END);
  const market=new YellowLiveMarket(config);await market.bootstrap(symbol);
  assert.equal(calls,4);assert.equal(sends,0);assert.deepEqual(market.covered.get(symbol).states,original);
  assert.equal(market.covered.get(symbol).resumedLanes.length,4);

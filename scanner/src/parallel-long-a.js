@@ -40,7 +40,7 @@ export function requestedContextEnd(endMs,targetTf,contextTf,mode='CAUSAL_REALTI
   return currentContextEnd(endMs,requested);
 }
 
-function validHistory(bars,period) {
+export function validHistory(bars,period) {
   return Array.isArray(bars) && bars.length>=112 && bars.every((x,i)=>
     x && finite(x.endMs) && x.endMs>0 && x.endMs%period===0 &&
     finite(x.close) && x.close>0 && finite(x.volume) && x.volume>=0 &&
@@ -51,7 +51,7 @@ function sma(a,n) {
   const values=a.slice(-n);
   return values.every(finite)?values.reduce((x,y)=>x+y,0)/n:null;
 }
-function indicators(bars) {
+export function indicators(bars) {
   const closes=bars.map(x=>x.close);
   const volumes=bars.map(x=>x.volume);
   const rsi=wilderRsiSeries(closes);
