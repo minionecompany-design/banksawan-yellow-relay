@@ -190,14 +190,19 @@ public class MainActivity extends Activity {
         LinearLayout row=new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0,dp(7),0,dp(7));
+        row.setPadding(0,dp(2),0,dp(2));
         TextView left=text(label,12,MUTED,false);
+        left.setSingleLine(true);
+        left.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        left.setIncludeFontPadding(false);
         left.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);
         TextView right=text(value,14,Color.WHITE,true);
+        right.setSingleLine(true);
+        right.setIncludeFontPadding(false);
         right.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);
         right.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_END);
-        row.addView(left,new LinearLayout.LayoutParams(0,-2,1.1f));
-        row.addView(right,new LinearLayout.LayoutParams(0,-2,1.35f));
+        row.addView(left,new LinearLayout.LayoutParams(0,-2,0.9f));
+        row.addView(right,new LinearLayout.LayoutParams(0,-2,1.55f));
         parent.addView(row);
     }
     private static Uri tradingViewSymbolUri(String symbol){
@@ -211,8 +216,9 @@ public class MainActivity extends Activity {
     }
     private void tradingView(String symbol,LinearLayout parent){
         Button b=new Button(this);b.setText("BUKA TRADINGVIEW ↗");b.setTextColor(BG);
-        b.setBackground(shape(Color.rgb(51,179,229),0));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(48));
-        p.setMargins(0,dp(14),0,0);parent.addView(b,p);
+        b.setTextSize(12);b.setMinHeight(0);b.setMinimumHeight(0);b.setPadding(dp(8),0,dp(8),0);
+        b.setBackground(shape(Color.rgb(51,179,229),0));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(40));
+        p.setMargins(0,dp(8),0,0);parent.addView(b,p);
         b.setOnClickListener(v->{
             Uri uri=tradingViewSymbolUri(symbol);if(uri==null)return;
             Intent app=new Intent(Intent.ACTION_VIEW,uri);
@@ -243,18 +249,18 @@ public class MainActivity extends Activity {
         });
     }
     private void card(String symbol,JSONObject item,boolean isHome){
-        LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(dp(19),dp(19),dp(19),dp(17));
+        LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(dp(12),dp(10),dp(12),dp(10));
         box.setBackground(shape(CARD,LINE));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);
-        p.setMargins(0,0,0,dp(13));list.addView(box,p);
+        p.setMargins(0,0,0,dp(8));list.addView(box,p);
         box.addView(text(symbol,24,Color.WHITE,true));
         double price=item.optDouble(isHome?"price":"price",0);
         line(box,isHome?(BuildConfig.DEMO_MODE?"Harga LONG A (DEMO):":"Harga LONG A:"):
             (BuildConfig.DEMO_MODE?"Harga contoh:":"Harga terakhir:"),number(price)+" USDT");
-        line(box,BuildConfig.DEMO_MODE?"Perubahan Binance 24H (DEMO):":"Perubahan Binance 24H:",
+        line(box,BuildConfig.DEMO_MODE?"Chg % 24H (DEMO)":"Chg % 24H",
             String.format(Locale.US,"%+.2f%%",item.optDouble("binance24hChangePct")));
-        if(isHome){line(box,"Timeframe LONG A",item.optString("timeframe","1m").toUpperCase(Locale.ROOT));
+        if(isHome){line(box,"Timeframe",item.optString("timeframe","1m").toUpperCase(Locale.ROOT));
             long first=item.optLong("firstSeenMs",0);
-            line(box,"Mulai HOME",formattedTime(first));}
+            line(box,"Mulai",formattedTime(first));}
         else line(box,"Prioritas:",item.optString("priority","STANDARD"));
         if (isHome) tradingView(symbol,box);
     }
