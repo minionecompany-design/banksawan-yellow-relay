@@ -16,8 +16,8 @@ test('Android has only HOME and UNIVERSE, 1K icon, Binance .P TradingView shortc
   const activity=await readFile(f('android/app/src/main/java/id/banksawan/yellow/MainActivity.java'),'utf8');
   const icon=await readFile(f('android/app/src/main/res/drawable-nodpi/yellow_logo.png'));
   assert.match(activity,/new String\[\]\{"home","universe"\}/);
-  assert.match(activity,/"https:\/\/www\.tradingview\.com\/chart\/\?symbol="/);
-  assert.match(activity,/"BINANCE:"\+symbol\+"\.P"/);
+  assert.match(activity,/appendPath\(symbol\+"\.P"\)/);
+  assert.match(activity,/appendQueryParameter\("exchange","BINANCE"\)/);
   assert.match(activity,/getTimeZone\("Asia\/Jakarta"\)/);
   assert.ok(icon.byteLength>1000);
   assert.doesNotMatch(activity,/"pantau"|"kandidat"|"bukti"/i);

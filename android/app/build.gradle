@@ -30,8 +30,8 @@ android {
         applicationId 'id.banksawan.yellow'
         minSdk 26
         targetSdk 35
-        versionCode 6
-        versionName '0.10.0-event-home'
+        versionCode 11
+        versionName '0.12.3-v2-compact-home'
         // Safe defaults: demo only, no production URL, no Binance requests.
         // CI can override YELLOW_API_BASE_URL after a secure backend exists.
         def suppliedUrl = System.getenv('YELLOW_API_BASE_URL') ?: ''
@@ -47,6 +47,22 @@ android {
         buildConfigField 'boolean', 'FCM_ENABLED', (allowAlerts && file('google-services.json').exists()) ? 'true' : 'false'
     }
     buildFeatures { buildConfig true }
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+            all {
+                jvmArgs '--add-opens=java.base/java.lang=ALL-UNNAMED',
+                    '--add-opens=java.base/java.util=ALL-UNNAMED',
+                    '--add-opens=java.base/java.io=ALL-UNNAMED',
+                    '--add-opens=java.base/java.net=ALL-UNNAMED',
+                    '--add-opens=java.base/java.security=ALL-UNNAMED',
+                    '--add-opens=java.base/java.text=ALL-UNNAMED',
+                    '--add-opens=java.base/jdk.internal.access=ALL-UNNAMED',
+                    '--add-opens=java.desktop/java.awt.font=ALL-UNNAMED',
+                    '--add-opens=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED'
+            }
+        }
+    }
     signingConfigs {
         if (permanentSigning) {
             yellowPermanent {
@@ -73,4 +89,8 @@ android {
 
 // Android compiles both paths; Firebase initializes only when a YELLOW config
 // is provided at build time. The debug APK without config remains offline.
-dependencies { implementation 'com.google.firebase:firebase-messaging:25.0.0' }
+dependencies {
+    implementation 'com.google.firebase:firebase-messaging:25.0.0'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.17'
+}

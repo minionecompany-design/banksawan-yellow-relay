@@ -22,12 +22,13 @@ test('FCM emits data-only LONG A push with bounded TTL; no other symbols',async(
  };
  const fcm=new YellowFcm({enabled:true,serviceAccountJson:JSON.stringify(account),fetchImpl:sender,clock:()=>now});
  const event={id:`WALUSDT:15m:${now}:LONG_A`,symbol:'WALUSDT',timeframe:'15m',signal:'LONG_A',
-   barClosedAtMs:now,expiresAtMs:now+299000,price:.051,binance24hChangePct:5.8};
+   barClosedAtMs:now,expiresAtMs:now+299000,price:.051,binance24hChangePct:5.8,quoteVolume24h:20_000_000};
  assert.equal((await fcm.send(event)).sent,true);
  assert.equal(calls.length,2);
  const payload=JSON.parse(calls[1].opts.body);
  assert.equal(payload.message.topic,'banksawan-yellow-v2');
  assert.equal(payload.message.data.event,'YELLOW_LONG_A');
+  assert.equal(payload.message.data.quote_volume_24h,'20000000');
  assert.ok(parseInt(payload.message.android.ttl)<=299);
  assert.equal((await fcm.send({...event,expiresAtMs:now-1})).sent,false);
  assert.equal(calls.length,2);

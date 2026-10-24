@@ -11,6 +11,7 @@
  */
 export const SETTINGS = Object.freeze({
   minBinance24hChangePct: 1,
+  minQuoteVolume24h: 10_000_000,
   highPriorityChangePct: 5,
   maxPriceExclusive: 10,
   minVolumeRatio: 0.75,
@@ -110,6 +111,7 @@ export function stepLongA(symbol, data, state = newSymbolState()) {
   }
   const pct = Number(ticker24h?.priceChangePercent);
   const lastPrice = Number(ticker24h?.lastPrice);
+  const quoteVolume24h=ticker24h?.quoteVolume24h;
   // An adapter must join Binance USD-M exchangeInfo with the 24h ticker;
   // the public 24hr endpoint itself does not prove contract type.
   if (ticker24h?.symbol !== symbol || ticker24h?.contractType !== 'PERPETUAL' ||
@@ -120,8 +122,9 @@ export function stepLongA(symbol, data, state = newSymbolState()) {
   if (ticker24h.observedAtMs > latest.endMs + 5_000 ||
       latest.endMs - ticker24h.observedAtMs > SETTINGS.maxTickerAgeMs)
     return {event:null, reason:'STALE_BINANCE_TICKER',state};
-  const eligible = pct >= SETTINGS.minBinance24hChangePct &&
-    lastPrice < SETTINGS.maxPriceExclusive;
+  const eligible = pct > SETTINGS.minBinance24hChangePct &&
+    lastPrice < SETTINGS.maxPriceExclusive && finite(quoteVolume24h) &&
+    quoteVolume24h>SETTINGS.minQuoteVolume24h;
   const one = metrics(oneMinute), five = metrics(fiveMinute);
   const fifteen = metrics(fifteenMinute), hour = metrics(oneHour);
   const c = oneMinute.map(x=>x.close);
@@ -174,7 +177,7 @@ export function stepLongA(symbol, data, state = newSymbolState()) {
     reason: signal ? null : (!eligible?'BINANCE_24H_FILTER':'NO_CONFIRMED_SIGNAL'),
     event:signal ? {id:`${symbol}:${latest.endMs}:${signal}`,symbol,signal,
       barClosedAtMs:latest.endMs,price:one.close,
-      binance24hChangePct:pct,
+      binance24hChangePct:pct,quoteVolume24h,
       priority:pct>=SETTINGS.highPriorityChangePct?'HIGH':'STANDARD',
       source:'BINANCE_USDM_24H+LOCAL_CLOSED_CANDLE_EVALUATOR',
       status:'RESEARCH_ONLY'}:null,
@@ -199,9 +202,19 @@ export function eligibleUniverse(tickers) {
     finite(Number(t.lastPrice)) && Number(t.lastPrice)>0 &&
     Number(t.lastPrice)<SETTINGS.maxPriceExclusive &&
     finite(Number(t.priceChangePercent)) &&
-    Number(t.priceChangePercent)>=SETTINGS.minBinance24hChangePct)
+    Number(t.priceChangePercent)>SETTINGS.minBinance24hChangePct &&
+    Number.isFinite(t.quoteVolume24h) && t.quoteVolume24h>SETTINGS.minQuoteVolume24h)
     .map(t=>({symbol:t.symbol,price:Number(t.lastPrice),
-      binance24hChangePct:Number(t.priceChangePercent),
+      binance24hChangePct:Number(t.priceChangePercent),quoteVolume24h:t.quoteVolume24h,
       priority:Number(t.priceChangePercent)>=SETTINGS.highPriorityChangePct?'HIGH':'STANDARD'}))
     .sort((a,b)=>b.binance24hChangePct-a.binance24hChangePct);
+}
+
+/** The immutable market eligibility used on every product surface.
+ * A confirmed LONG A is not a deliverable alert if its as-of market
+ * snapshot failed ANY of the owner's strict 24h screening rules. */
+export function productEligible({price,binance24hChangePct,quoteVolume24h}={}){
+  return [price,binance24hChangePct,quoteVolume24h].every(n=>typeof n==='number'&&Number.isFinite(n))&&
+    price>0&&price<SETTINGS.maxPriceExclusive&&binance24hChangePct>SETTINGS.minBinance24hChangePct&&
+    quoteVolume24h>SETTINGS.minQuoteVolume24h;
 }

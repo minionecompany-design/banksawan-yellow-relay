@@ -52,6 +52,7 @@ public class MainActivity extends Activity {
     private long lastRefreshMs = 0L;
     private volatile long lastEventCursorMs = 0L;
     private volatile boolean connectionHealthy = false;
+    private boolean backendIncompatible = false;
     private boolean pendingSoundSelfTest = false;
     private int lastCovered = 0;
     private int lastEligible = 0;
@@ -133,7 +134,8 @@ public class MainActivity extends Activity {
                        !id.equals(symbol+":"+tf+":"+e.optLong("barClosedAtMs",-1)+":LONG_A")) continue;
                     YellowNotifier.claimAndNotify(this,id,symbol,tf,
                       e.optLong("barClosedAtMs",-1),e.optLong("expiresAtMs",0),
-                      e.optDouble("price",0),e.optDouble("binance24hChangePct",0));
+                      e.optDouble("price",0),e.optDouble("binance24hChangePct",0),
+                       e.optDouble("quoteVolume24h",Double.NaN));
                 }
                 // Subtract 1ms to accommodate events with identical server timestamps;
                 // the durable local event-id claim prevents duplicates.
@@ -166,7 +168,7 @@ public class MainActivity extends Activity {
         header.setGravity(Gravity.CENTER_VERTICAL);header.setPadding(0,dp(3),0,dp(14));
         header.addView(text("BANKSAWAN YELLOW",24,YELLOW,true));
         root.addView(header);
-        status=text("MENUNGGU DATA",13,GREEN,true);status.setGravity(Gravity.CENTER);
+        status=text("MENUNGGU DATA",13,YELLOW,true);status.setGravity(Gravity.CENTER);
         status.setPadding(dp(8),dp(12),dp(8),dp(12));status.setBackground(shape(CARD,LINE));root.addView(status);
         scroll=new ScrollView(this);scroll.setFillViewport(true);
         list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);list.setPadding(0,dp(14),0,dp(14));scroll.addView(list);
@@ -188,38 +190,77 @@ public class MainActivity extends Activity {
         LinearLayout row=new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0,dp(7),0,dp(7));
+        row.setPadding(0,dp(2),0,dp(2));
         TextView left=text(label,12,MUTED,false);
+        left.setSingleLine(true);
+        left.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        left.setIncludeFontPadding(false);
         left.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);
         TextView right=text(value,14,Color.WHITE,true);
+        right.setSingleLine(true);
+        right.setIncludeFontPadding(false);
         right.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);
         right.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_END);
-        row.addView(left,new LinearLayout.LayoutParams(0,-2,1.1f));
-        row.addView(right,new LinearLayout.LayoutParams(0,-2,1.35f));
+        row.addView(left,new LinearLayout.LayoutParams(0,-2,0.9f));
+        row.addView(right,new LinearLayout.LayoutParams(0,-2,1.55f));
         parent.addView(row);
+    }
+    private static Uri tradingViewSymbolUri(String symbol){
+        // A symbol-specific, public HTTPS page is less vulnerable to the
+        // last-used chart layout than /chart/?symbol= after TradingView updates.
+        // No private/undocumented TradingView app URI scheme is assumed.
+        if(symbol==null||!symbol.matches("[A-Z0-9]{2,25}USDT"))return null;
+        return new Uri.Builder().scheme("https").authority("www.tradingview.com")
+            .appendPath("symbols").appendPath(symbol+".P")
+            .appendQueryParameter("exchange","BINANCE").build();
     }
     private void tradingView(String symbol,LinearLayout parent){
         Button b=new Button(this);b.setText("BUKA TRADINGVIEW ↗");b.setTextColor(BG);
-        b.setBackground(shape(Color.rgb(51,179,229),0));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(48));
-        p.setMargins(0,dp(14),0,0);parent.addView(b,p);
-        b.setOnClickListener(v->{if(!symbol.matches("[A-Z0-9]{2,25}USDT"))return;
-            Uri uri=Uri.parse("https://www.tradingview.com/chart/?symbol="+Uri.encode("BINANCE:"+symbol+".P"));
-            Intent intent=new Intent(Intent.ACTION_VIEW,uri);intent.addCategory(Intent.CATEGORY_BROWSABLE);
-            try{startActivity(intent);}catch(Exception ignored){} });
+        b.setTextSize(12);b.setMinHeight(0);b.setMinimumHeight(0);b.setPadding(dp(8),0,dp(8),0);
+        b.setBackground(shape(Color.rgb(51,179,229),0));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(40));
+        p.setMargins(0,dp(8),0,0);parent.addView(b,p);
+        b.setOnClickListener(v->{
+            Uri uri=tradingViewSymbolUri(symbol);if(uri==null)return;
+            Intent app=new Intent(Intent.ACTION_VIEW,uri);
+            app.addCategory(Intent.CATEGORY_BROWSABLE);
+            app.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
+            app.setPackage("com.tradingview.tradingviewapp");
+            try{startActivity(app);}
+            catch(Exception unavailable){
+                Intent browser=new Intent(Intent.ACTION_VIEW,uri);
+                browser.addCategory(Intent.CATEGORY_BROWSABLE);
+                try{startActivity(browser);}catch(Exception ignored){}
+            }
+        });
+        // Same UI: holding the existing button explicitly opens a browser
+        // fallback so an app release that ignores a symbol link is diagnosable.
+        b.setOnLongClickListener(v->{
+            Uri uri=tradingViewSymbolUri(symbol);if(uri==null)return true;
+            Intent chrome=new Intent(Intent.ACTION_VIEW,uri);
+            chrome.addCategory(Intent.CATEGORY_BROWSABLE);
+            chrome.setPackage("com.android.chrome");
+            try{startActivity(chrome);}
+            catch(Exception unavailable){
+                Intent browser=new Intent(Intent.ACTION_VIEW,uri);
+                browser.addCategory(Intent.CATEGORY_BROWSABLE);
+                try{startActivity(browser);}catch(Exception ignored){}
+            }
+            return true;
+        });
     }
     private void card(String symbol,JSONObject item,boolean isHome){
-        LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(dp(19),dp(19),dp(19),dp(17));
+        LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(dp(12),dp(10),dp(12),dp(10));
         box.setBackground(shape(CARD,LINE));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);
-        p.setMargins(0,0,0,dp(13));list.addView(box,p);
+        p.setMargins(0,0,0,dp(8));list.addView(box,p);
         box.addView(text(symbol,24,Color.WHITE,true));
         double price=item.optDouble(isHome?"price":"price",0);
         line(box,isHome?(BuildConfig.DEMO_MODE?"Harga LONG A (DEMO):":"Harga LONG A:"):
             (BuildConfig.DEMO_MODE?"Harga contoh:":"Harga terakhir:"),number(price)+" USDT");
-        line(box,BuildConfig.DEMO_MODE?"Perubahan Binance 24H (DEMO):":"Perubahan Binance 24H:",
+        line(box,BuildConfig.DEMO_MODE?"Chg % 24H (DEMO)":"Chg % 24H",
             String.format(Locale.US,"%+.2f%%",item.optDouble("binance24hChangePct")));
-        if(isHome){line(box,"Timeframe LONG A",item.optString("timeframe","1m").toUpperCase(Locale.ROOT));
+        if(isHome){line(box,"Timeframe",item.optString("timeframe","1m").toUpperCase(Locale.ROOT));
             long first=item.optLong("firstSeenMs",0);
-            line(box,"Mulai HOME",formattedTime(first));}
+            line(box,"Mulai",formattedTime(first));}
         else line(box,"Prioritas:",item.optString("priority","STANDARD"));
         if (isHome) tradingView(symbol,box);
     }
@@ -236,9 +277,11 @@ public class MainActivity extends Activity {
             String symbol = coin.optString("symbol", "");
             double price = coin.optDouble("price", Double.NaN);
             double change = coin.optDouble("binance24hChangePct", Double.NaN);
+            double quoteVolume = coin.optDouble("quoteVolume24h", Double.NaN);
             if (!symbol.matches("[A-Z0-9]{2,25}USDT")
                 || !Double.isFinite(price) || price <= 0 || price >= 10.0
-                || !Double.isFinite(change) || change < 1.0) continue;
+                || !Double.isFinite(change) || change <= 1.0
+                || !Double.isFinite(quoteVolume) || quoteVolume <= 10_000_000.0) continue;
             eligible.add(coin);
         }
         eligible.sort((left, right) -> Double.compare(
@@ -268,7 +311,8 @@ public class MainActivity extends Activity {
                 && System.currentTimeMillis() - lastRefreshMs < 180_000L;
             String detail = fresh
                 ? "LIVE SHADOW • " + lastCovered + "/" + lastEligible + " DIPINDAI • PILOT MTF"
-                : "SERVER OFFLINE • DATA TIDAK TERBARU";
+                : backendIncompatible ? "DATA BACKEND BELUM SESUAI • TANPA DATA LIVE"
+                : "SERVER / FEED TIDAK SIAP • DATA TIDAK TERBARU";
             TextView health = text(detail, 11, fresh ? GREEN : YELLOW, true);
             health.setPadding(0, dp(5), 0, dp(8));
             list.addView(health);
@@ -292,11 +336,45 @@ public class MainActivity extends Activity {
         for (JSONObject coin : eligible) addUniverseRow(coin);
 
         if (eligible.isEmpty()) {
-            TextView empty = text("Belum ada koin yang memenuhi filter Binance 24H ≥ +1% dan harga <10 USDT.",
+            TextView empty = text(emptyUniverseMessage(BuildConfig.DEMO_MODE || connectionHealthy, backendIncompatible),
                 13, MUTED, false);
             empty.setPadding(0, dp(18), 0, 0);
             list.addView(empty);
         }
+    }
+
+    static String emptyUniverseMessage(boolean ready, boolean incompatible) {
+        if (incompatible) return "Data backend belum sesuai. Daftar koin belum dapat ditampilkan.";
+        if (!ready) return "Data pasar belum tersedia. Jumlah koin yang memenuhi filter belum dapat ditentukan.";
+        return "Belum ada koin yang memenuhi filter Binance 24H > +1%, 0 < harga < 10 USDT, dan volume 24H > 10.000.000 USDT.";
+    }
+
+    static void verifyCoverage(int covered, int eligible, int maximum) {
+        if(covered<0 || eligible<0 || maximum<1 || maximum>50 || covered>maximum || covered>eligible)
+            throw new IllegalStateException("YELLOW_BACKEND_INCOMPATIBLE");
+    }
+
+    static void verifyUniverseSnapshot(JSONArray rows, int covered, int eligible, int maximum) {
+        verifyCoverage(covered,eligible,maximum);
+        if(rows==null || rows.length()!=eligible) throw new IllegalStateException("YELLOW_BACKEND_INCOMPATIBLE");
+        java.util.HashSet<String> symbols=new java.util.HashSet<>();
+        int scanning=0;
+        for(int i=0;i<rows.length();i++) {
+            JSONObject row=rows.optJSONObject(i);
+            if(row==null) throw new IllegalStateException("YELLOW_BACKEND_INCOMPATIBLE");
+            String symbol=row.optString("symbol","");
+            double price=row.optDouble("price",Double.NaN),change=row.optDouble("binance24hChangePct",Double.NaN);
+            double volume=row.optDouble("quoteVolume24h",Double.NaN);
+            String coverage=row.optString("coverage","");
+            if(!symbol.matches("[A-Z0-9]{2,25}USDT") || !symbols.add(symbol)
+                || !Double.isFinite(price) || price<=0 || price>=10
+                || !Double.isFinite(change) || change<=1
+                || !Double.isFinite(volume) || volume<=10_000_000
+                || !("SCANNING".equals(coverage)||"BOOTSTRAPPING".equals(coverage)||"QUEUED".equals(coverage)))
+                throw new IllegalStateException("YELLOW_BACKEND_INCOMPATIBLE");
+            if("SCANNING".equals(coverage))scanning++;
+        }
+        if(scanning!=covered)throw new IllegalStateException("YELLOW_BACKEND_INCOMPATIBLE");
     }
 
     private String shortTime(long ms) {
@@ -372,9 +450,11 @@ public class MainActivity extends Activity {
             if (!symbol.matches("[A-Z0-9]{2,25}USDT")) continue;
             double price = item.optDouble("price", Double.NaN);
             double pct = item.optDouble("binance24hChangePct", Double.NaN);
+            double quoteVolume = item.optDouble("quoteVolume24h", Double.NaN);
             String tf = item.optString("timeframe", "");
             if (!Double.isFinite(price) || price <= 0 || price >= 10
-                || !Double.isFinite(pct) || pct < 1
+                || !Double.isFinite(pct) || pct <= 1
+                 || !Double.isFinite(quoteVolume) || quoteVolume <= 10_000_000.0
                 || !(tf.equals("1m") || tf.equals("5m") || tf.equals("15m") || tf.equals("1h"))) continue;
             card(symbol, item, true);
             count++;
@@ -399,6 +479,7 @@ public class MainActivity extends Activity {
                 int covered=statusReply.optInt("covered",-1);
                 int eligible=statusReply.optInt("eligible",-1);
                 int maximum=statusReply.optInt("maxTracked",-1);
+                verifyCoverage(covered,eligible,maximum);
                 boolean tickerFresh=tickerAt>0 && tickerAt<=now+10_000L
                     && now-tickerAt<30_000L;
                 boolean klineFresh=covered==0 || (klineAt>0 && klineAt<=now+10_000L
@@ -408,7 +489,7 @@ public class MainActivity extends Activity {
                     || !statusReply.optBoolean("tickerConnected",false)
                     || !statusReply.optBoolean("klineConnected",false)
                     || guard==null || guard.optBoolean("circuitOpen",true)
-                    || covered<0 || eligible<0 || maximum<1 || maximum>200 || covered>maximum
+                    || covered<0 || eligible<0 || maximum<1 || maximum>50 || covered>maximum
                     || !tickerFresh || !klineFresh){
                     throw new IllegalStateException("YELLOW_MARKET_NOT_READY_OR_STALE");
                 }
@@ -421,27 +502,33 @@ public class MainActivity extends Activity {
                 JSONObject coverage=universeReply.getJSONObject("coverage");
                 int newCovered=coverage.getInt("covered");
                 int newEligible=coverage.getInt("eligible");
-                if(newCovered<0||newCovered>maximum||newEligible<0)
-                    throw new IllegalStateException("INVALID_SCANNER_COVERAGE");
-                runOnUiThread(()->{
-                    home=newHome;universe=newUniverse;
-                    lastCovered=newCovered;lastEligible=newEligible;
-                    lastRefreshMs=System.currentTimeMillis();
-                    connectionHealthy=true;
-                    status.setText("LIVE SHADOW • "+newCovered+"/"+newEligible+" DIPINDAI");
-                    render();
-                });
+                verifyUniverseSnapshot(newUniverse,newCovered,newEligible,coverage.optInt("maxTracked",-1));
+                runOnUiThread(()->applyLiveSnapshot(newHome,newUniverse,newCovered,newEligible));
             }catch(Exception err){
-                runOnUiThread(()->{
-                    // Clear all last-known prices and signals. Never display stale data as LIVE.
-                    connectionHealthy=false;
-                    home=new JSONArray();universe=new JSONArray();
-                    lastCovered=0;lastEligible=0;lastRefreshMs=0;
-                    status.setText("SERVER / FEED TIDAK SIAP • TANPA DATA LIVE");
-                    render();
-                });
+                runOnUiThread(()->applyRefreshFailure(err));
             }finally{refreshInFlight=false;}
         });
+    }
+    // UI-thread publication shared by the refresh path and offline Activity tests.
+    void applyLiveSnapshot(JSONArray newHome,JSONArray newUniverse,int newCovered,int newEligible) {
+        home=newHome;universe=newUniverse;
+        lastCovered=newCovered;lastEligible=newEligible;
+        lastRefreshMs=System.currentTimeMillis();
+        connectionHealthy=true;backendIncompatible=false;
+        status.setTextColor(GREEN);
+        status.setText("LIVE SHADOW • "+newCovered+"/"+newEligible+" DIPINDAI");
+        render();
+    }
+    void applyRefreshFailure(Exception err) {
+        // Clear all last-known prices and signals. Never display stale data as LIVE.
+        connectionHealthy=false;
+        backendIncompatible="YELLOW_BACKEND_INCOMPATIBLE".equals(err.getMessage());
+        home=new JSONArray();universe=new JSONArray();
+        lastCovered=0;lastEligible=0;lastRefreshMs=0;
+        status.setTextColor(YELLOW);
+        if(backendIncompatible)status.setText("DATA BACKEND BELUM SESUAI • TANPA DATA LIVE");
+        else status.setText("SERVER / FEED TIDAK SIAP • TANPA DATA LIVE");
+        render();
     }
     private void verifyLive(JSONObject response)throws Exception {
         if(response.optBoolean("simulation",true)
@@ -462,13 +549,13 @@ public class MainActivity extends Activity {
         long anchor=getSharedPreferences("yellow_demo",MODE_PRIVATE).getLong("demoAnchorMs",0);
         if(anchor==0){anchor=now;getSharedPreferences("yellow_demo",MODE_PRIVATE).edit().putLong("demoAnchorMs",anchor).apply();}
         try{home=new JSONArray().put(new JSONObject().put("symbol","WALUSDT").put("timeframe","15m").put("price",0.05123)
-          .put("binance24hChangePct",5.8).put("firstSeenMs",anchor-35*60_000).put("homeExpiresMs",anchor+23*60*60_000+25*60_000))
+          .put("binance24hChangePct",5.8).put("quoteVolume24h",20_000_000).put("firstSeenMs",anchor-35*60_000).put("homeExpiresMs",anchor+23*60*60_000+25*60_000))
           .put(new JSONObject().put("symbol","ARCUSDT").put("timeframe","1m").put("price",0.03741)
-          .put("binance24hChangePct",2.7).put("firstSeenMs",anchor-97*60_000).put("homeExpiresMs",anchor+22*60*60_000+23*60_000));
+          .put("binance24hChangePct",2.7).put("quoteVolume24h",20_000_000).put("firstSeenMs",anchor-97*60_000).put("homeExpiresMs",anchor+22*60*60_000+23*60_000));
           universe=new JSONArray().put(new JSONObject().put("symbol","WALUSDT").put("timeframe","15m").put("price",0.05123)
-           .put("binance24hChangePct",5.8).put("priority","HIGH"))
+           .put("binance24hChangePct",5.8).put("quoteVolume24h",20_000_000).put("priority","HIGH"))
            .put(new JSONObject().put("symbol","ARCUSDT").put("timeframe","1m").put("price",0.03741)
-           .put("binance24hChangePct",2.7).put("priority","STANDARD"));
+           .put("binance24hChangePct",2.7).put("quoteVolume24h",20_000_000).put("priority","STANDARD"));
           lastRefreshMs=System.currentTimeMillis();status.setText("DEMO OFFLINE • 0 REQUEST BINANCE");render();
         }catch(Exception ignored){}
     }

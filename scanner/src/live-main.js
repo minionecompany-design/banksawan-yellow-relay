@@ -19,7 +19,7 @@ const fcm=new YellowFcm({enabled:process.env.YELLOW_FCM_ENABLED==='true',
 const research=process.env.YELLOW_GOLD_EVIDENCE_ENABLED==='true'
   ?new QualityCaptureBridgeV1({dataDir,log:(...args)=>console.warn(...args)}):null;
 if(research)await research.initialize();
-const market=new YellowLiveMarket({dataDir,maxTracked:Number(process.env.YELLOW_MAX_TRACKED||200),
+const market=new YellowLiveMarket({dataDir,maxTracked:Number(process.env.YELLOW_MAX_TRACKED||50),
   passiveEvidence:research,
   sendEvent:async event=>{
     const delivery=await fcm.send(event);

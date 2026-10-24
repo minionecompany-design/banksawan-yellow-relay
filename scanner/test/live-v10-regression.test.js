@@ -14,13 +14,13 @@ class Socket {
 const dir=()=>mkdtemp(path.join(os.tmpdir(),'yellow-v10-'));
 const symbol='AGTUSDT';
 const event=(tf,end,s=symbol)=>({id:`${s}:${tf}:${end}:LONG_A`,symbol:s,timeframe:tf,barClosedAtMs:end,
- signal:'LONG_A',price:.04,binance24hChangePct:5});
+ signal:'LONG_A',price:.04,binance24hChangePct:5,quoteVolume24h:20_000_000});
 async function setup(){let now=BASE,rest=0;
  const market=new YellowLiveMarket({dataDir:await dir(),clock:()=>now,random:()=>0,wsClass:Socket,
   guard:{closedReason:null,metrics:()=>({circuitOpen:false}),getJson:async()=>{rest++;throw Error('UNEXPECTED_REST');}},log:()=>{}});
  market.isRunning=true;market.exchangeSymbols.set(symbol,{symbol,quoteAsset:'USDT',contractType:'PERPETUAL',status:'TRADING'});
  const open=()=>{market.tickerWs.emit('open');market.klineWs.emit('open');};
- const tick=(price='.04')=>market.tickerWs.emit('message',{data:JSON.stringify([{s:symbol,c:price,P:'5',E:now,st:1}])});
+ const tick=(price='.04')=>market.tickerWs.emit('message',{data:JSON.stringify([{s:symbol,c:price,P:'5',q:'20000000',E:now,st:1}])});
  market.connectWebsockets();open();tick();
  return {market,open,tick,setNow:x=>now=x,rest:()=>rest};
 }
@@ -43,11 +43,11 @@ test('more than 20 independent events persist; non-LONG A never enters HOME',asy
  assert.equal(l.home().length,35);assert.equal(l.home()[0].barClosedAtMs,now);
  for(const signal of ['LONG_B','PROTECT','HOT','OUT_FINAL'])assert.equal((await l.accept({...event('1m',now),signal})).accepted,false);
 });
-test('legacy one-hour record keeps original expiry; missing historic TFs are never reconstructed',async()=>{
+test('legacy HOME without quote-volume proof stays hidden, without inventing proof',async()=>{
  const filename=path.join(await dir(),'home.json');
- await writeFile(filename,JSON.stringify({version:1,home:[{...event('5m',BASE),firstSeenMs:BASE,homeExpiresMs:BASE+H}],events:[],claimed:[]}));
+ await writeFile(filename,JSON.stringify({version:1,home:[{...event('5m',BASE),quoteVolume24h:undefined,firstSeenMs:BASE,homeExpiresMs:BASE+H}],events:[],claimed:[]}));
  const l=new LiveHomeLedger({filename,clock:()=>BASE+1000});await l.restore();
- assert.equal(l.home().length,1);assert.equal(l.home()[0].homeExpiresMs,BASE+H);
+ assert.equal(l.home().length,0,'volume-less historic event must not be revived');
 });
 test('recovery has bounded jitter/backoff, ignores retired sockets and performs zero unguarded REST',async()=>{
  const {market,open,tick,setNow,rest}=await setup();

@@ -1,9 +1,9 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {mkdtemp,readFile,writeFile} from 'node:fs/promises';import os from 'node:os';import path from 'node:path';
+import {mkdtemp,readFile,writeFile,mkdir,rm} from 'node:fs/promises';import os from 'node:os';import path from 'node:path';
 import {LiveHomeLedger} from '../src/live-home-ledger.js';
 const BASE=Date.UTC(2026,9,15,12),FILE=async()=>path.join(await mkdtemp(path.join(os.tmpdir(),'yellow-home-')),'events.json');
 const sample=(tf='15m',end=BASE,symbol='WALUSDT')=>({id:`${symbol}:${tf}:${end}:LONG_A`,symbol,timeframe:tf,signal:'LONG_A',
- barClosedAtMs:end,price:.05123,binance24hChangePct:5.8,priority:'HIGH'});
+ barClosedAtMs:end,price:.05123,binance24hChangePct:5.8,quoteVolume24h:20_000_000,priority:'HIGH'});
 test('two TF events have independent ten-hour HOME timers and survive restart',async()=>{
  const filename=await FILE();let now=BASE+1000;const first=new LiveHomeLedger({filename,clock:()=>now});await first.restore();
  assert.equal((await first.accept(sample())).accepted,true);
@@ -55,4 +55,25 @@ test('accept serializes concurrent claims exactly once',async()=>{
  const results=await Promise.all(Array.from({length:25},()=>store.accept(sample())));
  assert.equal(results.filter(r=>r.accepted).length,1);
  assert.equal(store.eventsSince(0).length,1);
+});
+test('failed disk commit publishes no phantom event or claim; durable events and retry survive',async()=>{
+ const dir=await mkdtemp(path.join(os.tmpdir(),'yellow-ledger-disk-failure-'));
+ try{
+  const filename=path.join(dir,'events.json'),blocked=path.join(dir,'blocked');
+  const store=new LiveHomeLedger({filename,clock:()=>BASE+1000});await store.restore();
+  const original=sample('15m'),next=sample('1m');
+  assert.equal((await store.accept(original)).accepted,true);
+  const committed=await readFile(filename,'utf8');
+  await mkdir(blocked);store.filename=blocked; // Atomic rename cannot replace a directory.
+  const results=await Promise.allSettled([store.accept(next),store.accept(next)]);
+  assert.ok(results.every(r=>r.status==='rejected'),'failed writes must not become successful duplicate claims');
+  assert.deepEqual(store.home().map(e=>e.id),[original.id]);
+  assert.deepEqual(store.eventsSince(0).map(e=>e.id),[original.id]);
+  assert.equal(await readFile(filename,'utf8'),committed,'last successful disk snapshot is intact');
+  store.filename=filename;
+  assert.equal((await store.accept(next)).accepted,true,'failed commit must not consume the event identity');
+  const restarted=new LiveHomeLedger({filename,clock:()=>BASE+2000});await restarted.restore();
+  assert.equal(restarted.home().length,2);
+  assert.equal((await restarted.accept(next)).reason,'DUPLICATE');
+ }finally{await rm(dir,{recursive:true,force:true});}
 });

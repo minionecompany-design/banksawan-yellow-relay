@@ -5,6 +5,7 @@ import os from 'node:os';import path from 'node:path';
 import {LaneCheckpoint} from '../src/live-state-checkpoint.js';
 import {newParallelState,PERIODS} from '../src/parallel-long-a.js';
 import {YellowLiveMarket} from '../src/live-market.js';
+import {newPineOneMinuteState} from '../src/pine-v13-one-minute.js';
 const END=Date.UTC(2026,9,17,6),symbol='AGTUSDT';
 const temp=()=>mkdtemp(path.join(os.tmpdir(),'yellow-checkpoint-'));
 const book=(ends={})=>({latest:tf=>({endMs:ends[tf]??END})});
@@ -42,14 +43,14 @@ test('checkpoint rejects path traversal and serializes immutable snapshots',asyn
  const first=store.save(symbol,s,END);s['1h'].countDown=13;const second=store.save(symbol,s,END);
  await Promise.all([first,second]);assert.equal((await store.restore(symbol,book(),END)).states['1h'].countDown,13);
 });
-test('86 eligible symbols fill gradually past 24; one bootstrap per pass, no duplicates or direct fetch',async()=>{
+test('capacity 50 fills all eligible until its maximum; no duplicates or direct fetch',async()=>{
  const market=new YellowLiveMarket({dataDir:await temp(),clock:()=>END,wsClass:class {},
   guard:{closedReason:null,metrics:()=>({})},log:()=>{}});
  const list=Array.from({length:86},(_,i)=>({symbol:'COIN'+i+'USDT'}));let calls=0;
  market.bootstrap=async symbol=>{calls++;market.covered.set(symbol,{});};
- for(let i=0;i<86;i++){await market.bootstrapNextEligible(list);assert.equal(calls,i+1);}
- await market.bootstrapNextEligible(list);assert.equal(calls,86);assert.equal(market.covered.size,86);
- assert.equal(market.maxTracked,200);
+ for(let i=0;i<86;i++){await market.bootstrapNextEligible(list);}
+ await market.bootstrapNextEligible(list);assert.equal(calls,50);assert.equal(market.covered.size,50);
+ assert.equal(market.maxTracked,50);
 });
 test('explicit pilot cap, remote pause and invalid config remain enforced',async()=>{
  const config={dataDir:await temp(),clock:()=>END,wsClass:class {},log:()=>{},guard:{closedReason:null,isRemotePaused:()=>false,metrics:()=>({})}};
@@ -59,7 +60,7 @@ test('explicit pilot cap, remote pause and invalid config remain enforced',async
  for(let i=0;i<30;i++)await market.bootstrapNextEligible(list);assert.equal(calls,24);
  market.covered.clear();market.guard.isRemotePaused=()=>true;
  await market.bootstrapNextEligible(list);assert.equal(calls,24);
- for(const maxTracked of [NaN,0,201,1.5])assert.throws(()=>new YellowLiveMarket({...config,maxTracked}),/INVALID_MAX_TRACKED/);
+ for(const maxTracked of [NaN,0,51,201,1.5])assert.throws(()=>new YellowLiveMarket({...config,maxTracked}),/INVALID_MAX_TRACKED/);
 });
 test('real bootstrap restores only matching TF cursors, uses exactly four guarded requests and sends no old event',async()=>{
  const dataDir=await temp();let calls=0,sends=0;
@@ -69,7 +70,8 @@ test('real bootstrap restores only matching TF cursors, uses exactly four guarde
    return [end-period,'.05','.051','.049','.05','100',end-1,'5',10,'50','2.5'];});
  }};
  const config={dataDir,clock:()=>END+1000,wsClass:class {},guard,log:()=>{},sendEvent:async()=>sends++};
- const original=states();await new LaneCheckpoint(path.join(dataDir,'lane-checkpoints')).save(symbol,original,END);
+ const original=states();original['1m']={...newPineOneMinuteState(),...original['1m']};
+ await new LaneCheckpoint(path.join(dataDir,'lane-checkpoints')).save(symbol,original,END);
  const market=new YellowLiveMarket(config);await market.bootstrap(symbol);
  assert.equal(calls,4);assert.equal(sends,0);assert.deepEqual(market.covered.get(symbol).states,original);
  assert.equal(market.covered.get(symbol).resumedLanes.length,4);

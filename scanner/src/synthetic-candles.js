@@ -48,7 +48,7 @@ export function makeSyntheticParallelDataset({symbol='TESTUSDT',scenario='1m',si
   }
   const tickers=oneMinute.map(b=>({symbol,source:'BINANCE_USDM_FUTURES',
     contractType:'PERPETUAL',status:'TRADING',observedAtMs:b.endMs,
-    lastPrice:b.close,priceChangePercent:change24hPct}));
+    lastPrice:b.close,priceChangePercent:change24hPct,quoteVolume24h:20_000_000}));
   return {symbol,oneMinute,
     fiveMinute:completedBuckets(oneMinute,'fiveMinute'),
     fifteenMinute:completedBuckets(oneMinute,'fifteenMinute'),

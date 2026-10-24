@@ -50,9 +50,13 @@ export function normalizeBinanceTicker({symbol,ticker,exchangeSymbol,observedAtM
   if(!Number.isSafeInteger(observedAtMs)||observedAtMs<=0)
     throw new Error('TICKER_OBSERVATION_TIMESTAMP_REQUIRED');
   const price=Number(ticker.lastPrice),percent=Number(ticker.priceChangePercent);
-  if(!positive(price)||!Number.isFinite(percent))throw new Error('TICKER_NUMBERS_INVALID');
+  // Binance USD-M REST ticker quoteVolume and all-market WS ticker q are
+  // rolling quote-asset turnover (USDT). Absence fails product eligibility.
+  const quoteVolume24h=ticker.quoteVolume===undefined||ticker.quoteVolume===null?null:Number(ticker.quoteVolume);
+  if(!positive(price)||!Number.isFinite(percent)||
+     (quoteVolume24h!==null&&(!nonnegative(quoteVolume24h))))throw new Error('TICKER_NUMBERS_INVALID');
   return {symbol,source:'BINANCE_USDM_FUTURES',contractType:'PERPETUAL',status:'TRADING',
-    observedAtMs,lastPrice:price,priceChangePercent:percent};
+    observedAtMs,lastPrice:price,priceChangePercent:percent,quoteVolume24h};
 }
 
 /**

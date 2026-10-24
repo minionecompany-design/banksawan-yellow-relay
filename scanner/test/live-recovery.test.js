@@ -6,6 +6,7 @@ import path from 'node:path';
 import {YellowLiveMarket} from '../src/live-market.js';
 import {CandleBook} from '../src/live-candle-book.js';
 import {newParallelState} from '../src/parallel-long-a.js';
+import {newPineOneMinuteState} from '../src/pine-v13-one-minute.js';
 
 const M=60_000, END=Date.UTC(2026,9,15,12,30);
 const candle=(endMs)=>({endMs,open:0.05,high:0.051,low:0.049,close:0.05,volume:100});
@@ -22,6 +23,7 @@ async function marketAt(nowMs=END+M+2_000){
   book.history['15m']=series(15*M,END);
   book.history['1h']=series(60*M,END-30*M);
   const states=newParallelState();
+  states['1m']=newPineOneMinuteState();
   for(const tf of Object.keys(states))states[tf].lastProcessedEndMs=book.latest(tf).endMs;
   states['1m'].lastProcessedEndMs=END;
   const tracked={book,states};

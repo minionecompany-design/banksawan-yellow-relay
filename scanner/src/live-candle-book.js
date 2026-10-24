@@ -5,10 +5,15 @@ export const KEYS={'1m':'oneMinute','5m':'fiveMinute','15m':'fifteenMinute','1h'
 const MAX=190;
 export class CandleGap extends Error {constructor(code){super(code);this.name='CandleGap';}}
 export class CandleBook {
-  constructor(symbol){this.symbol=symbol;this.history=Object.fromEntries(Object.keys(PERIODS).map(tf=>[tf,[]]));}
+  constructor(symbol,{retainRecoveryHistory=false}={}){this.symbol=symbol;
+    this.retainRecoveryHistory=retainRecoveryHistory;
+    this.legacyLengths=Object.fromEntries(Object.keys(PERIODS).map(tf=>[tf,MAX]));
+    this.limits=retainRecoveryHistory?{'1m':999,'5m':499,'15m':249,'1h':190}:Object.fromEntries(Object.keys(PERIODS).map(tf=>[tf,MAX]));
+    this.history=Object.fromEntries(Object.keys(PERIODS).map(tf=>[tf,[]]));}
   bootstrap(tf,rows,nowMs){const bars=normalizeBinanceKlines(rows.filter(r=>Number(r[6])+1<=nowMs),tf,{asOfMs:nowMs});
     if(bars.length<140)throw new CandleGap('INSUFFICIENT_BOOTSTRAP_'+tf);
-    this.history[tf]=bars.slice(-MAX);
+    this.history[tf]=bars.slice(-this.limits[tf]);
+    if(this.retainRecoveryHistory)this.legacyLengths[tf]=Math.min(170,bars.length);
   }
   latest(tf){return this.history[tf]?.at(-1)||null;}
   ingestKline(message,nowMs){
@@ -24,8 +29,10 @@ export class CandleBook {
     if(prior&&prior.endMs===end)return {status:'DUPLICATE'};
     if(prior&&end-prior.endMs!==period)throw new CandleGap('MISSING_OR_OUT_OF_ORDER_'+tf);
     const bar={endMs:end,open,high,low,close,volume};
-    bars.push(bar);if(bars.length>MAX)bars.shift();
+    bars.push(bar);if(bars.length>this.limits[tf])bars.shift();
+    this.legacyLengths[tf]=Math.min(MAX,this.legacyLengths[tf]+1);
     return {status:'APPENDED',timeframe:tf,endMs:end};
   }
-  snapshot(){return Object.fromEntries(Object.entries(KEYS).map(([tf,key])=>[key,this.history[tf].slice()]));}
+  snapshot(){return Object.fromEntries(Object.entries(KEYS).map(([tf,key])=>[key,this.history[tf].slice(-this.legacyLengths[tf])]));}
+  pineSnapshot(){return Object.fromEntries(Object.entries(KEYS).map(([tf,key])=>[key,this.history[tf].slice()]));}
 }
