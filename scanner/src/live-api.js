@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {validAnalysisEventId} from './analysis-companion.js';
 const response=(res,status,value)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8',
  'Cache-Control':'no-store, max-age=0','X-Content-Type-Options':'nosniff',
  'Referrer-Policy':'no-referrer'});res.end(JSON.stringify(value));};
@@ -12,7 +13,26 @@ export function createLiveApi(market){return http.createServer((req,res)=>{
   if(market.isHalted||!market.isRunning||market.wsRecovering||!market.tickerConnected||!market.klineConnected||
     (market.lastTickerDataAtMs && market.clock()-market.lastTickerDataAtMs>=30000))
     return response(res,503,{error:'MARKET_NOT_READY_FAIL_CLOSED'});
-  if(url.pathname==='/api/home')return response(res,200,{home:market.home(),simulation:false,mode:'LIVE_SHADOW'});
+  if(url.pathname==='/api/home'){
+    const home=market.home();let analysisAvailable=market.analysisCompanion?.enabled===true;
+    try{if(analysisAvailable)for(const event of home)event.analysisCaptured=market.analysisCompanion.has(event.id);}
+    catch{analysisAvailable=false;for(const event of home)delete event.analysisCaptured;}
+    return response(res,200,{home,simulation:false,mode:'LIVE_SHADOW',analysisAvailable});
+  }
+  if(url.pathname==='/api/analysis'||url.pathname==='/api/analysis/summary'){
+    const companion=market.analysisCompanion;
+    if(!companion?.enabled)return response(res,503,{error:'ANALYSIS_DISABLED'});
+    try{
+      if(url.pathname==='/api/analysis/summary')return response(res,200,{summary:companion.summary(),simulation:false,mode:'LIVE_SHADOW'});
+      const id=url.searchParams.get('eventId');
+      if(!validAnalysisEventId(id))return response(res,400,{error:'INVALID_EVENT_ID'});
+      // Only expose analyses attached to actual, still-retained HOME records.
+      if(!market.home().some(e=>e.id===id))return response(res,404,{error:'EVENT_NOT_IN_HOME'});
+      const analysis=companion.get(id);
+      if(!analysis)return response(res,404,{error:'ANALYSIS_NOT_CAPTURED'});
+      return response(res,200,{analysis,simulation:false,mode:'LIVE_SHADOW'});
+    }catch{return response(res,503,{error:'ANALYSIS_UNAVAILABLE'});}
+  }
   if(url.pathname==='/api/universe'){
     const universe=market.universe();
     const covered=universe.filter(item=>item.coverage==='SCANNING').length;
