@@ -5,10 +5,14 @@ import {ANALYSIS_FRAMES,ANALYSIS_KEYS,closedHistory,frameAnalysis,levelsAndPlan,
   validAnalysisBar,validAnalysisEventId} from './analysis-companion.js';
 import {freshQuote} from './entry-watch.js';
 export const READINESS_METHOD='YELLOW_TWO_PATH_READINESS_V3_RESEARCH';
+export const READINESS_TARGET_TF='1m';
 const M=60_000,HORIZON=360*M,WINDOW=3*M,SETUP_LIFE=30*M;
 const finite=x=>typeof x==='number'&&Number.isFinite(x),positive=x=>finite(x)&&x>0;
 const terminal=new Set(['ENDED','DATA_GAP','INVALIDATED']);
 export function newReadinessWatch(event,at=event?.detectedAtMs){
+  // V3 entry confirmation is research for genuine 1M LONG A only.
+  // Other LONG A lanes and their already-LIVE assessments stay untouched.
+  if(event?.timeframe!==READINESS_TARGET_TF)throw Error('READINESS_1M_ONLY');
   if(!validAnalysisEventId(event?.id)||event.signal!=='LONG_A'||event.id!==`${event.symbol}:${event.timeframe}:${event.barClosedAtMs}:LONG_A`||
     !positive(event.price)||!Number.isSafeInteger(at)||at<event.barClosedAtMs||at-event.barClosedAtMs>5*M)throw Error('INVALID_READINESS_EVENT');
   return {method:READINESS_METHOD,schemaVersion:1,mode:'RESEARCH_ONLY',eventId:event.id,signalPrice:event.price,

@@ -1,7 +1,7 @@
 name: YELLOW V2 scoped QA and approved APK release
 on:
   push:
-    branches: [fix/yellow-v2-4tf-50-q10m-20261022, 'feat/yellow-analysis-companion-*', 'feat/yellow-home-entry-sl-tp-*', 'feat/yellow-v14-clean-home-lamps-*', 'feat/yellow-v15-entry-watch-*']
+    branches: [fix/yellow-v2-4tf-50-q10m-20261022, 'feat/yellow-analysis-companion-*', 'feat/yellow-home-entry-sl-tp-*', 'feat/yellow-v14-clean-home-lamps-*', 'feat/yellow-v15-entry-watch-*', 'feat/yellow-entry-v3-1m-only-*']
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,6 +17,9 @@ jobs:
       - name: Verify scanner syntax
         run: |
           node --check scanner/src/entry-watch.js
+          node --check scanner/src/entry-readiness-v3.js
+          node --check scanner/scripts/lib/replay-readiness-v3.mjs
+          node --check scanner/scripts/compare-readiness-v3.mjs
           node --check scanner/src/long-a.js
           node --check scanner/src/live-market.js
           node --check scanner/src/live-home-ledger.js
@@ -29,6 +32,52 @@ jobs:
           node --check scanner/scripts/lib/v2-api-contract.mjs
       - name: Offline scanner regression (no Binance, Railway, FCM sends)
         run: node --test --test-concurrency=4 scanner/test/*.test.js
+      - name: Offline archived candle replay — ENTRY v3 LONG A 1M only
+        shell: bash
+        run: |
+          mkdir -p entry-v3-1m-evidence
+          node --max-old-space-size=2048 scanner/scripts/compare-readiness-v3.mjs docs/evidence/entry-v3-20261028/manifest.json > entry-v3-1m-evidence/replay.json
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const d=JSON.parse(readFileSync('entry-v3-1m-evidence/replay.json','utf8'));
+          assert.equal(d.productionEnabled,false);
+          assert.equal(d.summary.cases,46);
+          assert.equal(d.summary.oneMinuteCases,28);
+          assert.equal(d.summary.outOfScopeNon1m,18);
+          assert.deepEqual(d.summary.excludedByTf,{'5m':16,'15m':2});
+          const scoped=d.results.filter(x=>x.evaluationScope==='LONG_A_1M_ONLY');
+          const excluded=d.results.filter(x=>x.evaluationScope==='OUT_OF_SCOPE_NON_1M');
+          assert.equal(scoped.length,28);assert.equal(excluded.length,18);
+          assert.ok(scoped.every(x=>x.event.timeframe==='1m'&&
+             x.historicalGreen==='NOT_RECONSTRUCTED_NO_HISTORICAL_ELIGIBLE_QUOTES'));
+          assert.ok(excluded.every(x=>x.event.timeframe!=='1m'&&
+             x.candidate.confirmation===null&&x.baseline.confirmation===null&&
+             x.candidate.observation==='OUT_OF_SCOPE_NON_1M'));
+          for(const m of ['baseline','candidate'])
+            assert.equal(Object.values(d.summary.methods[m].counts).reduce((a,b)=>a+b,0),28);
+          const failures=d.results.filter(x=>x.event.timeframe==='1m'&&
+             x.candidate.paper?.status==='SL_BEFORE_TP1').length;
+          const successes=d.results.filter(x=>x.event.timeframe==='1m'&&
+             x.candidate.paper?.status==='TP1_BEFORE_SL').length;
+          const summary={source:'archived unchanged candles with SHA256 verification',
+            scope:'OFFLINE_LONG_A_1M_ONLY',cases:46,oneMinuteCases:scoped.length,
+            excludedNon1m:excluded.length,missing:d.summary.missingCases,
+            completeWatchWindows:d.summary.completeWatchWindows,
+            baseline:d.summary.methods.baseline,candidate:d.summary.methods.candidate,
+            outcomes:{slBeforeTp1:failures,tp1BeforeSl:successes},
+            warning:'NOT_A_PROSPECTIVE_WIN_RATE_OR_TRADE_EXECUTION'};
+          writeFileSync('entry-v3-1m-evidence/summary.json',JSON.stringify(summary,null,2)+'\n');
+          console.log(JSON.stringify(summary));
+          NODE
+      - name: Preserve archived 1M replay evidence for Work audit (offline, never deploy)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yellow-entry-v3-1m-research-evidence
+          path: entry-v3-1m-evidence
+          if-no-files-found: warn
+          retention-days: 14
       - name: Android source policy contract
         run: node --test scanner/test/v2-final-policy.test.js
       - name: Original V2 signer and in-place upgrade policy (offline)
