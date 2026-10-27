@@ -13,28 +13,19 @@
     "signedRelease": "skipped_no_android_change"
   },
   "deployment": {
-    "attempt": "NOT_APPLIED_APPROVAL_REJECTED",
-    "reason": "Cancelled — the user did not approve this action. No changes were made.",
-    "activeSource": "86de4bd0ed18ed32ce92ac0942ad2fee24888c0f",
-    "activeDeployment": {
-      "id": "c2827df1-83d4-4d2f-93d7-bcfd282b4e9c",
-      "status": "SUCCESS",
-      "createdAt": "2026-10-27T08:36:36.973Z",
-      "url": null
-    },
-    "staged": {
-      "patchId": "1289441c-d15c-4663-9f73-80ae10cd9aeb",
-      "patchStatus": "STAGED",
-      "changeCount": 1,
-      "config": {
-        "source": {
-          "commitSha": "112023d50ad297eba36b9acd539450fc53ce2de3"
-        }
-      },
-      "variableNames": []
-    },
+    "attempt": "APPLIED_SUCCESS_AFTER_EXPLICIT_OWNER_CONFIRMATION",
+    "previousApprovalRejectionsResolved": true,
+    "deploymentId": "8ba1397d-d84d-436b-ae7d-b95c77ef79eb",
+    "status": "SUCCESS",
+    "configuredSourcePin": "112023d50ad297eba36b9acd539450fc53ce2de3",
+    "metadataCommit": "3c15a68fa7dba49668a6eb237e942b5c0d08b087",
+    "metadataDifference": "TWO_DOCUMENTATION_FILES_ONLY_RUNTIME_UNCHANGED",
+    "region": "asia-southeast1-eqsg3a",
+    "staged": null,
     "configOnlyChange": "source.commitSha",
-    "destructive": false
+    "destructive": false,
+    "persistentVolumeId": "ea9edf2d-7294-443f-854c-001265c06405",
+    "variableResourceGuardChanges": false
   },
   "research": {
     "cases": 15,
@@ -51,5 +42,86 @@
     "versionCode": 15,
     "unchanged": true,
     "sha256": "8004d667a883426945b626b7a2e517d3b56de96a2972791947d576ad0b40de38"
+  },
+  "liveAcceptance": {
+    "capturedAtMs": 1793107884466,
+    "checkedAtWib": "2026-10-27T20:31:24.466000+07:00",
+    "apiContract": "PASS",
+    "coverage": {
+      "covered": 41,
+      "eligible": 41,
+      "maxTracked": 50,
+      "allocatedScanSlots": 41
+    },
+    "feedsConnected": true,
+    "analysisDelivery": {
+      "pending": 1,
+      "queued": 183,
+      "deferred": 6,
+      "delivered": 182,
+      "timedOut": 0,
+      "overflow": 0,
+      "rejected": 0
+    },
+    "analysisCompanion": {
+      "enabled": true,
+      "initialized": true,
+      "method": "YELLOW_COMPANION_V1",
+      "pendingJobs": 0,
+      "retainedRecords": 18,
+      "captured": 18,
+      "duplicates": 0,
+      "rejected": 0,
+      "droppedJobs": 0,
+      "evicted": 0,
+      "persisted": 2,
+      "failures": 0,
+      "lastFault": null
+    },
+    "requestGuard": {
+      "calls": 167,
+      "weight": 494,
+      "statusCounts": {
+        "200": 167
+      },
+      "circuitOpen": false,
+      "circuitReason": null,
+      "remotePaused": false,
+      "remotePauseUntilMs": 1793107751986,
+      "remoteLastObservedWeight": 38,
+      "remotePauses": 1
+    },
+    "watchSummary": {
+      "method": "YELLOW_PULLBACK_WATCH_V1",
+      "watches": 11,
+      "states": {
+        "DATA_GAP": 11
+      },
+      "confirmed": {
+        "sampleSize": 0,
+        "counts": {},
+        "tp1BeforeSlRate": null,
+        "decisiveSampleSize": 0,
+        "pricedExitSampleSize": 0,
+        "meanNetReturnPct": null,
+        "ambiguousExcluded": 0,
+        "simulation": true,
+        "interpretation": "TP1_VS_SL_PAPER_ONLY_NOT_LIVE_WIN_RATE"
+      },
+      "greenPublished": {
+        "sampleSize": 0,
+        "counts": {},
+        "tp1BeforeSlRate": null,
+        "decisiveSampleSize": 0,
+        "pricedExitSampleSize": 0,
+        "meanNetReturnPct": null,
+        "ambiguousExcluded": 0,
+        "simulation": true,
+        "interpretation": "TP1_VS_SL_PAPER_ONLY_NOT_LIVE_WIN_RATE"
+      },
+      "interpretation": "SERVER_PUBLISHED_GREEN_PAPER_ONLY_NOT_DEVICE_FILL_OR_WIN_RATE"
+    },
+    "rawSnapshotSha256": "9f6df58b4d108eb0ded84f1c6b73a347c9992c165c9ba5c8b73245f9edea1673",
+    "gzipSnapshotSha256": "fc3706c445e2135ec500beabb1afb69e0bfe98854fdb29b779ecde379a47a966"
   }
 }
