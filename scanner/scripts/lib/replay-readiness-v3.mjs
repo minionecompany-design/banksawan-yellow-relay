@@ -1,11 +1,24 @@
 /** Saved closed candles only. Never fabricate a historical quote or GREEN. */
-import {ANALYSIS_KEYS,ANALYSIS_PERIODS,validAnalysisBar,newPaperOutcome,advancePaperOutcome} from '../../src/analysis-companion.js';
+import {ANALYSIS_KEYS,ANALYSIS_PERIODS,validAnalysisBar,validAnalysisEventId,newPaperOutcome,advancePaperOutcome} from '../../src/analysis-companion.js';
 import {newEntryWatch,advanceEntryWatch,WATCH_METHOD} from '../../src/entry-watch.js';
-import {newReadinessWatch,advanceReadinessWatch,READINESS_METHOD} from '../../src/entry-readiness-v3.js';
+import {newReadinessWatch,advanceReadinessWatch,READINESS_METHOD,READINESS_TARGET_TF} from '../../src/entry-readiness-v3.js';
 const M=60_000,ACTIVE=new Set(['WAITING_ENTRY','OPEN']);
 export function replayReadinessComparison(source,event){
+  if(source?.symbol!==event?.symbol)throw Error('REPLAY_SYMBOL_MISMATCH');
+  if(!validAnalysisEventId(event?.id)||event?.signal!=='LONG_A'||
+     event.id!==`${event.symbol}:${event.timeframe}:${event.barClosedAtMs}:LONG_A`)
+    throw Error('INVALID_REPLAY_EVENT');
+  // Do not silently delete non-1M failures from the saved evidence.
+  // Every valid 5M/15M/1H case is returned as an explicit exclusion.
+  if(event.timeframe!==READINESS_TARGET_TF){
+    const skipped=(method)=>({method,confirmation:null,paper:null,state:'NOT_EVALUATED',
+      reason:'OUT_OF_SCOPE_NON_1M',observation:'OUT_OF_SCOPE_NON_1M',paperCensored:false});
+    return {event,evaluationScope:'OUT_OF_SCOPE_NON_1M',observedThroughMs:null,
+      watchComplete:false,watchGap:false,baseline:skipped(WATCH_METHOD),
+      candidate:skipped(READINESS_METHOD),reasonCounts:{},trace:[],
+      historicalGreen:'NOT_RECONSTRUCTED_NO_HISTORICAL_ELIGIBLE_QUOTES'};
+  }
   let w=newReadinessWatch(event),v1=newEntryWatch(event,event.detectedAtMs),paper=null,confirmed=null,baselineConfirmed=null;
-  if(source?.symbol!==event.symbol)throw Error('REPLAY_SYMBOL_MISMATCH');
   const data=source.candles;
   for(const [tf,key] of Object.entries(ANALYSIS_KEYS)){
     const bars=data?.[key];if(!Array.isArray(bars)||!bars.every((b,i)=>validAnalysisBar(b,ANALYSIS_PERIODS[tf])&&(!i||b.endMs>bars[i-1].endMs)))throw Error('INVALID_SAVED_CANDLES');
@@ -30,7 +43,7 @@ export function replayReadinessComparison(source,event){
   const result=(method,c,p,state,reason)=>({method,confirmation:c,paper:p,state,reason,
     observation:!c?(watchGap?'DATA_GAP':watchComplete?'NO_CONFIRMATION':'WATCH_CENSORED'):p?.status??'NO_PAPER',
     paperCensored:!!p&&ACTIVE.has(p.status)});
-  return {event,observedThroughMs,watchComplete,watchGap,
+  return {event,evaluationScope:'LONG_A_1M_ONLY',observedThroughMs,watchComplete,watchGap,
     baseline:result(WATCH_METHOD,baselineConfirmed,v1.paper,v1.state,v1.reason),
     candidate:result(READINESS_METHOD,confirmed,paper,w.state,w.reason),reasonCounts:reasons,trace,
     historicalGreen:'NOT_RECONSTRUCTED_NO_HISTORICAL_ELIGIBLE_QUOTES'};
