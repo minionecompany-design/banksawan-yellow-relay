@@ -26,8 +26,10 @@ export function createLiveApi(market){return http.createServer((req,res)=>{
         // Traffic-light is read-only, evaluated against an already received
         // ticker, and never delays or changes the original alert delivery.
         const nowMs=market.clock();
-        const light=trafficLight(analysis,market.getTickerAsOf?.(event.symbol,nowMs),nowMs);
-        event.analysisLight={...light,eventId:event.id};
+        const ticker=market.getTickerAsOf?.(event.symbol,nowMs);
+        const light=trafficLight(analysis,ticker,nowMs);
+        event.analysisLight={...light,eventId:event.id,
+          tickerPrice:ticker?.lastPrice??null,tickerAtMs:ticker?.observedAtMs??null};
         if(analysis?.availability==='READY'&&analysis.plan&&analysis.eventId===event.id&&
            analysis.symbol===event.symbol&&analysis.timeframe===event.timeframe&&
            analysis.signalAtMs===event.barClosedAtMs&&
