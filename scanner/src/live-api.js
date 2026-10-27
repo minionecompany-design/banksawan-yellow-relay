@@ -1,5 +1,6 @@
 import http from 'node:http';
 import {validAnalysisEventId} from './analysis-companion.js';
+import {trafficLight} from './entry-traffic-light.js';
 const response=(res,status,value)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8',
  'Cache-Control':'no-store, max-age=0','X-Content-Type-Options':'nosniff',
  'Referrer-Policy':'no-referrer'});res.end(JSON.stringify(value));};
@@ -22,6 +23,11 @@ export function createLiveApi(market){return http.createServer((req,res)=>{
         // Read an existing frozen result only: never calculate or delay LONG A/FCM here.
         const analysis=market.analysisCompanion.get(event.id);
         event.analysisCaptured=!!analysis;
+        // Traffic-light is read-only, evaluated against an already received
+        // ticker, and never delays or changes the original alert delivery.
+        const nowMs=market.clock();
+        const light=trafficLight(analysis,market.getTickerAsOf?.(event.symbol,nowMs),nowMs);
+        event.analysisLight={...light,eventId:event.id};
         if(analysis?.availability==='READY'&&analysis.plan&&analysis.eventId===event.id&&
            analysis.symbol===event.symbol&&analysis.timeframe===event.timeframe&&
            analysis.signalAtMs===event.barClosedAtMs&&
