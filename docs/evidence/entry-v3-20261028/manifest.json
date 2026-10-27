@@ -1,0 +1,620 @@
+{
+  "scope": "ALL_RETAINED_HOME_PLUS_PREVIOUS_SAVED_CASES_NO_WINNER_FILTER",
+  "cases": [
+    {
+      "event": {
+        "id": "AINUSDT:1m:1793053140000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "AINUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793053140000,
+        "detectedAtMs": 1793053140059,
+        "price": 0.07383
+      },
+      "candlesFile": "../yellow-v15-ain-candles-20261027.json.gz",
+      "candlesSha256": "9643eff8949f81efdc0b1cae8a62088d06d77a81aeaf721dcb0333cc06bffb3f"
+    },
+    {
+      "event": {
+        "id": "LSKUSDT:1m:1793104260000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "LSKUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793104260000,
+        "detectedAtMs": 1793104260060,
+        "price": 0.1715
+      },
+      "candlesFile": "LSKUSDT.json.gz",
+      "candlesSha256": "dbcaccad3e6cbf9e2af21140f95fa64f5c705256345adf31703fe2c9b64dc4d7"
+    },
+    {
+      "event": {
+        "id": "CHIPUSDT:5m:1793103900000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "CHIPUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793103900000,
+        "detectedAtMs": 1793103902302,
+        "price": 0.05376
+      },
+      "candlesFile": "../entry-research-20261027/CHIPUSDT.json.gz",
+      "candlesSha256": "597bffcf3bdda79d4155a62e1280b5034055ce34b969e70d9667af56756acc79"
+    },
+    {
+      "event": {
+        "id": "WUSDT:1m:1793103360000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "WUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793103360000,
+        "detectedAtMs": 1793103360416,
+        "price": 0.012555
+      },
+      "candlesFile": "../entry-research-20261027/WUSDT.json.gz",
+      "candlesSha256": "928f3fb64afed8dfd710a5ea2fb5c6ae1e48941529cbd2a7dbfd84914a0bb538"
+    },
+    {
+      "event": {
+        "id": "PONSUSDT:15m:1793101500000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "PONSUSDT",
+        "timeframe": "15m",
+        "barClosedAtMs": 1793101500000,
+        "detectedAtMs": 1793101501409,
+        "price": 0.2474
+      },
+      "candlesFile": "PONSUSDT.json.gz",
+      "candlesSha256": "5ce697ce168cda68e02aede2ddbd8551ef4ead11c6512d7e399fbb0cf23c7bd5"
+    },
+    {
+      "event": {
+        "id": "BEATUSDT:5m:1793100300000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "BEATUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793100300000,
+        "detectedAtMs": 1793100300111,
+        "price": 0.08388
+      },
+      "candlesFile": "BEATUSDT.json.gz",
+      "candlesSha256": "bf16b866b7ab29e98cc6c244112893ea84cb0679a369868e950485aecde36ae8"
+    },
+    {
+      "event": {
+        "id": "ETHFIUSDT:5m:1793100000000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "ETHFIUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793100000000,
+        "detectedAtMs": 1793100000434,
+        "price": 0.6585
+      },
+      "candlesFile": "ETHFIUSDT.json.gz",
+      "candlesSha256": "878e4cb46306ec58dfcc29d12038904dce4e8b0134162c88e67f5b419c1b9677"
+    },
+    {
+      "event": {
+        "id": "PARTIUSDT:1m:1793099760000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "PARTIUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793099760000,
+        "detectedAtMs": 1793099760449,
+        "price": 0.03859
+      },
+      "candlesFile": "../entry-research-20261027/PARTIUSDT.json.gz",
+      "candlesSha256": "65377892462472ca499e80d6afd177c4abb5dd24951a57ba9fef062e3ac217a6"
+    },
+    {
+      "event": {
+        "id": "TAGUSDT:5m:1793098500000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "TAGUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793098500000,
+        "detectedAtMs": 1793098500271,
+        "price": 0.0008023
+      },
+      "candlesFile": "../entry-research-20261027/TAGUSDT.json.gz",
+      "candlesSha256": "84caf01f90099ee50b21c20e36c3b8fff392b3aed147c7f5f949eb58c35bfbc0"
+    },
+    {
+      "event": {
+        "id": "HUMAUSDT:1m:1793093820000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "HUMAUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793093820000,
+        "detectedAtMs": 1793093820181,
+        "price": 0.026464
+      },
+      "candlesFile": "HUMAUSDT.json.gz",
+      "candlesSha256": "c226b72b75de1c277676bcd0ed1972cc89d1520e667e5aa721adcdb5ed5d1a61"
+    },
+    {
+      "event": {
+        "id": "CHIPUSDT:5m:1793089800000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "CHIPUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793089800000,
+        "detectedAtMs": 1793089800149,
+        "price": 0.05179
+      },
+      "candlesFile": "../entry-research-20261027/CHIPUSDT.json.gz",
+      "candlesSha256": "597bffcf3bdda79d4155a62e1280b5034055ce34b969e70d9667af56756acc79"
+    },
+    {
+      "event": {
+        "id": "REZUSDT:1m:1793087640000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "REZUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793087640000,
+        "detectedAtMs": 1793087640532,
+        "price": 0.004879
+      },
+      "candlesFile": "../entry-research-20261027/REZUSDT.json.gz",
+      "candlesSha256": "99ff33145c50a5cff666d26785af70bdc26d33d084ecb99b5e9faff954681156"
+    },
+    {
+      "event": {
+        "id": "BRUSDT:1m:1793086860000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "BRUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793086860000,
+        "detectedAtMs": 1793086861164,
+        "price": 0.5016
+      },
+      "candlesFile": "../entry-research-20261027/BRUSDT.json.gz",
+      "candlesSha256": "bcc92ab512458657f92c141da70c8154b1f7caf8877479eb725770d45b9bd7b2"
+    },
+    {
+      "event": {
+        "id": "BEATUSDT:1m:1793081160000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "BEATUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793081160000,
+        "detectedAtMs": 1793081160516,
+        "price": 0.08098
+      },
+      "candlesFile": "../entry-research-20261027/BEATUSDT.json.gz",
+      "candlesSha256": "fc882f9161ea563f059701bc34a11bf2105033f67e85c9b04ed47dd9f3aa8ad3"
+    },
+    {
+      "event": {
+        "id": "AINUSDT:1m:1793080560000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "AINUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793080560000,
+        "detectedAtMs": 1793080560066,
+        "price": 0.11592
+      },
+      "candlesFile": "../entry-research-20261027/AINUSDT.json.gz",
+      "candlesSha256": "86fb674bbcdd998ad3ad4621fc4a65fc7da91c023c237b34fa916569d44863cb"
+    },
+    {
+      "event": {
+        "id": "VIRTUALUSDT:5m:1793142300000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "VIRTUALUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793142300000,
+        "detectedAtMs": 1793142300755,
+        "price": 0.6299
+      },
+      "candlesFile": "VIRTUALUSDT.json.gz",
+      "candlesSha256": "5c849bba4480abf827cac331db5a151cd119c8b4dc92a661a3851d09396f6d30"
+    },
+    {
+      "event": {
+        "id": "FETUSDT:5m:1793142300000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "FETUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793142300000,
+        "detectedAtMs": 1793142300553,
+        "price": 0.1821
+      },
+      "candlesFile": "FETUSDT.json.gz",
+      "candlesSha256": "e470d929daa6cedcb0b201434d7247f29c03a1bb5f8833196f4b06e1c6e16f25"
+    },
+    {
+      "event": {
+        "id": "PENGUUSDT:5m:1793142300000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "PENGUUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793142300000,
+        "detectedAtMs": 1793142300431,
+        "price": 0.007746
+      },
+      "candlesFile": "PENGUUSDT.json.gz",
+      "candlesSha256": "3947daebb8b9748493edc007cf616e687508c31cbeaeef5cc11f8ab2bbb41a8a"
+    },
+    {
+      "event": {
+        "id": "XRPUSDT:1m:1793141640000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "XRPUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793141640000,
+        "detectedAtMs": 1793141641147,
+        "price": 1.3258
+      },
+      "candlesFile": "XRPUSDT.json.gz",
+      "candlesSha256": "cb2838c40431e1f2e40a3b6398517d7a3860f6519b1d6c87efdd53aaf276e6a4"
+    },
+    {
+      "event": {
+        "id": "PONSUSDT:5m:1793141400000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "PONSUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793141400000,
+        "detectedAtMs": 1793141403068,
+        "price": 0.2586
+      },
+      "candlesFile": "PONSUSDT.json.gz",
+      "candlesSha256": "5ce697ce168cda68e02aede2ddbd8551ef4ead11c6512d7e399fbb0cf23c7bd5"
+    },
+    {
+      "event": {
+        "id": "NEARUSDT:5m:1793137500000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "NEARUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793137500000,
+        "detectedAtMs": 1793137500223,
+        "price": 4.675
+      },
+      "candlesFile": "NEARUSDT.json.gz",
+      "candlesSha256": "6d49ea58f9be05495b50da57ada0df7d2c5a30e7602dd3f6e6468e0cb3e29984"
+    },
+    {
+      "event": {
+        "id": "APRUSDT:1m:1793136240000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "APRUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793136240000,
+        "detectedAtMs": 1793136240363,
+        "price": 0.04925
+      },
+      "candlesFile": "APRUSDT.json.gz",
+      "candlesSha256": "b05f9746e3a2369981ddb9f3014a3814fc68a6c12d7b98bca615ae0e4ef55eca"
+    },
+    {
+      "event": {
+        "id": "GRASSUSDT:1m:1793135760000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "GRASSUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793135760000,
+        "detectedAtMs": 1793135763059,
+        "price": 0.7429
+      },
+      "candlesFile": "GRASSUSDT.json.gz",
+      "candlesSha256": "ea10c6071da51ae9db910f93038d14b0214a3146b279c2191d1050f17217ba11"
+    },
+    {
+      "event": {
+        "id": "CTUSDT:15m:1793135700000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "CTUSDT",
+        "timeframe": "15m",
+        "barClosedAtMs": 1793135700000,
+        "detectedAtMs": 1793135700358,
+        "price": 0.17029
+      },
+      "candlesFile": "CTUSDT.json.gz",
+      "candlesSha256": "842231e981b163d14717d850c227be10a31ce0cf311a091989ffc005586a0514"
+    },
+    {
+      "event": {
+        "id": "CTUSDT:5m:1793135700000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "CTUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793135700000,
+        "detectedAtMs": 1793135700054,
+        "price": 0.17029
+      },
+      "candlesFile": "CTUSDT.json.gz",
+      "candlesSha256": "842231e981b163d14717d850c227be10a31ce0cf311a091989ffc005586a0514"
+    },
+    {
+      "event": {
+        "id": "BEATUSDT:1m:1793135280000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "BEATUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793135280000,
+        "detectedAtMs": 1793135280563,
+        "price": 0.09206
+      },
+      "candlesFile": "BEATUSDT.json.gz",
+      "candlesSha256": "bf16b866b7ab29e98cc6c244112893ea84cb0679a369868e950485aecde36ae8"
+    },
+    {
+      "event": {
+        "id": "1000PEPEUSDT:5m:1793131200000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "1000PEPEUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793131200000,
+        "detectedAtMs": 1793131200296,
+        "price": 0.0045207
+      },
+      "candlesFile": "1000PEPEUSDT.json.gz",
+      "candlesSha256": "a1327abdf5e6ffe0230ee249e5b619be1581e6e6f95819b17e5af10d160b2581"
+    },
+    {
+      "event": {
+        "id": "BABYUSDT:1m:1793130360000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "BABYUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793130360000,
+        "detectedAtMs": 1793130363064,
+        "price": 0.01446
+      },
+      "candlesFile": "BABYUSDT.json.gz",
+      "candlesSha256": "2d0af8bd12b0204853218e40a20a4501725f699dcaac7ea25099283c985261cd"
+    },
+    {
+      "event": {
+        "id": "FARTCOINUSDT:1m:1793130360000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "FARTCOINUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793130360000,
+        "detectedAtMs": 1793130363046,
+        "price": 0.131
+      },
+      "candlesFile": "FARTCOINUSDT.json.gz",
+      "candlesSha256": "0e54cfbda93f8a05c35579b369439af8536403788fe7071fdae18ac45f85a19e"
+    },
+    {
+      "event": {
+        "id": "1000BONKUSDT:1m:1793127960000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "1000BONKUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793127960000,
+        "detectedAtMs": 1793127961842,
+        "price": 0.003081
+      },
+      "candlesFile": "1000BONKUSDT.json.gz",
+      "candlesSha256": "f1ac22ce9e451dc7bd8873d2bdfa7ad10962bf6872914ff55bd036a14d9a5fe3"
+    },
+    {
+      "event": {
+        "id": "ETHFIUSDT:5m:1793127000000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "ETHFIUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793127000000,
+        "detectedAtMs": 1793127000168,
+        "price": 0.6649
+      },
+      "candlesFile": "ETHFIUSDT.json.gz",
+      "candlesSha256": "878e4cb46306ec58dfcc29d12038904dce4e8b0134162c88e67f5b419c1b9677"
+    },
+    {
+      "event": {
+        "id": "LSKUSDT:1m:1793126220000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "LSKUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793126220000,
+        "detectedAtMs": 1793126222106,
+        "price": 0.16935
+      },
+      "candlesFile": "LSKUSDT.json.gz",
+      "candlesSha256": "dbcaccad3e6cbf9e2af21140f95fa64f5c705256345adf31703fe2c9b64dc4d7"
+    },
+    {
+      "event": {
+        "id": "APRUSDT:5m:1793126100000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "APRUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793126100000,
+        "detectedAtMs": 1793126100104,
+        "price": 0.04555
+      },
+      "candlesFile": "APRUSDT.json.gz",
+      "candlesSha256": "b05f9746e3a2369981ddb9f3014a3814fc68a6c12d7b98bca615ae0e4ef55eca"
+    },
+    {
+      "event": {
+        "id": "HUMAUSDT:1m:1793123820000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "HUMAUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793123820000,
+        "detectedAtMs": 1793123820199,
+        "price": 0.02723
+      },
+      "candlesFile": "HUMAUSDT.json.gz",
+      "candlesSha256": "c226b72b75de1c277676bcd0ed1972cc89d1520e667e5aa721adcdb5ed5d1a61"
+    },
+    {
+      "event": {
+        "id": "EVAAUSDT:1m:1793121060000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "EVAAUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793121060000,
+        "detectedAtMs": 1793121060417,
+        "price": 0.745
+      },
+      "candlesFile": "EVAAUSDT.json.gz",
+      "candlesSha256": "c3825503b79fc87f469ce9b33a2859209eaf29337bcc24ef31aa2ec4b05b3025"
+    },
+    {
+      "event": {
+        "id": "ETHFIUSDT:1m:1793117760000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "ETHFIUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793117760000,
+        "detectedAtMs": 1793117760575,
+        "price": 0.6654
+      },
+      "candlesFile": "ETHFIUSDT.json.gz",
+      "candlesSha256": "878e4cb46306ec58dfcc29d12038904dce4e8b0134162c88e67f5b419c1b9677"
+    },
+    {
+      "event": {
+        "id": "NEARUSDT:1m:1793117160000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "NEARUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793117160000,
+        "detectedAtMs": 1793117160178,
+        "price": 4.614
+      },
+      "candlesFile": "NEARUSDT.json.gz",
+      "candlesSha256": "6d49ea58f9be05495b50da57ada0df7d2c5a30e7602dd3f6e6468e0cb3e29984"
+    },
+    {
+      "event": {
+        "id": "BANKUSDT:5m:1793117100000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "BANKUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793117100000,
+        "detectedAtMs": 1793117100180,
+        "price": 0.02936
+      },
+      "candlesFile": "BANKUSDT.json.gz",
+      "candlesSha256": "7a32f9407370d5901a52ec347a3fcf4e2673b057926e0cd8d2ab7f333aa65efd"
+    },
+    {
+      "event": {
+        "id": "FARTCOINUSDT:1m:1793114880000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "FARTCOINUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793114880000,
+        "detectedAtMs": 1793114883045,
+        "price": 0.1308
+      },
+      "candlesFile": "FARTCOINUSDT.json.gz",
+      "candlesSha256": "0e54cfbda93f8a05c35579b369439af8536403788fe7071fdae18ac45f85a19e"
+    },
+    {
+      "event": {
+        "id": "XRPUSDT:1m:1793114520000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "XRPUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793114520000,
+        "detectedAtMs": 1793114520114,
+        "price": 1.3215
+      },
+      "candlesFile": "XRPUSDT.json.gz",
+      "candlesSha256": "cb2838c40431e1f2e40a3b6398517d7a3860f6519b1d6c87efdd53aaf276e6a4"
+    },
+    {
+      "event": {
+        "id": "AINUSDT:5m:1793114400000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "AINUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793114400000,
+        "detectedAtMs": 1793114400080,
+        "price": 0.1549
+      },
+      "candlesFile": "AINUSDT.json.gz",
+      "candlesSha256": "4cd0ab2e4e3d752ecb0af0efffa8440bf058036675c817c4839af95df98d4c9c"
+    },
+    {
+      "event": {
+        "id": "JCTUSDT:1m:1793113020000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "JCTUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793113020000,
+        "detectedAtMs": 1793113020052,
+        "price": 0.007416
+      },
+      "candlesFile": "JCTUSDT.json.gz",
+      "candlesSha256": "b23ad0b8b5e0e893034ef8fe7a7a1cc3f6dfc30e3c023caf20a69b8359f9df2d"
+    },
+    {
+      "event": {
+        "id": "CTUSDT:1m:1793111760000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "CTUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793111760000,
+        "detectedAtMs": 1793111760311,
+        "price": 0.17216
+      },
+      "candlesFile": "CTUSDT.json.gz",
+      "candlesSha256": "842231e981b163d14717d850c227be10a31ce0cf311a091989ffc005586a0514"
+    },
+    {
+      "event": {
+        "id": "LABUSDT:1m:1793110260000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "LABUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793110260000,
+        "detectedAtMs": 1793110260543,
+        "price": 0.04247
+      },
+      "candlesFile": "LABUSDT.json.gz",
+      "candlesSha256": "3c0a61594a675e6726d8cb17ea69fc1c4f80bff4b349c515a98e3391ef4ddfaf"
+    },
+    {
+      "event": {
+        "id": "PONSUSDT:1m:1793108460000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "PONSUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793108460000,
+        "detectedAtMs": 1793108463596,
+        "price": 0.2514
+      },
+      "candlesFile": "PONSUSDT.json.gz",
+      "candlesSha256": "5ce697ce168cda68e02aede2ddbd8551ef4ead11c6512d7e399fbb0cf23c7bd5"
+    },
+    {
+      "event": {
+        "id": "FETUSDT:1m:1793108460000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "FETUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793108460000,
+        "detectedAtMs": 1793108462445,
+        "price": 0.178
+      },
+      "candlesFile": "FETUSDT.json.gz",
+      "candlesSha256": "e470d929daa6cedcb0b201434d7247f29c03a1bb5f8833196f4b06e1c6e16f25"
+    }
+  ],
+  "missingCases": [
+    {
+      "eventId": "NOMUSDT:1m:1793084820000:LONG_A",
+      "symbol": "NOMUSDT",
+      "reason": "SYMBOL_NOT_BUFFERED"
+    },
+    {
+      "eventId": "NOMUSDT:5m:1793082900000:LONG_A",
+      "symbol": "NOMUSDT",
+      "reason": "SYMBOL_NOT_BUFFERED"
+    },
+    {
+      "eventId": "INJUSDT:5m:1793127900000:LONG_A",
+      "symbol": "INJUSDT",
+      "reason": "NO_BUFFER_OR_INSUFFICIENT_INITIAL_HISTORY"
+    }
+  ]
+}
