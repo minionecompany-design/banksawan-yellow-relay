@@ -1,8 +1,9 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {newReadinessWatch,advanceReadinessWatch,observeReadinessQuote,readinessColor} from '../src/entry-readiness-v3.js';
+import {newReadinessWatch,advanceReadinessWatch,observeReadinessQuote,readinessColor,READINESS_TARGET_TF} from '../src/entry-readiness-v3.js';
 import {event as raw,context,bar} from './fixtures/entry-watch.mjs';
 import {T,M} from './fixtures/analysis-companion.mjs';
 import {replayReadinessComparison} from '../scripts/lib/replay-readiness-v3.mjs';
+import {readFileSync} from 'node:fs';
 const event={...raw,signal:'LONG_A'};
 const candle=(i,o,h,l,c,v=100)=>({endMs:T+i*M,open:o,high:h,low:l,close:c,volume:v});
 function dip(){return [candle(1,1.002,1.04,1.001,1.035),candle(2,1.034,1.035,1.020,1.024),
@@ -73,6 +74,38 @@ test('confirmed plan is immutable; stop touch and gaps cannot resurrect the oppo
   const gap=advanceReadinessWatch(w,{...b,endMs:T+8*M},context(T+8*M),T+8*M+1000);
   assert.equal(gap.state,'DATA_GAP');assert.equal(readinessColor(gap,null,T+8*M+1000).status,'OFF');
 });
+test('V3 plans are gated to 1M LONG A but all other TF can remain in the evidence ledger',()=>{
+ assert.equal(READINESS_TARGET_TF,'1m');
+ assert.equal(event.timeframe,'1m');
+ const saved=context(T+M,[candle(1,1,1.001,.999,1)]);
+ for(const tf of ['5m','15m','1h']){
+   const other={...event,timeframe:tf,id:`${event.symbol}:${tf}:${event.barClosedAtMs}:LONG_A`};
+   assert.throws(()=>newReadinessWatch(other),/READINESS_1M_ONLY/);
+   const result=replayReadinessComparison({symbol:event.symbol,candles:saved},other);
+   assert.equal(result.event.id,other.id);
+   assert.equal(result.evaluationScope,'OUT_OF_SCOPE_NON_1M');
+   assert.equal(result.candidate.observation,'OUT_OF_SCOPE_NON_1M');
+   assert.equal(result.baseline.confirmation,null);
+   assert.equal(result.candidate.confirmation,null);
+   assert.equal(result.historicalGreen,'NOT_RECONSTRUCTED_NO_HISTORICAL_ELIGIBLE_QUOTES');
+ }
+ assert.throws(()=>replayReadinessComparison({symbol:'WRONGUSDT',candles:saved},
+   {...event,timeframe:'5m',id:`${event.symbol}:5m:${event.barClosedAtMs}:LONG_A`}),/REPLAY_SYMBOL_MISMATCH/);
+ const live1m=replayReadinessComparison({symbol:event.symbol,candles:context(T+5*M,dip())},event);
+ assert.equal(live1m.evaluationScope,'LONG_A_1M_ONLY');
+ assert.ok(live1m.candidate.confirmation);
+});
+
+test('archived V3 research cohort explicitly retains all 46 actual cases and counts the 1M-only scope',()=>{
+ const url=new URL('../../docs/evidence/entry-v3-20261028/manifest.json',import.meta.url);
+ const saved=JSON.parse(readFileSync(url,'utf8'));
+ const counts=saved.cases.reduce((out,c)=>(out[c.event.timeframe]=(out[c.event.timeframe]||0)+1,out),{});
+ assert.equal(saved.cases.length,46);
+ assert.equal(counts['1m'],28);
+ assert.equal(counts['5m'],16);
+ assert.equal(counts['15m'],2);
+});
+
 test('six-hour expiry and identity validation do not invent a signal or opportunity',()=>{
   assert.throws(()=>newReadinessWatch({...event,id:'OTHER'}),/INVALID/);
   assert.throws(()=>newReadinessWatch({...event,signal:'LONG_B'}),/INVALID/);
