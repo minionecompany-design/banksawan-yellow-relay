@@ -1,5 +1,6 @@
 import http from 'node:http';
 import {validAnalysisEventId} from './analysis-companion.js';
+import {trafficLight} from './entry-traffic-light.js';
 const response=(res,status,value)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8',
  'Cache-Control':'no-store, max-age=0','X-Content-Type-Options':'nosniff',
  'Referrer-Policy':'no-referrer'});res.end(JSON.stringify(value));};
@@ -14,9 +15,41 @@ export function createLiveApi(market){return http.createServer((req,res)=>{
     (market.lastTickerDataAtMs && market.clock()-market.lastTickerDataAtMs>=30000))
     return response(res,503,{error:'MARKET_NOT_READY_FAIL_CLOSED'});
   if(url.pathname==='/api/home'){
-    const home=market.home();let analysisAvailable=market.analysisCompanion?.enabled===true;
-    try{if(analysisAvailable)for(const event of home)event.analysisCaptured=market.analysisCompanion.has(event.id);}
-    catch{analysisAvailable=false;for(const event of home)delete event.analysisCaptured;}
+    // Never decorate original ledger objects: a later missing/partial analysis must
+    // not leak an earlier preview through shared mutable HOME references.
+    const home=market.home().map(event=>({...event}));let analysisAvailable=market.analysisCompanion?.enabled===true;
+    try {
+      if(analysisAvailable)for(const event of home){
+        // Read an existing frozen result only: never calculate or delay LONG A/FCM here.
+        const analysis=market.analysisCompanion.get(event.id);
+        event.analysisCaptured=!!analysis;
+        // Traffic-light is read-only, evaluated against an already received
+        // ticker, and never delays or changes the original alert delivery.
+        const nowMs=market.clock();
+        const ticker=market.getTickerAsOf?.(event.symbol,nowMs);
+        const light=trafficLight(analysis,ticker,nowMs);
+        event.analysisLight={...light,eventId:event.id,
+          tickerPrice:ticker?.lastPrice??null,tickerAtMs:ticker?.observedAtMs??null};
+        if(analysis?.availability==='READY'&&analysis.plan&&analysis.eventId===event.id&&
+           analysis.symbol===event.symbol&&analysis.timeframe===event.timeframe&&
+           analysis.signalAtMs===event.barClosedAtMs&&
+           Math.abs(analysis.plan.referenceEntry-event.price)<=Math.max(event.price*1e-8,1e-12)){
+          const p=analysis.plan;
+          event.analysisPreview={
+            schemaVersion:1,method:analysis.method,mode:analysis.mode,eventId:analysis.eventId,
+            signalAtMs:analysis.signalAtMs,capturedAtMs:analysis.capturedAtMs,
+            expiresAtMs:analysis.expiresAtMs,referenceEntry:p.referenceEntry,
+            entryLow:p.entryLow,entryHigh:p.entryHigh,stopLoss:p.stopLoss,
+            tp1:p.tp1,tp2:p.tp2,tp3:p.tp3,
+            trendConflict:analysis.warnings.includes('TREND_CONFLICT'),
+            resistanceBeforeTp1:analysis.warnings.includes('RESISTANCE_WITHIN_1R')
+          };
+        }
+      }
+    }catch{
+      analysisAvailable=false;
+      for(const event of home){delete event.analysisCaptured;delete event.analysisPreview;}
+    }
     return response(res,200,{home,simulation:false,mode:'LIVE_SHADOW',analysisAvailable});
   }
   if(url.pathname==='/api/analysis'||url.pathname==='/api/analysis/summary'){

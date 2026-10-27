@@ -23,6 +23,64 @@ final class AnalysisSnapshot {
         String expected=item.optString("symbol")+":"+item.optString("timeframe")+":"+item.optLong("barClosedAtMs",-1)+":LONG_A";
         return validId(id)&&id.equals(expected)?id:"";
     }
+    /**
+     * HOME displays only a frozen preview bound to the exact accepted LONG A.
+     * Any malformed/mismatched level is hidden instead of producing false guidance.
+     */
+    static JSONObject homePreview(JSONObject item,long nowMs){
+        String eventId=homeEventId(item);
+        if(eventId.isEmpty()||!item.optBoolean("analysisCaptured",false))return null;
+        JSONObject p=item.optJSONObject("analysisPreview");
+        if(p==null||p.optInt("schemaVersion",-1)!=1||
+            !"YELLOW_COMPANION_V1".equals(p.optString("method"))||
+            !"RESEARCH_ONLY".equals(p.optString("mode"))||
+            !eventId.equals(p.optString("eventId")))return null;
+        long signalAt=item.optLong("barClosedAtMs",-1);
+        long captured=p.optLong("capturedAtMs",-1);
+        if(p.optLong("signalAtMs",-1)!=signalAt||captured<signalAt||
+            captured-signalAt>300_000L||captured>nowMs+30_000L||
+            p.optLong("expiresAtMs",-1)!=signalAt+900_000L)return null;
+        for(String key:new String[]{"referenceEntry","entryLow","entryHigh","stopLoss","tp1","tp2","tp3"})
+            if(!positive(p,key))return null;
+        double stop=p.optDouble("stopLoss"),low=p.optDouble("entryLow"),high=p.optDouble("entryHigh");
+        double reference=p.optDouble("referenceEntry"),tp1=p.optDouble("tp1"),tp2=p.optDouble("tp2"),tp3=p.optDouble("tp3");
+        double eventPrice=item.optDouble("price",Double.NaN);
+        if(!Double.isFinite(eventPrice)||eventPrice<=0||
+            Math.abs(reference-eventPrice)>Math.max(eventPrice*1e-8,1e-12)||
+            !(stop<low&&low<=reference&&reference<=high&&high<=tp1&&tp1<tp2&&tp2<tp3)||
+            !p.has("trendConflict")||!p.has("resistanceBeforeTp1")||
+            !(p.opt("trendConflict") instanceof Boolean)||
+            !(p.opt("resistanceBeforeTp1") instanceof Boolean))return null;
+        return p;
+    }
+    /**
+     * A signal-quality light is NOT an entry order. Reject stale,
+     * cross-event or ungrounded green/red verdicts fail closed.
+     */
+    static JSONObject homeLight(JSONObject item,long nowMs){
+        String id=homeEventId(item);
+        if(id.isEmpty())return null;
+        JSONObject light=item.optJSONObject("analysisLight");
+        if(light==null||!id.equals(light.optString("eventId")))return null;
+        String status=light.optString("status"),reason=light.optString("reason");
+        if(!("GREEN".equals(status)||"YELLOW".equals(status)||"RED".equals(status))||
+            !reason.matches("[A-Z_]{4,50}"))return null;
+        long checked=light.optLong("checkedAtMs",-1);
+        if(checked<=0||checked>nowMs+10_000L||nowMs-checked>=45_000L)return null;
+        if("GREEN".equals(status)||"RED".equals(status)){
+            if(!item.optBoolean("analysisCaptured",false))return null;
+            JSONObject plan=homePreview(item,nowMs);
+            if(plan==null||nowMs>=plan.optLong("expiresAtMs"))return null;
+            double px=light.optDouble("tickerPrice",Double.NaN);
+            long at=light.optLong("tickerAtMs",-1);
+            if(!Double.isFinite(px)||px<=0||at<=0||at>checked+10_000L||
+                checked-at>=30_000L)return null;
+            if("GREEN".equals(status)&&
+                (px<plan.optDouble("entryLow")||px>plan.optDouble("entryHigh")||
+                !"KONDISI_TEKNIS_MENDUKUNG".equals(reason)))return null;
+        }
+        return light;
+    }
     private static boolean positive(JSONObject o,String key){
         double value=o.optDouble(key,Double.NaN);return Double.isFinite(value)&&value>0;
     }

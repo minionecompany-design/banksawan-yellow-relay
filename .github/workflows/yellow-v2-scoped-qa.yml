@@ -1,7 +1,7 @@
 name: YELLOW V2 scoped QA and approved APK release
 on:
   push:
-    branches: [fix/yellow-v2-4tf-50-q10m-20261022, 'feat/yellow-analysis-companion-*']
+    branches: [fix/yellow-v2-4tf-50-q10m-20261022, 'feat/yellow-analysis-companion-*', 'feat/yellow-home-entry-sl-tp-*']
   workflow_dispatch:
 permissions:
   contents: read
@@ -65,7 +65,7 @@ jobs:
       - name: Validate same package and planned update version
         run: |
           grep -q "applicationId 'id.banksawan.yellow'" android/app/build.gradle
-          grep -q 'versionCode 12' android/app/build.gradle
+          grep -q 'versionCode 13' android/app/build.gradle
           test -s android/app/build/outputs/apk/debug/app-debug.apk
       - name: Signing protection cannot be bypassed without permanent key
         run: |
@@ -76,7 +76,7 @@ jobs:
 
   signed-release:
     needs: [scanner, android-compile]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/yellow-analysis-companion-20261026' && contains(github.event.head_commit.message, '[yellow-release-v12]')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/yellow-home-entry-sl-tp-20261027' && contains(github.event.head_commit.message, '[yellow-release-v13]')
     concurrency:
       group: yellow-permanent-signed-apk
       cancel-in-progress: false
@@ -170,13 +170,13 @@ jobs:
           import os,pathlib,re
           text=(pathlib.Path(os.environ['RUNNER_TEMP'])/'yellow-release-badging.txt').read_text()
           match=re.search(r"versionCode='(\d+)'",text)
-          if not match or int(match.group(1))<=11: raise SystemExit('YELLOW_VERSION_NOT_NEWER_THAN_INSTALLED')
+          if not match or int(match.group(1))<=12: raise SystemExit('YELLOW_VERSION_NOT_NEWER_THAN_INSTALLED')
           PY
           sha256sum android/app/build/outputs/apk/release/app-release.apk > apk-sha256.txt
       - name: Upload signed APK and public receipts only
         uses: actions/upload-artifact@v4
         with:
-          name: banksawan-yellow-permanent-LIVE-FCM-release
+          name: banksawan-yellow-v13-permanent-LIVE-FCM-release
           path: |
             android/app/build/outputs/apk/release/app-release.apk
             source-commit.txt
