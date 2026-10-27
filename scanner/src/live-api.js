@@ -15,8 +15,31 @@ export function createLiveApi(market){return http.createServer((req,res)=>{
     return response(res,503,{error:'MARKET_NOT_READY_FAIL_CLOSED'});
   if(url.pathname==='/api/home'){
     const home=market.home();let analysisAvailable=market.analysisCompanion?.enabled===true;
-    try{if(analysisAvailable)for(const event of home)event.analysisCaptured=market.analysisCompanion.has(event.id);}
-    catch{analysisAvailable=false;for(const event of home)delete event.analysisCaptured;}
+    try {
+      if(analysisAvailable)for(const event of home){
+        // Read an existing frozen result only: never calculate or delay LONG A/FCM here.
+        const analysis=market.analysisCompanion.get(event.id);
+        event.analysisCaptured=!!analysis;
+        if(analysis?.availability==='READY'&&analysis.plan&&analysis.eventId===event.id&&
+           analysis.symbol===event.symbol&&analysis.timeframe===event.timeframe&&
+           analysis.signalAtMs===event.barClosedAtMs&&
+           Math.abs(analysis.plan.referenceEntry-event.price)<=Math.max(event.price*1e-8,1e-12)){
+          const p=analysis.plan;
+          event.analysisPreview={
+            schemaVersion:1,method:analysis.method,mode:analysis.mode,eventId:analysis.eventId,
+            signalAtMs:analysis.signalAtMs,capturedAtMs:analysis.capturedAtMs,
+            expiresAtMs:analysis.expiresAtMs,referenceEntry:p.referenceEntry,
+            entryLow:p.entryLow,entryHigh:p.entryHigh,stopLoss:p.stopLoss,
+            tp1:p.tp1,tp2:p.tp2,tp3:p.tp3,
+            trendConflict:analysis.warnings.includes('TREND_CONFLICT'),
+            resistanceBeforeTp1:analysis.warnings.includes('RESISTANCE_WITHIN_1R')
+          };
+        }
+      }
+    }catch{
+      analysisAvailable=false;
+      for(const event of home){delete event.analysisCaptured;delete event.analysisPreview;}
+    }
     return response(res,200,{home,simulation:false,mode:'LIVE_SHADOW',analysisAvailable});
   }
   if(url.pathname==='/api/analysis'||url.pathname==='/api/analysis/summary'){
