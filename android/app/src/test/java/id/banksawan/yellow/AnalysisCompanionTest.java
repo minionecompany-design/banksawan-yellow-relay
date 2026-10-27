@@ -143,7 +143,7 @@ public class AnalysisCompanionTest {
                     "SKENARIO LONG A","resistance sebelum TP1","ENTRY / SL / TP","KEDALUWARSA"})
                 assertFalse("HOME must be compact: "+forbidden,
                     texts.stream().anyMatch(t->t.getText().toString().contains(forbidden)));
-            for(String required:new String[]{"QUSDT","Harga LONG A:","Chg % 24H","Timeframe","Mulai",
+            for(String required:new String[]{"QUSDT","Harga LONG A","Chg % 24H","Timeframe","Mulai",
                     "BUKA TRADINGVIEW ↗","ANALISIS"})
                 assertTrue("Expected core HOME content: "+required,
                     texts.stream().anyMatch(t->t.getText().toString().contains(required)));
