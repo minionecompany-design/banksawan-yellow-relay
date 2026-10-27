@@ -168,6 +168,43 @@ public class AnalysisCompanionTest {
                 t.getText().toString().contains("ENTRY KEDALUWARSA")));
         }
     }
+    @Test public void genuineGreenLightAppearsAtHomeCornerOnlyForLiveInZoneSnapshot()throws Exception{
+        long end=(System.currentTimeMillis()/60_000L-1)*60_000L;
+        JSONObject item=home("QUSDT","QUSDT:1m:"+end+":LONG_A");
+        item.put("analysisPreview",makePreview(item));
+        long now=System.currentTimeMillis();
+        JSONObject light=new JSONObject().put("eventId",item.getString("id"))
+            .put("status","GREEN").put("reason","KONDISI_TEKNIS_MENDUKUNG")
+            .put("checkedAtMs",now).put("tickerPrice",.5338).put("tickerAtMs",now);
+        item.put("analysisLight",light);
+        assertNotNull(AnalysisSnapshot.homeLight(item,now));
+        try(ActivityController<MainActivity> controller=Robolectric.buildActivity(MainActivity.class).create()){
+            MainActivity activity=controller.get();field("analysisAvailable").set(activity,true);
+            activity.applyLiveSnapshot(new JSONArray().put(item),new JSONArray(),0,0);
+            assertTrue(homeTexts(activity).stream().anyMatch(t->t.getText().toString().equals("MENDUKUNG")));
+        }
+        light.put("tickerPrice",.9);
+        assertNull(AnalysisSnapshot.homeLight(item,now));
+        light.put("tickerPrice",.5338).put("tickerAtMs",now-40_000);
+        assertNull(AnalysisSnapshot.homeLight(item,now));
+        light.put("tickerAtMs",now).put("eventId","WUSDT:1m:"+end+":LONG_A");
+        assertNull(AnalysisSnapshot.homeLight(item,now));
+    }
+
+    @Test public void expiredOrMissingAnalysisCannotClaimGreenEntry()throws Exception{
+        long end=(System.currentTimeMillis()/60_000L-20)*60_000L;
+        JSONObject item=home("QUSDT","QUSDT:1m:"+end+":LONG_A");
+        item.put("analysisPreview",makePreview(item));
+        long now=System.currentTimeMillis();
+        JSONObject light=new JSONObject().put("eventId",item.getString("id"))
+            .put("status","GREEN").put("reason","KONDISI_TEKNIS_MENDUKUNG")
+            .put("checkedAtMs",now).put("tickerPrice",.5338).put("tickerAtMs",now);
+        item.put("analysisLight",light);
+        assertNull(AnalysisSnapshot.homeLight(item,now));
+        light.put("status","YELLOW").put("reason","SKENARIO_KEDALUWARSA");
+        assertNotNull(AnalysisSnapshot.homeLight(item,now));
+    }
+
     @Test public void expiredFrozenAnalysisIsLabeledAndEntryRangeCanWrapAtPhoneWidth()throws Exception{
         JSONObject reply=fixture();AnalysisSnapshot snapshot=AnalysisSnapshot.parse(reply,id(reply),now(reply));
         try(ActivityController<MainActivity> controller=Robolectric.buildActivity(MainActivity.class).create()){
