@@ -113,6 +113,9 @@ test('read-only API binds analysis to real HOME event and rejects wrong ids, dis
     const frozen=b.get(event.id);
     assert.equal(preview.eventId,event.id);
     assert.equal(preview.method,'YELLOW_COMPANION_V1');
+    assert.equal(home.home[0].analysisLight.eventId,event.id);
+    assert.equal(home.home[0].analysisLight.status,'YELLOW',
+      'no ticker is available in this isolated API fixture');
     assert.equal(preview.referenceEntry,event.price);
     assert.equal(preview.stopLoss,frozen.plan.stopLoss);
     assert.equal(preview.tp1,frozen.plan.tp1);
@@ -135,6 +138,7 @@ test('read-only API binds analysis to real HOME event and rejects wrong ids, dis
     const degraded=await (await fetch(origin+'/api/home')).json();
     assert.equal(degraded.home.length,1);assert.equal(degraded.analysisAvailable,false);
     assert.equal(degraded.home[0].analysisPreview,undefined);
+    assert.equal(degraded.home[0].analysisLight,undefined);
     b.get=originalGet;
     b.enabled=false;assert.equal((await fetch(origin+'/api/analysis?eventId='+encodeURIComponent(event.id))).status,503);
     assert.equal((await (await fetch(origin+'/api/home')).json()).home.length,1,'analysis outage preserves HOME');
