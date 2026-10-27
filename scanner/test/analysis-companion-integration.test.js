@@ -109,6 +109,22 @@ test('read-only API binds analysis to real HOME event and rejects wrong ids, dis
   try{
     let reply=await fetch(origin+'/api/home');const home=await reply.json();
     assert.equal(home.analysisAvailable,true);assert.equal(home.home[0].analysisCaptured,true);
+    const preview=home.home[0].analysisPreview;
+    const frozen=b.get(event.id);
+    assert.equal(preview.eventId,event.id);
+    assert.equal(preview.method,'YELLOW_COMPANION_V1');
+    assert.equal(preview.referenceEntry,event.price);
+    assert.equal(preview.stopLoss,frozen.plan.stopLoss);
+    assert.equal(preview.tp1,frozen.plan.tp1);
+    assert.ok(preview.stopLoss<preview.entryLow && preview.entryHigh<preview.tp1);
+    assert.equal(preview.signalAtMs,event.barClosedAtMs);
+    assert.ok(!('paper' in preview),'HOME publishes levels, not paper outcome');
+    const originalGet=b.get.bind(b);
+    b.get=()=>({...originalGet(event.id),availability:'PARTIAL',plan:null});
+    const partial=(await (await fetch(origin+'/api/home')).json()).home[0];
+    assert.equal(partial.analysisCaptured,true);
+    assert.equal(partial.analysisPreview,undefined,'no levels on incomplete four-TF data');
+    b.get=originalGet;
     reply=await fetch(origin+'/api/analysis?eventId='+encodeURIComponent(event.id));
     assert.equal(reply.status,200);assert.equal((await reply.json()).analysis.eventId,event.id);
     assert.equal((await fetch(origin+'/api/analysis?eventId=bad')).status,400);
