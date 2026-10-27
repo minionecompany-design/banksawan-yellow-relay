@@ -31,7 +31,8 @@ export function trafficLight(analysis,ticker,nowMs){
     return result('RED','RISIKO_SL_TIDAK_SESUAI',nowMs);
   if(px<p.entryLow||px>p.entryHigh)return result('YELLOW','DI_LUAR_ZONA_ENTRY',nowMs);
   const target=frame[analysis.timeframe];
-  if(target?.trend!=='UP'||frame['5m']?.trend!=='UP'||frame['15m']?.trend!=='UP'||
+  if(analysis.warnings?.includes('TREND_CONFLICT')||
+     target?.trend!=='UP'||frame['5m']?.trend!=='UP'||frame['15m']?.trend!=='UP'||
      !finite(target?.relativeVolume)||target.relativeVolume<1.2||
      !['BREAKOUT','RETEST'].includes(analysis.levels?.interaction)||
      !finite(p.roomToResistanceR)||p.roomToResistanceR<1.5)
