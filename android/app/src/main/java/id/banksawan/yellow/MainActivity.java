@@ -280,37 +280,9 @@ public class MainActivity extends Activity {
         else line(box,"Prioritas:",item.optString("priority","STANDARD"));
         if (isHome) {
             String analysisId=AnalysisSnapshot.homeEventId(item);
-            if(analysisAvailable&&!analysisId.isEmpty()){
-                JSONObject preview=AnalysisSnapshot.homePreview(item,System.currentTimeMillis());
-                if(preview!=null){
-                    boolean expired=System.currentTimeMillis()>=preview.optLong("expiresAtMs");
-                    TextView heading=text(expired?"LEVEL SAAT SINYAL • ENTRY KEDALUWARSA":
-                        "SKENARIO LONG A • OBSERVASI",14,YELLOW,true);
-                    heading.setPadding(0,dp(10),0,dp(4));box.addView(heading);
-                    analysisHomeLine(box,"ENTRY",analysisPrice(preview.optDouble("entryLow"))+" – "+
-                        analysisPrice(preview.optDouble("entryHigh")),Color.WHITE);
-                    analysisHomeLine(box,"SL",analysisPrice(preview.optDouble("stopLoss")),Color.rgb(255,155,125));
-                    analysisHomeLine(box,"TP1",analysisPrice(preview.optDouble("tp1")),GREEN);
-                    analysisHomeLine(box,"TP2 / TP3",analysisPrice(preview.optDouble("tp2"))+" / "+
-                        analysisPrice(preview.optDouble("tp3")),GREEN);
-                    if(preview.optBoolean("trendConflict",false))
-                        analysisHomeNote(box,"PERHATIAN: ada tren TF turun.");
-                    if(preview.optBoolean("resistanceBeforeTp1",false))
-                        analysisHomeNote(box,"PERHATIAN: resistance sebelum TP1.");
-                    if(light!=null){
-                        String code=light.optString("reason","");
-                        if("GREEN".equals(light.optString("status")))analysisHomeNote(box,
-                            "Kondisi mendukung, tetap konfirmasi manual di chart.");
-                        else if("RED".equals(light.optString("status")))analysisHomeNote(box,
-                            "Hindari entry: "+analysisLightReason(code));
-                        else if("YELLOW".equals(light.optString("status")))analysisHomeNote(box,
-                            "Tunggu: "+analysisLightReason(code));
-                    }
-                    if(expired)analysisHomeNote(box,"Level historis, BUKAN entry saat ini.");
-                }else if(item.optBoolean("analysisCaptured",false)){
-                    analysisHomeNote(box,"ENTRY / SL / TP belum tersedia • data analisis tidak lengkap.");
-                }else analysisHomeNote(box,"ENTRY / SL / TP belum tersedia untuk LONG A ini.");
-            }
+            // Keep HOME identical to classic V2: signal facts, live quality lamps,
+            // TradingView and the existing ANALISIS button only. Analysis levels
+            // remain available exclusively inside the detailed ANALISIS dialog.
             tradingView(symbol,box);
             if(analysisAvailable&&item.optBoolean("analysisCaptured",false)&&!analysisId.isEmpty())analysisButton(analysisId,box);
         }
@@ -318,22 +290,6 @@ public class MainActivity extends Activity {
 
     // Three compact signals in the top-right corner, only one active.
     // The label carries the meaning for accessibility and cannot promise profit.
-    private String analysisLightReason(String code){
-        switch(code){
-            case "HARGA_TEMBUS_SL":return "harga melewati SL";
-            case "HARGA_SUDAH_MENCAPAI_TP1":return "harga sudah menyentuh TP1";
-            case "TREN_BESAR_MELAWAN":return "tren besar menentang";
-            case "BREAKDOWN":return "harga breakdown";
-            case "RESISTANCE_TERLALU_DEKAT":return "resistance sebelum TP1";
-            case "RISIKO_SL_TIDAK_SESUAI":return "jarak SL tidak sesuai";
-            case "DI_LUAR_ZONA_ENTRY":return "harga di luar zona entry";
-            case "KONFIRMASI_BELUM_CUKUP":return "konfirmasi 4 TF/volume belum cukup";
-            case "SKENARIO_KEDALUWARSA":return "skenario entry sudah kedaluwarsa";
-            case "HARGA_LIVE_TIDAK_SEGAR":return "harga live belum segar";
-            default:return "data analisis belum siap";
-        }
-    }
-
     private LinearLayout analysisTrafficBadge(JSONObject light){
         String status=light.optString("status","YELLOW");
         LinearLayout column=new LinearLayout(this);
@@ -364,15 +320,6 @@ public class MainActivity extends Activity {
         note.setPadding(0,dp(4),dp(2),0);
         column.addView(note);
         return column;
-    }
-
-    private void analysisHomeLine(LinearLayout parent,String label,String value,int color){
-        TextView row=text(label+": "+value,16,color,true);
-        row.setPadding(0,dp(3),0,dp(3));parent.addView(row);
-    }
-    private void analysisHomeNote(LinearLayout parent,String value){
-        TextView note=text(value,14,MUTED,false);
-        note.setPadding(0,dp(3),0,dp(3));parent.addView(note);
     }
 
     private void analysisButton(String eventId,LinearLayout parent){
