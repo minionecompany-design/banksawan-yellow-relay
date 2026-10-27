@@ -53,6 +53,33 @@ final class AnalysisSnapshot {
             !(p.opt("resistanceBeforeTp1") instanceof Boolean))return null;
         return p;
     }
+    /**
+     * A signal-quality light is NOT an entry order. Reject stale,
+     * cross-event or ungrounded green/red verdicts fail closed.
+     */
+    static JSONObject homeLight(JSONObject item,long nowMs){
+        String id=homeEventId(item);
+        if(id.isEmpty()||!item.optBoolean("analysisCaptured",false))return null;
+        JSONObject light=item.optJSONObject("analysisLight");
+        if(light==null||!id.equals(light.optString("eventId")))return null;
+        String status=light.optString("status"),reason=light.optString("reason");
+        if(!("GREEN".equals(status)||"YELLOW".equals(status)||"RED".equals(status))||
+            !reason.matches("[A-Z_]{4,50}"))return null;
+        long checked=light.optLong("checkedAtMs",-1);
+        if(checked<=0||checked>nowMs+10_000L||nowMs-checked>=45_000L)return null;
+        if("GREEN".equals(status)||"RED".equals(status)){
+            JSONObject plan=homePreview(item,nowMs);
+            if(plan==null||nowMs>=plan.optLong("expiresAtMs"))return null;
+            double px=light.optDouble("tickerPrice",Double.NaN);
+            long at=light.optLong("tickerAtMs",-1);
+            if(!Double.isFinite(px)||px<=0||at<=0||at>checked+10_000L||
+                checked-at>=30_000L)return null;
+            if("GREEN".equals(status)&&
+                (px<plan.optDouble("entryLow")||px>plan.optDouble("entryHigh")||
+                !"KONDISI_TEKNIS_MENDUKUNG".equals(reason)))return null;
+        }
+        return light;
+    }
     private static boolean positive(JSONObject o,String key){
         double value=o.optDouble(key,Double.NaN);return Double.isFinite(value)&&value>0;
     }
