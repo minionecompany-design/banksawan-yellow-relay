@@ -103,3 +103,15 @@ test('GREEN cannot bypass the original market eligibility or use a quote from be
  assert.equal(watchLight(w,{...q,observedAtMs:w.confirmedAtMs-1},now).status,'YELLOW');
  assert.equal(watchLight(w,q,now).status,'GREEN');
 });
+test('restart of an unended confirmed watch cannot resurrect a missed intraminute SL',async()=>{
+ const {AnalysisCompanionBridge}=await import('../src/analysis-companion-bridge.js');
+ let now=T+4000,doc=null;const store={async restore(){return doc;},async save(d){doc=structuredClone(d);}};
+ const b=new AnalysisCompanionBridge({clock:()=>now,store});await b.initialize();const s=context(T);
+ Object.assign(s.oneMinute.at(-1),{open:1,close:1,high:1.001});
+ b.capture({...event,signal:'LONG_A'},s);await b.waitIdle();now=T+4*M+2000;
+ b.records.get(event.id).watch=confirmation();await b.flush();
+ const resumed=new AnalysisCompanionBridge({clock:()=>now+1000,store});assert.equal(await resumed.initialize(),true);
+ assert.equal(resumed.get(event.id).entryWatch.state,'DATA_GAP');
+ assert.equal(resumed.light(event.id,{lastPrice:1.002,observedAtMs:now+1000,priceChangePercent:2,quoteVolume24h:20000000}).status,'OFF');
+ assert.equal(resumed.get(event.id).entryWatch.paper.status,'INCOMPLETE_DATA');await resumed.flush();
+});

@@ -85,7 +85,17 @@ export class AnalysisCompanionBridge {
           Number.isSafeInteger(doc.counters[k])&&doc.counters[k]>=0))
           for(const key of ['captured','duplicates','rejected','droppedJobs','evicted'])this.metrics[key]=doc.counters[key];
       }
-      this.enabled=true;this.#prune();return true;
+      this.enabled=true;
+      // A restart cannot prove the continuity of unpersisted intraminute quote
+      // touches. Never re-publish an already confirmed setup after restoration.
+      for(const r of this.records.values()){
+        if(ACTIVE.has(r.paper.status))r.invalidated??={atMs:this.clock(),reason:'RESTART_CONTINUITY_UNPROVEN'};
+        if(r.watch&&(r.watch.state==='CONFIRMED'||[r.watch.paper,r.watch.greenPaper].some(p=>p&&ACTIVE.has(p.status)))){
+          r.watch.state='DATA_GAP';r.watch.reason='RESTART_CONTINUITY_UNPROVEN';
+          for(const k of ['paper','greenPaper'])if(r.watch[k]&&ACTIVE.has(r.watch[k].status))r.watch[k]={...r.watch[k],status:'INCOMPLETE_DATA',endedAtMs:this.clock()};
+        }
+      }
+      if(this.records.size)this.#scheduleWrite();this.#prune();return true;
     } catch(e) {this.#disable('RESTORE_'+e.message);return false;}
   }
   #enqueue(job) {

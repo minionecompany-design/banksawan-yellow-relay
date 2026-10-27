@@ -29,7 +29,7 @@ test('capture is immutable, deferred, deduplicated, persisted and recoverable wi
     const file=path.join(dir,'yellow-analysis-companion-v1.json');
     assert.equal(JSON.parse(await readFile(file,'utf8')).records.length,1);
     now+=1000;const restored=new AnalysisCompanionBridge({dataDir:dir,clock:()=>now});
-    assert.equal(await restored.initialize(),true);assert.deepEqual(restored.get(event.id),first);
+    assert.equal(await restored.initialize(),true);assert.deepEqual(restored.get(event.id),{...first,invalidated:{atMs:now,reason:'RESTART_CONTINUITY_UNPROVEN'}});
     await restored.flush();
     await writeFile(file,'{"schemaVersion":1,"method":"WRONG","records":[]}');
     const broken=new AnalysisCompanionBridge({dataDir:dir,clock:()=>now});
