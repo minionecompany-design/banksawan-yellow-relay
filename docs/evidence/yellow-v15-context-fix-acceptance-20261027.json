@@ -1,0 +1,55 @@
+{
+  "applicationSource": "112023d50ad297eba36b9acd539450fc53ce2de3",
+  "applicationTree": "108e40c12d163287aa371d9a5e82cce1e15d692b",
+  "ci": {
+    "id": 40507932166,
+    "url": "https://github.com/minionecompany-design/banksawan-yellow-relay/actions/runs/40507932166",
+    "status": "completed",
+    "conclusion": "success",
+    "headSha": "112023d50ad297eba36b9acd539450fc53ce2de3",
+    "nodeTests": 254,
+    "pythonTests": 15,
+    "androidJob": "success",
+    "signedRelease": "skipped_no_android_change"
+  },
+  "deployment": {
+    "attempt": "NOT_APPLIED_APPROVAL_REJECTED",
+    "reason": "Cancelled — the user did not approve this action. No changes were made.",
+    "activeSource": "86de4bd0ed18ed32ce92ac0942ad2fee24888c0f",
+    "activeDeployment": {
+      "id": "c2827df1-83d4-4d2f-93d7-bcfd282b4e9c",
+      "status": "SUCCESS",
+      "createdAt": "2026-10-27T08:36:36.973Z",
+      "url": null
+    },
+    "staged": {
+      "patchId": "1289441c-d15c-4663-9f73-80ae10cd9aeb",
+      "patchStatus": "STAGED",
+      "changeCount": 1,
+      "config": {
+        "source": {
+          "commitSha": "112023d50ad297eba36b9acd539450fc53ce2de3"
+        }
+      },
+      "variableNames": []
+    },
+    "configOnlyChange": "source.commitSha",
+    "destructive": false
+  },
+  "research": {
+    "cases": 15,
+    "missingCases": 2,
+    "completeSixHourWindows": 3,
+    "baselineConfirmations": 0,
+    "candidateConfirmations": 3,
+    "uniqueCandidateConfirmationMoments": 2,
+    "candidatePaperFills": 0,
+    "candidatePromoted": false,
+    "knownAinTargetMissed": true
+  },
+  "existingApk": {
+    "versionCode": 15,
+    "unchanged": true,
+    "sha256": "8004d667a883426945b626b7a2e517d3b56de96a2972791947d576ad0b40de38"
+  }
+}
