@@ -131,7 +131,7 @@ public class AnalysisCompanionTest {
         ArrayList<TextView> texts=new ArrayList<>();
         collect((View)field("list").get(activity),texts);return texts;
     }
-    @Test public void homeShowsDirectEntrySlTpWithoutMakingNewLongA()throws Exception{
+    @Test public void compactHomeNeverShowsEntrySlTpButRetainsAnalysisAndTradingView()throws Exception{
         long signalAt=(System.currentTimeMillis()/60_000L-1)*60_000L;
         String id="QUSDT:1m:"+signalAt+":LONG_A";
         JSONObject item=home("QUSDT",id).put("analysisPreview",makePreview(home("QUSDT",id)));
@@ -139,8 +139,14 @@ public class AnalysisCompanionTest {
             MainActivity activity=controller.get();field("analysisAvailable").set(activity,true);
             activity.applyLiveSnapshot(new JSONArray().put(item),new JSONArray(),0,0);
             ArrayList<TextView> texts=homeTexts(activity);
-            for(String label:new String[]{"ENTRY:","SL:","TP1:","TP2 / TP3:"})
-                assertTrue(label+" should be visible",texts.stream().anyMatch(t->t.getText().toString().startsWith(label)));
+            for(String forbidden:new String[]{"ENTRY:","SL:","TP1:","TP2 / TP3:",
+                    "SKENARIO LONG A","resistance sebelum TP1","ENTRY / SL / TP","KEDALUWARSA"})
+                assertFalse("HOME must be compact: "+forbidden,
+                    texts.stream().anyMatch(t->t.getText().toString().contains(forbidden)));
+            for(String required:new String[]{"QUSDT","Harga LONG A:","Chg % 24H","Timeframe","Mulai",
+                    "BUKA TRADINGVIEW ↗","ANALISIS"})
+                assertTrue("Expected core HOME content: "+required,
+                    texts.stream().anyMatch(t->t.getText().toString().contains(required)));
             assertEquals(1,analysisButtons(activity).size());
         }
     }
@@ -157,15 +163,18 @@ public class AnalysisCompanionTest {
         preview.put("stopLoss",.52).put("capturedAtMs",System.currentTimeMillis()+600_000);
         assertNull(AnalysisSnapshot.homePreview(item,System.currentTimeMillis()));
     }
-    @Test public void expiredHomePreviewIsExplicitlyHistorical()throws Exception{
+    @Test public void expiredHomePreviewDoesNotCrowdHomeOrPretendFreshEntry()throws Exception{
         long end=(System.currentTimeMillis()/60_000L-20)*60_000L;
         JSONObject item=home("QUSDT","QUSDT:1m:"+end+":LONG_A");
         item.put("analysisPreview",makePreview(item));
         try(ActivityController<MainActivity> controller=Robolectric.buildActivity(MainActivity.class).create()){
             MainActivity activity=controller.get();field("analysisAvailable").set(activity,true);
             activity.applyLiveSnapshot(new JSONArray().put(item),new JSONArray(),0,0);
-            assertTrue(homeTexts(activity).stream().anyMatch(t->
-                t.getText().toString().contains("ENTRY KEDALUWARSA")));
+            assertFalse(homeTexts(activity).stream().anyMatch(t->t.getText().toString()
+                .contains("ENTRY KEDALUWARSA")));
+            assertFalse(homeTexts(activity).stream().anyMatch(t->t.getText().toString()
+                .startsWith("TP1:")));
+            assertEquals(1,analysisButtons(activity).size());
         }
     }
     @Test public void genuineGreenLightAppearsAtHomeCornerOnlyForLiveInZoneSnapshot()throws Exception{
