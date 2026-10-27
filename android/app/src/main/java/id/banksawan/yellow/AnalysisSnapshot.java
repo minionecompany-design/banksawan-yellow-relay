@@ -59,7 +59,7 @@ final class AnalysisSnapshot {
      */
     static JSONObject homeLight(JSONObject item,long nowMs){
         String id=homeEventId(item);
-        if(id.isEmpty()||!item.optBoolean("analysisCaptured",false))return null;
+        if(id.isEmpty())return null;
         JSONObject light=item.optJSONObject("analysisLight");
         if(light==null||!id.equals(light.optString("eventId")))return null;
         String status=light.optString("status"),reason=light.optString("reason");
@@ -68,6 +68,7 @@ final class AnalysisSnapshot {
         long checked=light.optLong("checkedAtMs",-1);
         if(checked<=0||checked>nowMs+10_000L||nowMs-checked>=45_000L)return null;
         if("GREEN".equals(status)||"RED".equals(status)){
+            if(!item.optBoolean("analysisCaptured",false))return null;
             JSONObject plan=homePreview(item,nowMs);
             if(plan==null||nowMs>=plan.optLong("expiresAtMs"))return null;
             double px=light.optDouble("tickerPrice",Double.NaN);
