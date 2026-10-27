@@ -1,7 +1,7 @@
 name: YELLOW V2 scoped QA and approved APK release
 on:
   push:
-    branches: [fix/yellow-v2-4tf-50-q10m-20261022, 'feat/yellow-analysis-companion-*']
+    branches: [fix/yellow-v2-4tf-50-q10m-20261022, 'feat/yellow-analysis-companion-*', 'feat/yellow-home-entry-sl-tp-*']
   workflow_dispatch:
 permissions:
   contents: read
