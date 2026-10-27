@@ -270,7 +270,7 @@ public class MainActivity extends Activity {
         else line(box,"Prioritas:",item.optString("priority","STANDARD"));
         if (isHome) {
             String analysisId=AnalysisSnapshot.homeEventId(item);
-            if(!BuildConfig.DEMO_MODE&&analysisAvailable&&!analysisId.isEmpty()){
+            if(analysisAvailable&&!analysisId.isEmpty()){
                 JSONObject preview=AnalysisSnapshot.homePreview(item,System.currentTimeMillis());
                 if(preview!=null){
                     boolean expired=System.currentTimeMillis()>=preview.optLong("expiresAtMs");
