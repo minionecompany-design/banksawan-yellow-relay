@@ -28,7 +28,7 @@ jobs:
           node --check scanner/scripts/audit-v2-api-contract.mjs
           node --check scanner/scripts/lib/v2-api-contract.mjs
       - name: Offline scanner regression (no Binance, Railway, FCM sends)
-        run: node --test scanner/test/*.test.js
+        run: node --test --test-concurrency=4 scanner/test/*.test.js
       - name: Android source policy contract
         run: node --test scanner/test/v2-final-policy.test.js
       - name: Original V2 signer and in-place upgrade policy (offline)

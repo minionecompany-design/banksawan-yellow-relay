@@ -11,6 +11,7 @@ import {eligibleUniverse} from './long-a.js';
 import path from 'node:path';
 import {LaneCheckpoint} from './live-state-checkpoint.js';
 import {stepPineOneMinute,rebuildPineOneMinute,validPineOneMinuteState} from './pine-v13-one-minute.js';
+import {LiveAnalysisDelivery} from './live-analysis-delivery.js';
 
 const API='https://fapi.binance.com';
 const WS_RAW='wss://fstream.binance.com/market/ws';
@@ -398,6 +399,9 @@ export class YellowLiveMarket {
           this.onSocketClose('kline',{reason:'DATA_STALE'});continue;
         }
         if(this.tickerConnected&&this.klineConnected){
+          // Optional analysis timeout handling uses buffered data only. A late
+          // confirmation stays forbidden by the existing 90-second engine rule.
+          for(const [symbol,tracked] of this.covered)if(!tracked.analysisDraining)this.flushAnalysisDelivery(symbol,tracked);
           const universe=this.universe();
           const currentEligible=new Set(universe.map(x=>x.symbol));
           for(const [symbol,tracked] of this.covered){
@@ -445,20 +449,32 @@ export class YellowLiveMarket {
     catch(e){this.covered.delete(symbol);this.unsubscribe(symbol);this.retryAfter.set(symbol,this.clock()+10*60_000);
       this.recordFault('CANDLE_GAP_'+symbol+'_'+e.message);return;}
     if(applied.status!=='APPENDED')return;
-    let analysisBar=null,analysisContext=null;
-    if(this.analysisCompanion?.enabled)try{analysisBar=tracked.book.latest(applied.timeframe);
-      if(applied.timeframe==='1m')analysisContext=tracked.book.snapshot();}catch{}
+    if(this.analysisCompanion?.enabled&&applied.timeframe==='1m')try{
+      tracked.analysisDelivery??=new LiveAnalysisDelivery();
+      tracked.analysisDelivery.enqueue(tracked.book.latest('1m'));
+    }catch(e){try{this.log('YELLOW_ANALYSIS_FAULT','QUEUE_'+String(e?.message).slice(0,80));}catch{}}
     this.lastClosedCandleMs=Math.max(this.lastClosedCandleMs,applied.endMs);
     // Already-closed WS bar; no extra subscription or request.
     try{this.passiveEvidence?.onClosedBar(symbol,applied.timeframe,tracked.book.latest(applied.timeframe));}
     catch(e){this.log('YELLOW_GOLD_RESEARCH_FAULT','BAR_HOOK_'+String(e?.message).slice(0,80));}
     // Serial symbol-local evaluation: a late 5m bar may unblock queued 1m
     // candles, and overlapping WebSocket callbacks must never duplicate them.
-    const job=(tracked.drain||Promise.resolve()).then(()=>this.flushTracked(symbol,tracked));
+    const job=(tracked.drain||Promise.resolve()).then(async()=>{
+      await this.flushTracked(symbol,tracked);
+      this.flushAnalysisDelivery(symbol,tracked);
+    });
     tracked.drain=job.catch(err=>this.recordFault('DRAIN_'+symbol+'_'+err.message));
-    await job;
-    try{if(analysisBar)this.analysisCompanion.onClosedBar(symbol,applied.timeframe,analysisBar,analysisContext);}
-    catch(e){try{this.log('YELLOW_ANALYSIS_FAULT','BAR_'+String(e?.message).slice(0,80));}catch{}}
+    const currentDrain=tracked.drain;tracked.analysisDraining=currentDrain;
+    try{await job;}finally{if(tracked.analysisDraining===currentDrain)tracked.analysisDraining=null;}
+  }
+  flushAnalysisDelivery(symbol,tracked){
+    if(!this.analysisCompanion?.enabled||!tracked.analysisDelivery?.pending.length||
+      this.isHalted||this.covered.get(symbol)!==tracked)return;
+    try{
+      const snapshot=tracked.book.snapshot();
+      tracked.analysisDelivery.flush(snapshot,this.clock(),(bar,context)=>
+        this.analysisCompanion.onClosedBar(symbol,'1m',bar,context));
+    }catch(e){try{this.log('YELLOW_ANALYSIS_FAULT','BAR_'+String(e?.message).slice(0,80));}catch{}}
   }
   home(){return this.ledger.home();}
   events(afterMs){return this.ledger.eventsSince(afterMs);}
@@ -484,6 +500,11 @@ export class YellowLiveMarket {
     requestGuard:this.guard.metrics(),fcm:this.fcm?.metrics()||{enabled:false},
     researchEvidence:this.passiveEvidence?.status?.()??{enabled:false},haltReason:this.haltReason,
     analysisCompanion:this.analysisCompanion?.status?.()??{enabled:false},
+    analysisDelivery:[...this.covered].reduce((totals,[,t])=>{
+      const s=t.analysisDelivery?.status();
+      if(s)for(const [k,v] of Object.entries(s))totals[k]=(totals[k]||0)+v;
+      return totals;
+    },{pending:0,queued:0,deferred:0,delivered:0,timedOut:0,overflow:0,rejected:0}),
     lastTickerDataAtMs:this.lastTickerDataAtMs,lastKlineDataAtMs:this.lastKlineDataAtMs,
     lastFaults:this.recentFaults.slice(-10)};}
 }
