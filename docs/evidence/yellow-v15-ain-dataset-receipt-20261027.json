@@ -1,0 +1,10 @@
+{
+  "source": "EXISTING_BINANCE_CANDLE_BOOK",
+  "purpose": "HISTORICAL_REPLAY_NOT_LIVE_OBSERVATION",
+  "sourceApi": "/api/research/candles?symbol=AINUSDT",
+  "networkRequestsToBinanceForExport": 0,
+  "rawSha256": "9643eff8949f81efdc0b1cae8a62088d06d77a81aeaf721dcb0333cc06bffb3f",
+  "gzipSha256": "8e1439c35baae4cc00b26ca5a65c4b44bad849dd056e7f63053fd49bf15477e5",
+  "rawBytes": 403863,
+  "gzipBytes": 84681
+}

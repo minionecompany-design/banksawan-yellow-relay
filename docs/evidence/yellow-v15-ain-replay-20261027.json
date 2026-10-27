@@ -1,0 +1,432 @@
+{
+  "mode": "HISTORICAL_REPLAY_NOT_LIVE_OBSERVATION",
+  "method": "YELLOW_PULLBACK_WATCH_V1",
+  "caveat": "Higher-TF candles are assumed delivered at close in replay. Actual feed ordering/latency and 24h eligibility at later entry were not reconstructed. No proof of device entry or future accuracy.",
+  "event": {
+    "id": "AINUSDT:1m:1793053140000:LONG_A",
+    "signal": "LONG_A",
+    "symbol": "AINUSDT",
+    "timeframe": "1m",
+    "price": 0.07383,
+    "binance24hChangePct": 93.983,
+    "quoteVolume24h": 82061076.23056,
+    "priority": "HIGH",
+    "barClosedAtMs": 1793053140000,
+    "detectedAtMs": 1793053140059,
+    "expiresAtMs": 1793053440000,
+    "firstSeenMs": 1793053140059,
+    "homeExpiresMs": 1793089140059,
+    "analysisCaptured": false,
+    "analysisLight": {
+      "status": "YELLOW",
+      "reason": "ANALISIS_BELUM_LENGKAP",
+      "checkedAtMs": 1793088039653,
+      "eventId": "AINUSDT:1m:1793053140000:LONG_A",
+      "tickerPrice": 0.14104,
+      "tickerAtMs": 1793088039196
+    }
+  },
+  "trace": [
+    {
+      "atMs": 1793053200000,
+      "state": "WATCHING",
+      "reason": "MENUNGGU_PULLBACK",
+      "close": 0.07314,
+      "low": 0.07313,
+      "plan": null
+    },
+    {
+      "atMs": 1793053260000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.07229,
+      "low": 0.07229,
+      "plan": null
+    },
+    {
+      "atMs": 1793055900000,
+      "state": "PULLBACK",
+      "reason": "JARAK_SL_TIDAK_SESUAI",
+      "close": 0.07142,
+      "low": 0.06561,
+      "plan": null
+    },
+    {
+      "atMs": 1793055960000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.07046,
+      "low": 0.06561,
+      "plan": null
+    },
+    {
+      "atMs": 1793056500000,
+      "state": "PULLBACK",
+      "reason": "JARAK_SL_TIDAK_SESUAI",
+      "close": 0.07076,
+      "low": 0.06561,
+      "plan": null
+    },
+    {
+      "atMs": 1793056560000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.0703,
+      "low": 0.06561,
+      "plan": null
+    },
+    {
+      "atMs": 1793057760000,
+      "state": "PULLBACK",
+      "reason": "TREN_PENDUKUNG_BELUM_SESUAI",
+      "close": 0.07026,
+      "low": 0.06561,
+      "plan": null
+    },
+    {
+      "atMs": 1793057880000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.07093,
+      "low": 0.06561,
+      "plan": null
+    },
+    {
+      "atMs": 1793059860000,
+      "state": "PULLBACK",
+      "reason": "TREN_PENDUKUNG_BELUM_SESUAI",
+      "close": 0.0707,
+      "low": 0.06561,
+      "plan": null
+    },
+    {
+      "atMs": 1793059920000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.07076,
+      "low": 0.06561,
+      "plan": null
+    },
+    {
+      "atMs": 1793061360000,
+      "state": "PULLBACK",
+      "reason": "TREN_PENDUKUNG_BELUM_SESUAI",
+      "close": 0.07176,
+      "low": 0.06561,
+      "plan": null
+    },
+    {
+      "atMs": 1793061480000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.074,
+      "low": 0.06561,
+      "plan": null
+    },
+    {
+      "atMs": 1793062860000,
+      "state": "PULLBACK",
+      "reason": "JARAK_SL_TIDAK_SESUAI",
+      "close": 0.07231,
+      "low": 0.06561,
+      "plan": null
+    },
+    {
+      "atMs": 1793062920000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.07224,
+      "low": 0.06561,
+      "plan": null
+    },
+    {
+      "atMs": 1793065440000,
+      "state": "PULLBACK",
+      "reason": "TREN_PENDUKUNG_BELUM_SESUAI",
+      "close": 0.06385,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793065500000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.06292,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793066760000,
+      "state": "PULLBACK",
+      "reason": "TREN_PENDUKUNG_BELUM_SESUAI",
+      "close": 0.06728,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793066820000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.06713,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793067300000,
+      "state": "PULLBACK",
+      "reason": "TREN_PENDUKUNG_BELUM_SESUAI",
+      "close": 0.0675,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793067360000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.0679,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793067420000,
+      "state": "PULLBACK",
+      "reason": "TREN_PENDUKUNG_BELUM_SESUAI",
+      "close": 0.06839,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793067480000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.06803,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793069220000,
+      "state": "PULLBACK",
+      "reason": "JARAK_SL_TIDAK_SESUAI",
+      "close": 0.07148,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793069280000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.07053,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793069580000,
+      "state": "PULLBACK",
+      "reason": "JARAK_SL_TIDAK_SESUAI",
+      "close": 0.07588,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793069640000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.07503,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793070300000,
+      "state": "PULLBACK",
+      "reason": "JARAK_SL_TIDAK_SESUAI",
+      "close": 0.07584,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793070360000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.0756,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793072520000,
+      "state": "PULLBACK",
+      "reason": "TREN_PENDUKUNG_BELUM_SESUAI",
+      "close": 0.07536,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793072580000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.07515,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793073120000,
+      "state": "PULLBACK",
+      "reason": "JARAK_SL_TIDAK_SESUAI",
+      "close": 0.07666,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793073180000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.07557,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793073420000,
+      "state": "PULLBACK",
+      "reason": "JARAK_SL_TIDAK_SESUAI",
+      "close": 0.07744,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793073540000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.07791,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793074140000,
+      "state": "PULLBACK",
+      "reason": "JARAK_SL_TIDAK_SESUAI",
+      "close": 0.07968,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793074200000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.07947,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793074440000,
+      "state": "PULLBACK",
+      "reason": "JARAK_SL_TIDAK_SESUAI",
+      "close": 0.08068,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793074560000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.08197,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793074620000,
+      "state": "PULLBACK",
+      "reason": "JARAK_SL_TIDAK_SESUAI",
+      "close": 0.08313,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793074680000,
+      "state": "PULLBACK",
+      "reason": "MENUNGGU_KONFIRMASI_PULIH",
+      "close": 0.08288,
+      "low": 0.0608,
+      "plan": null
+    },
+    {
+      "atMs": 1793074740000,
+      "state": "ENDED",
+      "reason": "PEMANTAUAN_BERAKHIR",
+      "close": 0.08365,
+      "low": 0.0608,
+      "plan": null
+    }
+  ],
+  "final": {
+    "schemaVersion": 1,
+    "method": "YELLOW_PULLBACK_WATCH_V1",
+    "eventId": "AINUSDT:1m:1793053140000:LONG_A",
+    "signalAtMs": 1793053140000,
+    "startedAtMs": 1793053140059,
+    "watchUntilMs": 1793074740000,
+    "lastBarEndMs": 1793074740000,
+    "state": "ENDED",
+    "reason": "PEMANTAUAN_BERAKHIR",
+    "signalPrice": 0.07383,
+    "low": 0.0608,
+    "lowAtMs": 1793064600000,
+    "pullbackSeen": true,
+    "checkedAtMs": 1793074741000,
+    "confirmedAtMs": null,
+    "scenarioId": null,
+    "entryUntilMs": null,
+    "plan": null,
+    "frames": [
+      {
+        "timeframe": "1m",
+        "availability": "READY",
+        "candleEndMs": 1793074680000,
+        "close": 0.08288,
+        "ma7": 0.08139142857142856,
+        "ma25": 0.07885,
+        "ma99": 0.07511333333333331,
+        "trend": "UP",
+        "relativeVolume": 1.332885462145693,
+        "atr14": 0.0015629424215916233
+      },
+      {
+        "timeframe": "5m",
+        "availability": "READY",
+        "candleEndMs": 1793074500000,
+        "close": 0.08229,
+        "ma7": 0.07778714285714286,
+        "ma25": 0.0734216,
+        "ma99": 0.06965000000000003,
+        "trend": "UP",
+        "relativeVolume": 2.0851520907238235,
+        "atr14": 0.0026994686465913217
+      },
+      {
+        "timeframe": "15m",
+        "availability": "READY",
+        "candleEndMs": 1793074500000,
+        "close": 0.08229,
+        "ma7": 0.07514571428571429,
+        "ma25": 0.07071279999999999,
+        "ma99": 0.052537676767676775,
+        "trend": "UP",
+        "relativeVolume": 2.0161408490534014,
+        "atr14": 0.004757599189271447
+      },
+      {
+        "timeframe": "1h",
+        "availability": "READY",
+        "candleEndMs": 1793073600000,
+        "close": 0.07716,
+        "ma7": 0.07108428571428571,
+        "ma25": 0.0527956,
+        "ma99": 0.041566262626262604,
+        "trend": "UP",
+        "relativeVolume": 1.0671162732427726,
+        "atr14": 0.006940260267581979
+      }
+    ],
+    "greenPublishedAtMs": null,
+    "paper": null,
+    "greenPaper": null
+  }
+}
