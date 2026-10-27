@@ -74,8 +74,8 @@ final class AnalysisSnapshot {
                 JSONObject p=watch.optJSONObject("plan");double px=light.optDouble("tickerPrice",Double.NaN);
                 long at=light.optLong("tickerAtMs",-1);
                 if(!"CONFIRMED".equals(watch.optString("state"))||p==null||nowMs>=watch.optLong("entryUntilMs")||
-                    nowMs-watch.optLong("lastBarEndMs")>=90_000L||!Double.isFinite(px)||px<p.optDouble("entryLow")||px>p.optDouble("entryHigh")||
-                    at<=0||at>checked+10_000L||checked-at>=30_000L||!"PULLBACK_TERKONFIRMASI".equals(reason))return null;
+                    nowMs-watch.optLong("lastBarEndMs")>=90_000L||!Double.isFinite(px)||px>=10||!Double.isFinite(light.optDouble("change24hPct",Double.NaN))||!Double.isFinite(light.optDouble("quoteVolume24h",Double.NaN))||light.optDouble("change24hPct",0)<=1||light.optDouble("quoteVolume24h",0)<=10_000_000||px<p.optDouble("entryLow")||px>p.optDouble("entryHigh")||
+                    at<watch.optLong("confirmedAtMs")||at>checked+10_000L||checked-at>=30_000L||!"PULLBACK_TERKONFIRMASI".equals(reason))return null;
             }
             return light;
         }

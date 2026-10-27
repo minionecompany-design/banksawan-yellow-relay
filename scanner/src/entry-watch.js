@@ -109,7 +109,7 @@ export function observeWatchQuote(w,ticker,now){
 }
 export function freshQuote(t,now){return t&&positive(t.lastPrice)&&Number.isSafeInteger(t.observedAtMs)&&t.observedAtMs<=now+10000&&now-t.observedAtMs<30000;}
 export function watchLight(w,ticker,now){
- const base={method:WATCH_METHOD,eventId:w.eventId,checkedAtMs:now,tickerPrice:ticker?.lastPrice??null,tickerAtMs:ticker?.observedAtMs??null};
+ const base={method:WATCH_METHOD,eventId:w.eventId,checkedAtMs:now,tickerPrice:ticker?.lastPrice??null,tickerAtMs:ticker?.observedAtMs??null,change24hPct:ticker?.priceChangePercent??null,quoteVolume24h:ticker?.quoteVolume24h??null};
  const out=(status,reason)=>({...base,status,reason});
  if(terminal.has(w.state))return out('OFF',w.reason);
  if(w.state!=='CONFIRMED')return now>=w.watchUntilMs?out('OFF','PEMANTAUAN_BERAKHIR'):out('YELLOW',w.reason);
@@ -117,6 +117,8 @@ export function watchLight(w,ticker,now){
  if(w.currentFrames?.some(f=>f.availability!=='READY'))return out('YELLOW','DATA_EMPAT_TF_BELUM_LENGKAP');
  if(now-w.lastBarEndMs>=90000)return out('YELLOW','KONTEKS_CANDLE_TIDAK_SEGAR');
  if(!freshQuote(ticker,now))return out('YELLOW','HARGA_LIVE_TIDAK_SEGAR');
+ if(ticker.observedAtMs<w.confirmedAtMs)return out('YELLOW','MENUNGGU_QUOTE_SETELAH_KONFIRMASI');
+ if(ticker.lastPrice>=10||!finite(ticker.priceChangePercent)||ticker.priceChangePercent<=1||!finite(ticker.quoteVolume24h)||ticker.quoteVolume24h<=10000000)return out('YELLOW','FILTER_PASAR_TIDAK_MEMENUHI');
  if(ticker.lastPrice<=w.plan.stopLoss||ticker.lastPrice>=w.plan.tp1)return out('OFF','BATAS_SKENARIO_TERSENTUH');
  if(ticker.lastPrice<w.plan.entryLow||ticker.lastPrice>w.plan.entryHigh)return out('YELLOW','DI_LUAR_ZONA_ENTRY');
  return out('GREEN','PULLBACK_TERKONFIRMASI');

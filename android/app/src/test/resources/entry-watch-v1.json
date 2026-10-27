@@ -152,6 +152,8 @@
     "checkedAtMs": 1793016242000,
     "tickerPrice": 1.002,
     "tickerAtMs": 1793016242000,
+    "change24hPct": 2,
+    "quoteVolume24h": 20000000,
     "status": "GREEN",
     "reason": "PULLBACK_TERKONFIRMASI"
   }
