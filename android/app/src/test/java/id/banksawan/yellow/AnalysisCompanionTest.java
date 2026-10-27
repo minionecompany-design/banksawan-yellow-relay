@@ -117,6 +117,57 @@ public class AnalysisCompanionTest {
             assertEquals(0,analysisButtons(activity).size());
         }
     }
+    private JSONObject makePreview(JSONObject event)throws Exception{
+        long signalAt=event.getLong("barClosedAtMs");
+        return new JSONObject().put("schemaVersion",1).put("method","YELLOW_COMPANION_V1")
+            .put("mode","RESEARCH_ONLY").put("eventId",event.getString("id"))
+            .put("signalAtMs",signalAt).put("capturedAtMs",signalAt+1000)
+            .put("expiresAtMs",signalAt+900_000L).put("referenceEntry",.5338)
+            .put("entryLow",.53).put("entryHigh",.54).put("stopLoss",.52)
+            .put("tp1",.55).put("tp2",.56).put("tp3",.57)
+            .put("trendConflict",false).put("resistanceBeforeTp1",false);
+    }
+    private ArrayList<TextView> homeTexts(MainActivity activity)throws Exception{
+        ArrayList<TextView> texts=new ArrayList<>();
+        collect((View)field("list").get(activity),texts);return texts;
+    }
+    @Test public void homeShowsDirectEntrySlTpWithoutMakingNewLongA()throws Exception{
+        long signalAt=(System.currentTimeMillis()/60_000L-1)*60_000L;
+        String id="QUSDT:1m:"+signalAt+":LONG_A";
+        JSONObject item=home("QUSDT",id).put("analysisPreview",makePreview(home("QUSDT",id)));
+        try(ActivityController<MainActivity> controller=Robolectric.buildActivity(MainActivity.class).create()){
+            MainActivity activity=controller.get();field("analysisAvailable").set(activity,true);
+            activity.applyLiveSnapshot(new JSONArray().put(item),new JSONArray(),0,0);
+            ArrayList<TextView> texts=homeTexts(activity);
+            for(String label:new String[]{"ENTRY:","SL:","TP1:","TP2 / TP3:"})
+                assertTrue(label+" should be visible",texts.stream().anyMatch(t->t.getText().toString().startsWith(label)));
+            assertEquals(1,analysisButtons(activity).size());
+        }
+    }
+    @Test public void homePreviewRejectsCrossSymbolBadPricesAndFutureCapture()throws Exception{
+        long end=(System.currentTimeMillis()/60_000L-1)*60_000L;
+        JSONObject item=home("WUSDT","WUSDT:1m:"+end+":LONG_A");
+        JSONObject preview=makePreview(item);
+        item.put("analysisPreview",preview);
+        assertNotNull(AnalysisSnapshot.homePreview(item,System.currentTimeMillis()));
+        preview.put("eventId","QUSDT:1m:"+end+":LONG_A");
+        assertNull(AnalysisSnapshot.homePreview(item,System.currentTimeMillis()));
+        preview.put("eventId",item.getString("id")).put("stopLoss",.60);
+        assertNull(AnalysisSnapshot.homePreview(item,System.currentTimeMillis()));
+        preview.put("stopLoss",.52).put("capturedAtMs",System.currentTimeMillis()+600_000);
+        assertNull(AnalysisSnapshot.homePreview(item,System.currentTimeMillis()));
+    }
+    @Test public void expiredHomePreviewIsExplicitlyHistorical()throws Exception{
+        long end=(System.currentTimeMillis()/60_000L-20)*60_000L;
+        JSONObject item=home("QUSDT","QUSDT:1m:"+end+":LONG_A");
+        item.put("analysisPreview",makePreview(item));
+        try(ActivityController<MainActivity> controller=Robolectric.buildActivity(MainActivity.class).create()){
+            MainActivity activity=controller.get();field("analysisAvailable").set(activity,true);
+            activity.applyLiveSnapshot(new JSONArray().put(item),new JSONArray(),0,0);
+            assertTrue(homeTexts(activity).stream().anyMatch(t->
+                t.getText().toString().contains("ENTRY KEDALUWARSA")));
+        }
+    }
     @Test public void expiredFrozenAnalysisIsLabeledAndEntryRangeCanWrapAtPhoneWidth()throws Exception{
         JSONObject reply=fixture();AnalysisSnapshot snapshot=AnalysisSnapshot.parse(reply,id(reply),now(reply));
         try(ActivityController<MainActivity> controller=Robolectric.buildActivity(MainActivity.class).create()){
