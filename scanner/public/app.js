@@ -4,7 +4,7 @@ const pct=n=>`${n>=0?'+':''}${Number(n).toFixed(2)}%`;
 const money=n=>Number(n).toFixed(Number(n)<1?6:3);
 const time=t=>new Date(t).toLocaleString('id-ID',{timeZone:'Asia/Jakarta',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
 // Only known Binance USD-M symbols may form TradingView chart URLs.
-const tv=s=>/^[A-Z0-9]{2,25}USDT$/.test(s)?`https://www.tradingview.com/chart/?symbol=${encodeURIComponent('BINANCE:'+s+'.P')}`:null;
+const tv=s=>/^[A-Z0-9]{1,25}USDT$/.test(s)?`https://www.tradingview.com/chart/?symbol=${encodeURIComponent('BINANCE:'+s+'.P')}`:null;
 let currentTab='home';
 function row(parent,key,val){const d=el('div');d.append(el('label',null,key),el('strong',null,val));parent.append(d)}
 function link(symbol){const a=el('a','tv','BUKA TRADINGVIEW ↗');a.href=tv(symbol)||'#';a.target='_blank';a.rel='noopener noreferrer';return a}

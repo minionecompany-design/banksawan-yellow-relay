@@ -1,6 +1,7 @@
 package id.banksawan.yellow;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.os.Build;
 import android.os.Handler;
@@ -53,6 +54,9 @@ public class MainActivity extends Activity {
     private volatile long lastEventCursorMs = 0L;
     private volatile boolean connectionHealthy = false;
     private boolean backendIncompatible = false;
+    private boolean analysisAvailable = false;
+    private long analysisRequest = 0;
+    private AlertDialog analysisDialog;
     private boolean pendingSoundSelfTest = false;
     private int lastCovered = 0;
     private int lastEligible = 0;
@@ -60,6 +64,7 @@ public class MainActivity extends Activity {
     private JSONArray home=new JSONArray(), universe=new JSONArray();
     private final Handler handler=new Handler(Looper.getMainLooper());
     private final ExecutorService io=Executors.newSingleThreadExecutor();
+    private final ExecutorService analysisIo=Executors.newSingleThreadExecutor();
     private final Runnable refreshTask=new Runnable(){@Override public void run(){refresh();handler.postDelayed(this,5_000);}};
     private final Runnable eventsTask=new Runnable(){@Override public void run(){pollLongAEvents();handler.postDelayed(this,10_000);}};
 
@@ -79,7 +84,8 @@ public class MainActivity extends Activity {
         }
     }
     @Override protected void onPause(){handler.removeCallbacks(refreshTask);handler.removeCallbacks(eventsTask);super.onPause();}
-    @Override protected void onDestroy(){handler.removeCallbacks(refreshTask);handler.removeCallbacks(eventsTask);io.shutdownNow();super.onDestroy();}
+    @Override protected void onDestroy(){handler.removeCallbacks(refreshTask);handler.removeCallbacks(eventsTask);
+        analysisRequest++;if(analysisDialog!=null)analysisDialog.dismiss();analysisIo.shutdownNow();io.shutdownNow();super.onDestroy();}
     private void requestNotificationPermission(){
         if(Build.VERSION.SDK_INT >= 33 &&
             checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=android.content.pm.PackageManager.PERMISSION_GRANTED){
@@ -129,7 +135,7 @@ public class MainActivity extends Activity {
                     String symbol=e.optString("symbol","");
                     String tf=e.optString("timeframe","");
                     String id=e.optString("id","");
-                    if(!symbol.matches("[A-Z0-9]{2,25}USDT") ||
+                    if(!symbol.matches("[A-Z0-9]{1,25}USDT") ||
                        !(tf.equals("1m")||tf.equals("5m")||tf.equals("15m")||tf.equals("1h"))||
                        !id.equals(symbol+":"+tf+":"+e.optLong("barClosedAtMs",-1)+":LONG_A")) continue;
                     YellowNotifier.claimAndNotify(this,id,symbol,tf,
@@ -209,7 +215,7 @@ public class MainActivity extends Activity {
         // A symbol-specific, public HTTPS page is less vulnerable to the
         // last-used chart layout than /chart/?symbol= after TradingView updates.
         // No private/undocumented TradingView app URI scheme is assumed.
-        if(symbol==null||!symbol.matches("[A-Z0-9]{2,25}USDT"))return null;
+        if(symbol==null||!symbol.matches("[A-Z0-9]{1,25}USDT"))return null;
         return new Uri.Builder().scheme("https").authority("www.tradingview.com")
             .appendPath("symbols").appendPath(symbol+".P")
             .appendQueryParameter("exchange","BINANCE").build();
@@ -262,7 +268,100 @@ public class MainActivity extends Activity {
             long first=item.optLong("firstSeenMs",0);
             line(box,"Mulai",formattedTime(first));}
         else line(box,"Prioritas:",item.optString("priority","STANDARD"));
-        if (isHome) tradingView(symbol,box);
+        if (isHome) {
+            tradingView(symbol,box);
+            String analysisId=AnalysisSnapshot.homeEventId(item);
+            if(analysisAvailable&&item.optBoolean("analysisCaptured",false)&&!analysisId.isEmpty())analysisButton(analysisId,box);
+        }
+    }
+
+    private void analysisButton(String eventId,LinearLayout parent){
+        Button button=new Button(this);button.setText("ANALISIS");button.setTextColor(YELLOW);button.setTextSize(12);
+        button.setMinHeight(0);button.setMinimumHeight(0);button.setPadding(dp(8),0,dp(8),0);
+        button.setBackground(shape(CARD,LINE));
+        LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,dp(36));params.setMargins(0,dp(6),0,0);
+        parent.addView(button,params);button.setOnClickListener(v->openAnalysis(eventId));
+    }
+    // On-demand, separate executor: analysis requests never queue ahead of event polling.
+    void openAnalysis(String eventId){
+        if(!AnalysisSnapshot.validId(eventId)||isFinishing()||isDestroyed())return;
+        final long request=++analysisRequest;
+        if(analysisDialog!=null)analysisDialog.dismiss();
+        LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(18),dp(18),dp(18),dp(8));content.setBackgroundColor(BG);
+        TextView loading=text("Memuat analisis saat LONG A…",15,YELLOW,true);content.addView(loading);
+        ScrollView body=new ScrollView(this);body.addView(content);
+        final AlertDialog dialog=new AlertDialog.Builder(this).setView(body).setPositiveButton("TUTUP",null).create();
+        analysisDialog=dialog;dialog.show();
+        if(dialog.getWindow()!=null)dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(YELLOW);
+        analysisIo.execute(()->{
+            try{
+                JSONObject reply=loadJson("/api/analysis?eventId="+Uri.encode(eventId));
+                AnalysisSnapshot snapshot=AnalysisSnapshot.parse(reply,eventId,System.currentTimeMillis());
+                runOnUiThread(()->{if(request==analysisRequest&&!isDestroyed()&&dialog.isShowing())
+                    renderAnalysis(content,snapshot,System.currentTimeMillis());});
+            }catch(Exception unavailable){runOnUiThread(()->{
+                if(request!=analysisRequest||isDestroyed()||!dialog.isShowing())return;
+                content.removeAllViews();content.addView(text("Analisis belum tersedia untuk sinyal ini.",16,YELLOW,true));
+                content.addView(text("Sinyal LONG A tetap dapat diperiksa melalui TradingView.",13,MUTED,false));
+            });}
+        });
+    }
+    private String analysisPrice(double value){return java.math.BigDecimal.valueOf(value)
+        .round(new java.math.MathContext(10,java.math.RoundingMode.HALF_UP)).stripTrailingZeros().toPlainString();}
+    private String optionalPrice(JSONObject object,String key){return object==null||object.isNull(key)?"Belum ada":analysisPrice(object.optDouble(key));}
+    private void analysisNote(LinearLayout parent,String message,int color){
+        TextView note=text(message,13,color,false);note.setPadding(0,dp(8),0,dp(8));parent.addView(note);
+    }
+    private void analysisValue(LinearLayout parent,String label,String value){
+        TextView title=text(label,12,MUTED,false);title.setPadding(0,dp(7),0,dp(2));parent.addView(title);
+        parent.addView(text(value,16,Color.WHITE,true));
+    }
+    void renderAnalysis(LinearLayout content,AnalysisSnapshot snapshot,long nowMs){
+        JSONObject a=snapshot.data;content.removeAllViews();
+        content.addView(text(a.optString("symbol")+" • "+a.optString("timeframe").toUpperCase(Locale.ROOT),21,YELLOW,true));
+        analysisNote(content,"Analisis saat LONG A • dalam pengujian",YELLOW);
+        analysisNote(content,"Sinyal: "+formattedTime(a.optLong("signalAtMs"))+"\nHarga dan level di bawah adalah catatan saat sinyal.",MUTED);
+        if(nowMs>=a.optLong("expiresAtMs"))analysisNote(content,"Skenario entry sudah kedaluwarsa.",YELLOW);
+        if("PARTIAL".equals(a.optString("availability")))analysisNote(content,"Data empat TF belum lengkap. Skenario entry belum dibuat.",YELLOW);
+        JSONArray frames=a.optJSONArray("frames");
+        for(int i=0;i<frames.length();i++){
+            JSONObject f=frames.optJSONObject(i);String trend=f.optString("trend");
+            String label=!"READY".equals(f.optString("availability"))?"DATA BELUM LENGKAP":
+                "UP".equals(trend)?"NAIK":"DOWN".equals(trend)?"TURUN":"CAMPURAN";
+            line(content,"Tren "+f.optString("timeframe").toUpperCase(Locale.ROOT),label);
+            if(f.optString("timeframe").equals(a.optString("timeframe"))&&!f.isNull("relativeVolume")&&f.has("relativeVolume"))
+                line(content,"Volume relatif",String.format(Locale.US,"%.2fx",f.optDouble("relativeVolume")));
+        }
+        JSONObject levels=a.optJSONObject("levels");
+        if(levels!=null){
+            line(content,"Support",optionalPrice(levels,"support"));line(content,"Resistance",optionalPrice(levels,"resistance"));
+            String state=levels.optString("interaction");
+            line(content,"Kondisi",state.equals("BREAKOUT")?"BREAKOUT":state.equals("RETEST")?"RETEST":
+                state.equals("BREAKDOWN")?"BREAKDOWN":"DALAM RENTANG");
+        }
+        JSONObject plan=a.optJSONObject("plan");
+        if(plan!=null){
+            analysisNote(content,"Skenario estimasi saat sinyal",YELLOW);
+            analysisValue(content,"Zona entry",analysisPrice(plan.optDouble("entryLow"))+" – "+analysisPrice(plan.optDouble("entryHigh")));
+            analysisValue(content,"Stop loss",analysisPrice(plan.optDouble("stopLoss")));
+            for(String target:new String[]{"tp1","tp2","tp3"})analysisValue(content,target.toUpperCase(Locale.ROOT),analysisPrice(plan.optDouble(target)));
+            line(content,"Jarak SL",String.format(Locale.US,"%.2f%%",plan.optDouble("riskPct")));
+        }else analysisNote(content,"Skenario entry / TP / SL belum dapat dihitung dari data ini.",MUTED);
+        JSONArray warnings=a.optJSONArray("warnings");
+        for(int i=0;i<warnings.length();i++){
+            String warning=warnings.optString(i);
+            if("TREND_CONFLICT".equals(warning))analysisNote(content,"Ada TF dengan tren turun.",YELLOW);
+            if("RESISTANCE_WITHIN_1R".equals(warning))analysisNote(content,"Resistance terdekat berada sebelum target TP1.",YELLOW);
+        }
+        JSONObject paper=a.optJSONObject("paper");String outcome=paper.optString("status");
+        String result=outcome.equals("TP1_BEFORE_SL")?"TP1 lebih dahulu":outcome.equals("SL_BEFORE_TP1")?"SL lebih dahulu":
+            outcome.equals("AMBIGUOUS")?"Urutan TP/SL tidak diketahui":outcome.equals("INCOMPLETE_DATA")?"Data lanjutan tidak lengkap":
+            outcome.equals("NOT_ENTERED")?"Harga pembukaan di luar zona":outcome.equals("TIMEOUT")?"Batas waktu 120 menit":
+            outcome.equals("OPEN")?"Masih diamati":outcome.equals("WAITING_ENTRY")?"Menunggu candle setelah deteksi":"Tanpa skenario";
+        analysisNote(content,"Catatan simulasi: "+result+". Pengamatan memakai candle 1M; TP dan SL dalam candle yang sama dicatat ambigu.",MUTED);
+        analysisNote(content,"Keputusan entry tetap di tangan Anda. Hasil pengujian belum membuktikan akurasi atau keuntungan.",MUTED);
     }
     /**
      * UNIVERSE is an observation-only, Binance-style market table.
@@ -278,7 +377,7 @@ public class MainActivity extends Activity {
             double price = coin.optDouble("price", Double.NaN);
             double change = coin.optDouble("binance24hChangePct", Double.NaN);
             double quoteVolume = coin.optDouble("quoteVolume24h", Double.NaN);
-            if (!symbol.matches("[A-Z0-9]{2,25}USDT")
+            if (!symbol.matches("[A-Z0-9]{1,25}USDT")
                 || !Double.isFinite(price) || price <= 0 || price >= 10.0
                 || !Double.isFinite(change) || change <= 1.0
                 || !Double.isFinite(quoteVolume) || quoteVolume <= 10_000_000.0) continue;
@@ -366,7 +465,7 @@ public class MainActivity extends Activity {
             double price=row.optDouble("price",Double.NaN),change=row.optDouble("binance24hChangePct",Double.NaN);
             double volume=row.optDouble("quoteVolume24h",Double.NaN);
             String coverage=row.optString("coverage","");
-            if(!symbol.matches("[A-Z0-9]{2,25}USDT") || !symbols.add(symbol)
+            if(!symbol.matches("[A-Z0-9]{1,25}USDT") || !symbols.add(symbol)
                 || !Double.isFinite(price) || price<=0 || price>=10
                 || !Double.isFinite(change) || change<=1
                 || !Double.isFinite(volume) || volume<=10_000_000
@@ -447,7 +546,7 @@ public class MainActivity extends Activity {
             if (item == null || item.optLong("homeExpiresMs", 0) <= System.currentTimeMillis())
                 continue;
             String symbol = item.optString("symbol", "");
-            if (!symbol.matches("[A-Z0-9]{2,25}USDT")) continue;
+            if (!symbol.matches("[A-Z0-9]{1,25}USDT")) continue;
             double price = item.optDouble("price", Double.NaN);
             double pct = item.optDouble("binance24hChangePct", Double.NaN);
             double quoteVolume = item.optDouble("quoteVolume24h", Double.NaN);
@@ -503,7 +602,8 @@ public class MainActivity extends Activity {
                 int newCovered=coverage.getInt("covered");
                 int newEligible=coverage.getInt("eligible");
                 verifyUniverseSnapshot(newUniverse,newCovered,newEligible,coverage.optInt("maxTracked",-1));
-                runOnUiThread(()->applyLiveSnapshot(newHome,newUniverse,newCovered,newEligible));
+                final boolean hasAnalysis=homeReply.optBoolean("analysisAvailable",false);
+                runOnUiThread(()->{analysisAvailable=hasAnalysis;applyLiveSnapshot(newHome,newUniverse,newCovered,newEligible);});
             }catch(Exception err){
                 runOnUiThread(()->applyRefreshFailure(err));
             }finally{refreshInFlight=false;}
@@ -522,6 +622,7 @@ public class MainActivity extends Activity {
     void applyRefreshFailure(Exception err) {
         // Clear all last-known prices and signals. Never display stale data as LIVE.
         connectionHealthy=false;
+        analysisAvailable=false;
         backendIncompatible="YELLOW_BACKEND_INCOMPATIBLE".equals(err.getMessage());
         home=new JSONArray();universe=new JSONArray();
         lastCovered=0;lastEligible=0;lastRefreshMs=0;

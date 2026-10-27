@@ -17,7 +17,7 @@ const unhealthy=new Set(['INSUFFICIENT_COMPLETE_CANDLES','INSUFFICIENT_OR_GAPPED
  * @returns {object} aggregated event and reject summaries, not profitability.
  */
 export function replayHistorical(dataset) {
-  if(!dataset || !/^[A-Z0-9]{2,25}USDT$/.test(dataset.symbol||''))
+  if(!dataset || !/^[A-Z0-9]{1,25}USDT$/.test(dataset.symbol||''))
     throw new Error('SYMBOL_REQUIRED');
   if(!Array.isArray(dataset.oneMinute)||!Array.isArray(dataset.tickers))
     throw new Error('HISTORICAL_CANDLES_AND_TICKERS_REQUIRED');

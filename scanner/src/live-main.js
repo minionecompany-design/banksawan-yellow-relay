@@ -6,6 +6,7 @@ import {YellowLiveMarket} from './live-market.js';
 import {createLiveApi} from './live-api.js';
 import {YellowFcm} from './live-fcm.js';
 import {QualityCaptureBridgeV1} from './quality-capture-bridge-v1.js';
+import {AnalysisCompanionBridge} from './analysis-companion-bridge.js';
 const enabled=process.env.YELLOW_LIVE_ENABLED==='true';
 const dataDir=process.env.YELLOW_DATA_DIR;
 const port=Number(process.env.PORT||8080);
@@ -19,8 +20,13 @@ const fcm=new YellowFcm({enabled:process.env.YELLOW_FCM_ENABLED==='true',
 const research=process.env.YELLOW_GOLD_EVIDENCE_ENABLED==='true'
   ?new QualityCaptureBridgeV1({dataDir,log:(...args)=>console.warn(...args)}):null;
 if(research)await research.initialize();
+// New analysis is disabled unless explicitly opted in. No extra data feed.
+const analysis=process.env.YELLOW_ANALYSIS_ENABLED==='true'
+  ?new AnalysisCompanionBridge({dataDir,log:(...args)=>console.warn(...args)}):null;
+if(analysis)await analysis.initialize();
 const market=new YellowLiveMarket({dataDir,maxTracked:Number(process.env.YELLOW_MAX_TRACKED||50),
   passiveEvidence:research,
+  analysisCompanion:analysis,
   sendEvent:async event=>{
     const delivery=await fcm.send(event);
     if(fcm.enabled)console.log('YELLOW_FCM',event.id,delivery.sent?'SENT':delivery.reason);
@@ -34,6 +40,6 @@ const haltWatch=setInterval(()=>{if(!market.isHalted)return;
   clearInterval(haltWatch);server.close(()=>{process.exitCode=1;});
 },5000);
 server.listen(port,'0.0.0.0',()=>console.log('YELLOW LIVE SHADOW API active on port',port));
-process.on('SIGTERM',()=>{clearInterval(haltWatch);market.stop();server.close();});
+process.on('SIGTERM',()=>{clearInterval(haltWatch);market.stop();void analysis?.flush();server.close();});
 try{await market.start();}catch(e){console.error('YELLOW LIVE STARTUP FAILED:',e.message);
   clearInterval(haltWatch);server.close(()=>{process.exitCode=1;});}

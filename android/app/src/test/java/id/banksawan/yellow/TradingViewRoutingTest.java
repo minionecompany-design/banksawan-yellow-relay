@@ -32,6 +32,16 @@ public class TradingViewRoutingTest {
         return (Button)parent.getChildAt(0);
     }
 
+    @Test public void oneLetterSymbolsOpenTheirOwnTradingViewMarket()throws Exception {
+        try(ActivityController<MainActivity> controller=Robolectric.buildActivity(MainActivity.class).create()) {
+            MainActivity activity=controller.get();
+            for(String symbol:new String[]{"QUSDT","WUSDT"}) {
+                button(activity,symbol).performClick();Intent intent=shadowOf(activity).getNextStartedActivity();
+                assertNotNull(intent);
+                assertEquals("https://www.tradingview.com/symbols/"+symbol+".P?exchange=BINANCE",intent.getDataString());
+            }
+        }
+    }
     @Test public void alternatingClicksRetainTheirOwnSymbolAfterOtherButtonWasCreated()throws Exception {
         try(ActivityController<MainActivity> controller=Robolectric.buildActivity(MainActivity.class).create()) {
             MainActivity activity=controller.get();

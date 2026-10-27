@@ -22,6 +22,12 @@ public class UniverseSnapshotTest {
         assertThrows(IllegalStateException.class,
             ()->MainActivity.verifyUniverseSnapshot(rows,covered,eligible,maximum));
     }
+    @Test public void oneLetterBaseSymbolsAreValidButEmptyBaseIsRejected()throws Exception {
+        JSONArray values=rows(2,2);
+        values.getJSONObject(0).put("symbol","QUSDT");values.getJSONObject(1).put("symbol","WUSDT");
+        MainActivity.verifyUniverseSnapshot(values,2,2,50);
+        values.getJSONObject(0).put("symbol","USDT");rejected(values,2,2,50);
+    }
     @Test public void completeCappedBootstrapAndEmptySnapshotsAreValid()throws Exception {
         MainActivity.verifyUniverseSnapshot(rows(47,47),47,47,50);
         MainActivity.verifyUniverseSnapshot(rows(65,50),50,65,50);

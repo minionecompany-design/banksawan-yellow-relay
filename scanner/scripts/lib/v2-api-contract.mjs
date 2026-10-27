@@ -8,7 +8,7 @@ const finite=n=>typeof n==='number'&&Number.isFinite(n);
 const eligible=row=>finite(row?.price)&&row.price>0&&row.price<10&&
   finite(row?.binance24hChangePct)&&row.binance24hChangePct>1&&
   finite(row?.quoteVolume24h)&&row.quoteVolume24h>10_000_000;
-const symbol=s=>typeof s==='string'&&/^[A-Z0-9]{2,25}USDT$/.test(s);
+const symbol=s=>typeof s==='string'&&/^[A-Z0-9]{1,25}USDT$/.test(s);
 
 export function auditV2ApiContract(snapshot){
   const failures=[];

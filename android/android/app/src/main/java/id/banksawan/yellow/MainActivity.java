@@ -126,7 +126,7 @@ public class MainActivity extends Activity {
                     String symbol=e.optString("symbol","");
                     String tf=e.optString("timeframe","");
                     String id=e.optString("id","");
-                    if(!symbol.matches("[A-Z0-9]{2,25}USDT") ||
+                    if(!symbol.matches("[A-Z0-9]{1,25}USDT") ||
                        !(tf.equals("1m")||tf.equals("5m")||tf.equals("15m")||tf.equals("1h"))||
                        !id.equals(symbol+":"+tf+":"+e.optLong("barClosedAtMs",-1)+":LONG_A")) continue;
                     YellowNotifier.claimAndNotify(this,id,symbol,tf,
@@ -200,7 +200,7 @@ public class MainActivity extends Activity {
         Button b=new Button(this);b.setText("BUKA TRADINGVIEW ↗");b.setTextColor(BG);
         b.setBackground(shape(Color.rgb(51,179,229),0));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(48));
         p.setMargins(0,dp(14),0,0);parent.addView(b,p);
-        b.setOnClickListener(v->{if(!symbol.matches("[A-Z0-9]{2,25}USDT"))return;
+        b.setOnClickListener(v->{if(!symbol.matches("[A-Z0-9]{1,25}USDT"))return;
             Uri uri=Uri.parse("https://www.tradingview.com/chart/?symbol="+Uri.encode("BINANCE:"+symbol+".P"));
             Intent intent=new Intent(Intent.ACTION_VIEW,uri);intent.addCategory(Intent.CATEGORY_BROWSABLE);
             try{startActivity(intent);}catch(Exception ignored){} });
@@ -234,7 +234,7 @@ public class MainActivity extends Activity {
             String symbol = coin.optString("symbol", "");
             double price = coin.optDouble("price", Double.NaN);
             double change = coin.optDouble("binance24hChangePct", Double.NaN);
-            if (!symbol.matches("[A-Z0-9]{2,25}USDT")
+            if (!symbol.matches("[A-Z0-9]{1,25}USDT")
                 || !Double.isFinite(price) || price <= 0 || price >= 10.0
                 || !Double.isFinite(change) || change < 1.0) continue;
             eligible.add(coin);
@@ -365,7 +365,7 @@ public class MainActivity extends Activity {
             if (item == null || item.optLong("homeExpiresMs", 0) <= System.currentTimeMillis())
                 continue;
             String symbol = item.optString("symbol", "");
-            if (!symbol.matches("[A-Z0-9]{2,25}USDT")) continue;
+            if (!symbol.matches("[A-Z0-9]{1,25}USDT")) continue;
             double price = item.optDouble("price", Double.NaN);
             double pct = item.optDouble("binance24hChangePct", Double.NaN);
             String tf = item.optString("timeframe", "");
