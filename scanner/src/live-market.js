@@ -110,6 +110,7 @@ export class YellowLiveMarket {
     const last=history.at(-1);
     if(last && ticker.observedAtMs<last.observedAtMs)return false;
     this.tickers.set(ticker.symbol,ticker);
+    try{this.analysisCompanion?.onTicker?.(ticker.symbol,ticker);}catch{}
     if(last?.observedAtMs===ticker.observedAtMs)history[history.length-1]=ticker;
     else history.push(ticker);
     while(history.length>180)history.shift();
@@ -444,8 +445,9 @@ export class YellowLiveMarket {
     catch(e){this.covered.delete(symbol);this.unsubscribe(symbol);this.retryAfter.set(symbol,this.clock()+10*60_000);
       this.recordFault('CANDLE_GAP_'+symbol+'_'+e.message);return;}
     if(applied.status!=='APPENDED')return;
-    let analysisBar=null;
-    if(this.analysisCompanion?.enabled)try{analysisBar=tracked.book.latest(applied.timeframe);}catch{}
+    let analysisBar=null,analysisContext=null;
+    if(this.analysisCompanion?.enabled)try{analysisBar=tracked.book.latest(applied.timeframe);
+      if(applied.timeframe==='1m')analysisContext=tracked.book.snapshot();}catch{}
     this.lastClosedCandleMs=Math.max(this.lastClosedCandleMs,applied.endMs);
     // Already-closed WS bar; no extra subscription or request.
     try{this.passiveEvidence?.onClosedBar(symbol,applied.timeframe,tracked.book.latest(applied.timeframe));}
@@ -455,7 +457,7 @@ export class YellowLiveMarket {
     const job=(tracked.drain||Promise.resolve()).then(()=>this.flushTracked(symbol,tracked));
     tracked.drain=job.catch(err=>this.recordFault('DRAIN_'+symbol+'_'+err.message));
     await job;
-    try{if(analysisBar)this.analysisCompanion.onClosedBar(symbol,applied.timeframe,analysisBar);}
+    try{if(analysisBar)this.analysisCompanion.onClosedBar(symbol,applied.timeframe,analysisBar,analysisContext);}
     catch(e){try{this.log('YELLOW_ANALYSIS_FAULT','BAR_'+String(e?.message).slice(0,80));}catch{}}
   }
   home(){return this.ledger.home();}

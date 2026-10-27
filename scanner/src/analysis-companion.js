@@ -28,7 +28,7 @@ export function validAnalysisBar(b, period = MINUTE) {
 
 // A context ending exactly at T is usable only if actually present at capture.
 // Late/future bars never repair an immutable analysis after the fact.
-function closedHistory(raw, timeframe, asOfMs) {
+export function closedHistory(raw, timeframe, asOfMs) {
   const period = ANALYSIS_PERIODS[timeframe];
   if (!Array.isArray(raw)) return null;
   const bars = raw.filter(b => !Number.isSafeInteger(b?.endMs) || b.endMs <= asOfMs).slice(-190);
@@ -45,7 +45,7 @@ function atr14(bars) {
   return atr;
 }
 
-function frameAnalysis(bars, timeframe) {
+export function frameAnalysis(bars, timeframe) {
   if (!bars) return {timeframe, availability:'UNAVAILABLE', reason:'INCOMPLETE_CLOSED_HISTORY'};
   const last = bars.at(-1), closes = bars.map(b => b.close);
   const ma7 = mean(closes.slice(-7)), ma25 = mean(closes.slice(-25)), ma99 = mean(closes.slice(-99));
@@ -55,7 +55,7 @@ function frameAnalysis(bars, timeframe) {
     relativeVolume:priorVolume>0 ? last.volume/priorVolume : null, atr14:atr14(bars)};
 }
 
-function levelsAndPlan(bars, frame, entry) {
+export function levelsAndPlan(bars, frame, entry) {
   const last = bars.at(-1), prior = bars.slice(-21,-1), atr = frame.atr14;
   const rangeHigh = high(prior), rangeLow = low(prior);
   // Confirm pivots with two candles on each side; never backdate availability.

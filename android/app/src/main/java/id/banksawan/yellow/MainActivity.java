@@ -311,8 +311,7 @@ public class MainActivity extends Activity {
             lamps.addView(circle,cp);
         }
         column.addView(lamps);
-        String verdict="GREEN".equals(status)?"MENDUKUNG":
-            "RED".equals(status)?"HINDARI":"TUNGGU";
+        String verdict=AnalysisSnapshot.lightLabel(light);
         int color="GREEN".equals(status)?GREEN:
             "RED".equals(status)?Color.rgb(255,110,110):YELLOW;
         TextView note=text(verdict,12,color,true);
@@ -342,19 +341,95 @@ public class MainActivity extends Activity {
         analysisDialog=dialog;dialog.show();
         if(dialog.getWindow()!=null)dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(YELLOW);
-        analysisIo.execute(()->{
-            try{
-                JSONObject reply=loadJson("/api/analysis?eventId="+Uri.encode(eventId));
-                AnalysisSnapshot snapshot=AnalysisSnapshot.parse(reply,eventId,System.currentTimeMillis());
-                runOnUiThread(()->{if(request==analysisRequest&&!isDestroyed()&&dialog.isShowing())
-                    renderAnalysis(content,snapshot,System.currentTimeMillis());});
-            }catch(Exception unavailable){runOnUiThread(()->{
-                if(request!=analysisRequest||isDestroyed()||!dialog.isShowing())return;
-                content.removeAllViews();content.addView(text("Analisis belum tersedia untuk sinyal ini.",16,YELLOW,true));
-                content.addView(text("Sinyal LONG A tetap dapat diperiksa melalui TradingView.",13,MUTED,false));
+        content.removeAllViews();
+        final LinearLayout live=new LinearLayout(this),details=new LinearLayout(this);
+        live.setOrientation(LinearLayout.VERTICAL);details.setOrientation(LinearLayout.VERTICAL);
+        content.addView(live);content.addView(details);
+        final AnalysisSnapshot[] latest={null};final boolean[] busy={false};final String[] shownPaper={""};
+        final Runnable[] poll=new Runnable[1],tick=new Runnable[1];
+        tick[0]=()->{
+            if(request!=analysisRequest||isDestroyed()||!dialog.isShowing())return;
+            long clock=System.currentTimeMillis();
+            renderEntryWatch(live,latest[0]==null?null:latest[0].data,eventId,clock);
+            View expiry=details.findViewWithTag("initial-expiry");
+            if(expiry!=null&&latest[0]!=null)expiry.setVisibility(clock>=latest[0].data.optLong("expiresAtMs")?View.VISIBLE:View.GONE);
+            handler.postDelayed(tick[0],1000);
+        };
+        poll[0]=()->{
+            if(request!=analysisRequest||isDestroyed()||!dialog.isShowing())return;
+            if(!busy[0]){busy[0]=true;analysisIo.execute(()->{
+                try{
+                    JSONObject reply=loadJson("/api/analysis?eventId="+Uri.encode(eventId));
+                    AnalysisSnapshot snapshot=AnalysisSnapshot.parse(reply,eventId,System.currentTimeMillis());
+                    runOnUiThread(()->{
+                        busy[0]=false;if(request!=analysisRequest||isDestroyed()||!dialog.isShowing())return;
+                        latest[0]=snapshot;String state=snapshot.data.optJSONObject("paper").optString("status");
+                        if(!state.equals(shownPaper[0])){renderAnalysis(details,snapshot,System.currentTimeMillis());shownPaper[0]=state;}
+                    });
+                }catch(Exception unavailable){runOnUiThread(()->{busy[0]=false;});}
             });}
-        });
+            handler.postDelayed(poll[0],5000);
+        };
+        dialog.setOnDismissListener(d->{handler.removeCallbacks(poll[0]);handler.removeCallbacks(tick[0]);if(request==analysisRequest)analysisRequest++;});
+        handler.post(poll[0]);handler.post(tick[0]);
     }
+    void renderEntryWatch(LinearLayout parent,JSONObject a,String eventId,long now){
+        parent.removeAllViews();
+        JSONObject w=a==null?null:AnalysisSnapshot.entryWatch(a.optJSONObject("entryWatch"),eventId,now);
+        if(w==null){analysisNote(parent,a==null?"Memuat penilaian entry…":"Pemantauan pullback belum tersedia untuk sinyal lama ini.",YELLOW);return;}
+        JSONObject light=AnalysisSnapshot.watchAssessment(a,eventId,now),p=w.optJSONObject("plan");
+        boolean ended="ENDED".equals(w.optString("state"))||"DATA_GAP".equals(w.optString("state"))||
+            now>=(p==null?w.optLong("watchUntilMs"):w.optLong("entryUntilMs"));
+        boolean fresh=light!=null&&now-light.optLong("checkedAtMs",0)<45_000L&&now>=light.optLong("checkedAtMs",0)-10_000L;
+        String label=ended?"BERAKHIR":!fresh?"DATA BELUM SEGAR":AnalysisSnapshot.lightLabel(light);
+        analysisNote(parent,"PENILAIAN ENTRY • "+label,YELLOW);
+        String reason=ended?("CONFIRMED".equals(w.optString("state"))?"Masa berlaku skenario sudah berakhir":entryReason(w.optString("reason"))):!fresh?"Menunggu pembaruan server":entryReason(light.optString("reason"));
+        analysisNote(parent,reason,MUTED);
+        line(parent,"Mulai pantau",formattedTime(w.optLong("startedAtMs")));
+        if(p==null)line(parent,"Batas pantau",formattedTime(w.optLong("watchUntilMs")));
+        if(light!=null&&fresh){
+            double px=light.optDouble("tickerPrice",Double.NaN);
+            if(Double.isFinite(px)&&px>0)line(parent,"Harga LIVE",analysisPrice(px));
+            line(parent,"Pemeriksaan",formattedTime(light.optLong("checkedAtMs")));
+        }
+        if(p!=null){
+            line(parent,"Konfirmasi",formattedTime(w.optLong("confirmedAtMs")));
+            line(parent,"Batas entry",formattedTime(w.optLong("entryUntilMs")));
+            analysisValue(parent,"Zona entry baru",analysisPrice(p.optDouble("entryLow"))+" – "+analysisPrice(p.optDouble("entryHigh")));
+            analysisValue(parent,"SL skenario baru",analysisPrice(p.optDouble("stopLoss")));
+            for(String key:new String[]{"tp1","tp2","tp3"})analysisValue(parent,key.toUpperCase(Locale.ROOT)+" skenario baru",analysisPrice(p.optDouble(key)));
+            line(parent,"Jarak SL",String.format(Locale.US,"%.2f%%",p.optDouble("riskPct")));
+            JSONObject paper=w.optJSONObject("greenPaper");
+            analysisNote(parent,paper==null?"Belum ada publikasi lampu hijau yang dicatat.":"Simulasi setelah hijau: "+entryReason(paper.optString("status")),MUTED);
+        }
+        analysisNote(parent,"Aturan entry masih diuji. Konfirmasi terjadi setelah candle selesai; bukan kepastian harga terendah.",MUTED);
+    }
+    private String entryReason(String reason){
+        if(reason.startsWith("SKENARIO_"))reason=reason.substring(9);
+        switch(reason){
+            case "PEMANTAUAN_BERAKHIR":case "JENDELA_ENTRY_BERAKHIR":case "JENDELA_PEMANTAUAN_BERAKHIR":return "Masa berlaku skenario sudah berakhir";
+            case "SL_TERSENTUH":return "Harga sudah menyentuh SL; skenario dikunci";
+            case "TP1_TERSENTUH":return "Harga sudah menyentuh TP1; skenario dikunci";
+            case "TREN_BESAR_BERUBAH":return "Tren besar berubah; skenario dikunci";
+            case "MENUNGGU_PULLBACK":return "Menunggu penurunan setelah LONG A";
+            case "MENUNGGU_KONFIRMASI_PULIH":return "Pullback terpantau; menunggu candle pemulihan";
+            case "TREN_PENDUKUNG_BELUM_SESUAI":return "Tren pendukung belum sesuai";
+            case "RUANG_RESISTANCE_BELUM_CUKUP":return "Ruang menuju resistance belum cukup atau belum diketahui";
+            case "JARAK_SL_TIDAK_SESUAI":return "Jarak stop loss belum sesuai batas uji";
+            case "PULLBACK_TERKONFIRMASI":return "Pullback terkonfirmasi; periksa zona dan masa berlaku";
+            case "DI_LUAR_ZONA_ENTRY":return "Harga sudah di luar zona entry";
+            case "SL_BEFORE_TP1":return "SL lebih dahulu";
+            case "TP1_BEFORE_SL":return "TP1 lebih dahulu";
+            case "WAITING_ENTRY":return "Menunggu candle penuh setelah publikasi hijau";
+            case "OPEN":return "Masih diamati";
+            case "NOT_ENTERED":return "Harga pembukaan tidak memenuhi zona";
+            case "INCOMPLETE_DATA":case "DATA_CANDLE_TERPUTUS":return "Data lanjutan tidak lengkap";
+            case "AMBIGUOUS":return "Urutan TP/SL tidak diketahui";
+            case "TIMEOUT":return "Pengamatan 120 menit selesai";
+            default:return reason.contains("SELESAI")||reason.contains("BERAKHIR")||reason.contains("TERSENTUH")?"Skenario berakhir": "Menunggu data atau konfirmasi yang sesuai";
+        }
+    }
+
     private String analysisPrice(double value){return java.math.BigDecimal.valueOf(value)
         .round(new java.math.MathContext(10,java.math.RoundingMode.HALF_UP)).stripTrailingZeros().toPlainString();}
     private String optionalPrice(JSONObject object,String key){return object==null||object.isNull(key)?"Belum ada":analysisPrice(object.optDouble(key));}
@@ -368,9 +443,11 @@ public class MainActivity extends Activity {
     void renderAnalysis(LinearLayout content,AnalysisSnapshot snapshot,long nowMs){
         JSONObject a=snapshot.data;content.removeAllViews();
         content.addView(text(a.optString("symbol")+" • "+a.optString("timeframe").toUpperCase(Locale.ROOT),21,YELLOW,true));
-        analysisNote(content,"Analisis saat LONG A • dalam pengujian",YELLOW);
+        analysisNote(content,"CATATAN AWAL LONG A • dalam pengujian",YELLOW);
         analysisNote(content,"Sinyal: "+formattedTime(a.optLong("signalAtMs"))+"\nHarga dan level di bawah adalah catatan saat sinyal.",MUTED);
-        if(nowMs>=a.optLong("expiresAtMs"))analysisNote(content,"Skenario entry sudah kedaluwarsa.",YELLOW);
+        line(content,"Batas skenario awal",formattedTime(a.optLong("expiresAtMs")));
+        TextView expiry=text("Skenario entry sudah kedaluwarsa.",13,YELLOW,false);
+        expiry.setTag("initial-expiry");expiry.setVisibility(nowMs>=a.optLong("expiresAtMs")?View.VISIBLE:View.GONE);content.addView(expiry);
         if("PARTIAL".equals(a.optString("availability")))analysisNote(content,"Data empat TF belum lengkap. Skenario entry belum dibuat.",YELLOW);
         JSONArray frames=a.optJSONArray("frames");
         for(int i=0;i<frames.length();i++){

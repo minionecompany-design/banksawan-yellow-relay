@@ -6,6 +6,8 @@ import {AnalysisCompanionStore} from './analysis-companion-store.js';
 import {ANALYSIS_METHOD,ANALYSIS_KEYS,ANALYSIS_FRAMES,ANALYSIS_PERIODS,ANALYSIS_HORIZON_MS,
   analyzeLongA,newPaperOutcome,advancePaperOutcome,summarizeAnalysis,validAnalysisEventId} from './analysis-companion.js';
 
+import {newEntryWatch,advanceEntryWatch,validEntryWatch,observeWatchQuote,publishGreen,watchLight,WATCH_METHOD,freshQuote} from './entry-watch.js';
+
 const RETENTION_MS=24*60*60_000;
 const ACTIVE=new Set(['WAITING_ENTRY','OPEN']);
 const STATES=new Set(['WAITING_ENTRY','OPEN','NO_PLAN','NOT_ENTERED','INCOMPLETE_DATA',
@@ -48,6 +50,7 @@ function validRecord(record,now) {
       !(p.endedAtMs===null||Number.isSafeInteger(p.endedAtMs)&&p.endedAtMs<=now)) return false;
   if (['TP1_BEFORE_SL','SL_BEFORE_TP1','TIMEOUT'].includes(p.status) &&
       (!positive(p.entryPrice)||!positive(p.exitPrice)||!finite(p.netReturnPct)||p.endedAtMs===null)) return false;
+  if(record.watch && !validEntryWatch(record.watch,a.eventId,now))return false;
   return true;
 }
 
@@ -114,28 +117,62 @@ export class AnalysisCompanionBridge {
       let analysis;
       try{analysis=analyzeLongA(frozenEvent,copy,capturedAtMs);}catch{this.metrics.rejected++;this.#scheduleWrite();return;}
       if(this.records.size>=this.maxRecords){
-        const evict=[...this.records].find(([,r])=>!ACTIVE.has(r.paper.status));
+        const evict=[...this.records].find(([,r])=>!ACTIVE.has(r.paper.status)&&(!r.watch||['ENDED','DATA_GAP'].includes(r.watch.state)&&![r.watch.paper,r.watch.greenPaper].some(p=>p&&ACTIVE.has(p.status))));
         if(!evict){this.metrics.rejected++;this.#scheduleWrite();return;}
         this.records.delete(evict[0]);this.metrics.evicted++;
       }
-      this.records.set(analysis.eventId,{analysis,paper:newPaperOutcome(analysis)});
+      this.records.set(analysis.eventId,{analysis,paper:newPaperOutcome(analysis),watch:newEntryWatch(frozenEvent,capturedAtMs)});
       this.metrics.captured++;this.#scheduleWrite();
     });
   }
-  onClosedBar(symbol,timeframe,bar) {
+  onClosedBar(symbol,timeframe,bar,snapshot=null) {
     if(timeframe!=='1m'||bar?.endMs>this.clock())return false;
     const copy={...bar};
+    const context=snapshot?structuredClone(snapshot):null;
     return this.#enqueue(()=>{
       this.#prune();
-      for(const record of this.records.values())if(record.analysis.symbol===symbol && ACTIVE.has(record.paper.status)){
-        const next=advancePaperOutcome(record.analysis,record.paper,copy);
-        if(next!==record.paper){record.paper=next;this.#scheduleWrite();}
+      for(const record of this.records.values())if(record.analysis.symbol===symbol){
+        if(ACTIVE.has(record.paper.status)){
+          const next=advancePaperOutcome(record.analysis,record.paper,copy);
+          if(next!==record.paper){record.paper=next;this.#scheduleWrite();}
+        }
+        if(record.watch){
+          const next=advanceEntryWatch(record.watch,copy,context,this.clock());
+          if(next!==record.watch){record.watch=next;this.#scheduleWrite();}
+        }
       }
     });
+  }
+  // Passive observation of existing tickers only. No queued quote flood or IO await.
+  onTicker(symbol,ticker){
+    if(!this.enabled||!freshQuote(ticker,this.clock()))return;
+    for(const record of this.records.values())if(record.analysis.symbol===symbol){
+      const a=record.analysis;
+      if(!record.invalidated&&a.plan&&ticker.observedAtMs>=a.capturedAtMs&&this.clock()<a.expiresAtMs&&
+        (ticker.lastPrice<=a.plan.stopLoss||ticker.lastPrice>=a.plan.tp1)){
+        record.invalidated={atMs:this.clock(),reason:ticker.lastPrice<=a.plan.stopLoss?'SL_TERSENTUH':'TP1_TERSENTUH'};this.#scheduleWrite();
+      }
+      if(record.watch&&observeWatchQuote(record.watch,ticker,this.clock()))this.#scheduleWrite();
+    }
+  }
+  light(eventId,ticker){
+    const r=this.records.get(eventId);if(!r?.watch)return null;
+    if(observeWatchQuote(r.watch,ticker,this.clock()))this.#scheduleWrite();
+    if(publishGreen(r.watch,ticker,this.clock()))this.#scheduleWrite();
+    return watchLight(r.watch,ticker,this.clock());
   }
   #prune() {
     const now=this.clock();
     for(const [id,record] of this.records){
+      const w=record.watch;
+      if(w){
+        if(!['ENDED','DATA_GAP'].includes(w.state)&&now>=(w.state==='CONFIRMED'?w.entryUntilMs:w.watchUntilMs)){
+          w.state='ENDED';w.reason='JENDELA_PEMANTAUAN_BERAKHIR';this.#scheduleWrite();
+        }
+        for(const key of ['paper','greenPaper'])if(w[key]&&ACTIVE.has(w[key].status)&&now>w[key].deadlineMs+120000){
+          w[key]={...w[key],status:'INCOMPLETE_DATA',endedAtMs:now};this.#scheduleWrite();
+        }
+      }
       if(now-record.analysis.capturedAtMs>RETENTION_MS){this.records.delete(id);this.metrics.evicted++;this.#scheduleWrite();}
       else if(ACTIVE.has(record.paper.status)&&now>record.paper.deadlineMs+120_000){
         record.paper={...record.paper,status:'INCOMPLETE_DATA',endedAtMs:now};this.#scheduleWrite();
@@ -145,11 +182,17 @@ export class AnalysisCompanionBridge {
   get(eventId) {
     if(!this.enabled)return null;
     this.#prune();const record=this.records.get(eventId);
-    return record?structuredClone({...record.analysis,paper:record.paper,scenarioExpired:this.clock()>=record.analysis.expiresAtMs}):null;
+    return record?structuredClone({...record.analysis,paper:record.paper,entryWatch:record.watch??null,invalidated:record.invalidated??null,scenarioExpired:this.clock()>=record.analysis.expiresAtMs}):null;
   }
   has(eventId){return this.enabled&&this.records.has(eventId);}
-  summary(){this.#prune();return {...summarizeAnalysis([...this.records.values()]),retentionHours:24,
-    capacity:this.maxRecords,evicted:this.metrics.evicted,rejected:this.metrics.rejected,droppedJobs:this.metrics.droppedJobs};}
+  summary(){this.#prune();const records=[...this.records.values()],watches=records.filter(r=>r.watch).map(r=>r.watch);
+    const confirmed=watches.filter(w=>w.paper),green=watches.filter(w=>w.greenPaper);
+    return {...summarizeAnalysis(records),retentionHours:24,capacity:this.maxRecords,
+      entryWatch:{method:WATCH_METHOD,watches:watches.length,states:watches.reduce((s,w)=>(s[w.state]=(s[w.state]||0)+1,s),{}),
+        confirmed: summarizeAnalysis(confirmed.map(w=>({paper:w.paper}))),
+        greenPublished: summarizeAnalysis(green.map(w=>({paper:w.greenPaper}))),
+        interpretation:'SERVER_PUBLISHED_GREEN_PAPER_ONLY_NOT_DEVICE_FILL_OR_WIN_RATE'},
+      evicted:this.metrics.evicted,rejected:this.metrics.rejected,droppedJobs:this.metrics.droppedJobs};}
   status(){return {enabled:this.enabled,initialized:this.initialized,method:ANALYSIS_METHOD,
     pendingJobs:this.queue.length,retainedRecords:this.records.size,...this.metrics};}
   snapshot(){return {schemaVersion:1,method:ANALYSIS_METHOD,records:structuredClone([...this.records.values()]),

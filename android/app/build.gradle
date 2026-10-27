@@ -30,8 +30,8 @@ android {
         applicationId 'id.banksawan.yellow'
         minSdk 26
         targetSdk 35
-        versionCode 14
-        versionName '0.14.0-v2-compact-home-lamps'
+        versionCode 15
+        versionName '0.15.0-v2-pullback-watch'
         // Safe defaults: demo only, no production URL, no Binance requests.
         // CI can override YELLOW_API_BASE_URL after a secure backend exists.
         def suppliedUrl = System.getenv('YELLOW_API_BASE_URL') ?: ''

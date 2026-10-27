@@ -4,6 +4,11 @@ import {trafficLight} from './entry-traffic-light.js';
 const response=(res,status,value)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8',
  'Cache-Control':'no-store, max-age=0','X-Content-Type-Options':'nosniff',
  'Referrer-Policy':'no-referrer'});res.end(JSON.stringify(value));};
+function assessment(market,eventId,analysis){
+  const now=market.clock(),ticker=market.getTickerAsOf?.(analysis?.symbol??eventId.split(':')[0],now);
+  const light=market.analysisCompanion?.light?.(eventId,ticker)??trafficLight(analysis,ticker,now);
+  return {...light,eventId,tickerPrice:ticker?.lastPrice??null,tickerAtMs:ticker?.observedAtMs??null};
+}
 export function createLiveApi(market){return http.createServer((req,res)=>{
   let url;try{url=new URL(req.url,'http://localhost');}catch{return response(res,400,{error:'INVALID_URL'});}
   if(req.method!=='GET')return response(res,405,{error:'READ_ONLY'});
@@ -27,9 +32,8 @@ export function createLiveApi(market){return http.createServer((req,res)=>{
         // ticker, and never delays or changes the original alert delivery.
         const nowMs=market.clock();
         const ticker=market.getTickerAsOf?.(event.symbol,nowMs);
-        const light=trafficLight(analysis,ticker,nowMs);
-        event.analysisLight={...light,eventId:event.id,
-          tickerPrice:ticker?.lastPrice??null,tickerAtMs:ticker?.observedAtMs??null};
+        event.analysisLight=assessment(market,event.id,analysis);
+        event.entryWatch=market.analysisCompanion.get(event.id)?.entryWatch??null;
         if(analysis?.availability==='READY'&&analysis.plan&&analysis.eventId===event.id&&
            analysis.symbol===event.symbol&&analysis.timeframe===event.timeframe&&
            analysis.signalAtMs===event.barClosedAtMs&&
@@ -63,8 +67,20 @@ export function createLiveApi(market){return http.createServer((req,res)=>{
       if(!market.home().some(e=>e.id===id))return response(res,404,{error:'EVENT_NOT_IN_HOME'});
       const analysis=companion.get(id);
       if(!analysis)return response(res,404,{error:'ANALYSIS_NOT_CAPTURED'});
-      return response(res,200,{analysis,simulation:false,mode:'LIVE_SHADOW'});
+      const entryLight=assessment(market,id,analysis);
+      const current=companion.get(id);
+      return response(res,200,{analysis:{...current,entryLight},simulation:false,mode:'LIVE_SHADOW'});
     }catch{return response(res,503,{error:'ANALYSIS_UNAVAILABLE'});}
+  }
+  // Bounded export of ALREADY buffered candles for offline case review. Zero REST.
+  if(url.pathname==='/api/research/candles'){
+    const symbol=url.searchParams.get('symbol');
+    if(!/^[A-Z0-9]{1,25}USDT$/.test(symbol??''))return response(res,400,{error:'INVALID_SYMBOL'});
+    const tracked=market.covered?.get(symbol);
+    if(!tracked)return response(res,404,{error:'SYMBOL_NOT_BUFFERED'});
+    const capturedAtMs=market.clock(),source=tracked.book.pineSnapshot?.()??tracked.book.snapshot();
+    const candles=Object.fromEntries(Object.entries(source).map(([key,bars])=>[key,bars.filter(b=>b.endMs<=capturedAtMs).slice(-1000)]));
+    return response(res,200,{symbol,capturedAtMs,candles,source:'EXISTING_BINANCE_CANDLE_BOOK',purpose:'OFFLINE_REPLAY_ONLY',networkRequests:0});
   }
   if(url.pathname==='/api/universe'){
     const universe=market.universe();

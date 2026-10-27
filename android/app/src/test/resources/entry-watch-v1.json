@@ -1,0 +1,158 @@
+{
+  "entryWatch": {
+    "schemaVersion": 1,
+    "method": "YELLOW_PULLBACK_WATCH_V1",
+    "eventId": "QUSDT:1m:1793016000000:LONG_A",
+    "signalAtMs": 1793016000000,
+    "startedAtMs": 1793016004000,
+    "watchUntilMs": 1793037600000,
+    "lastBarEndMs": 1793016240000,
+    "state": "CONFIRMED",
+    "reason": "PULLBACK_TERKONFIRMASI",
+    "signalPrice": 1,
+    "low": 0.97,
+    "lowAtMs": 1793016060000,
+    "pullbackSeen": true,
+    "checkedAtMs": 1793016241000,
+    "confirmedAtMs": 1793016241000,
+    "scenarioId": "QUSDT:1m:1793016000000:LONG_A:ENTRY:1793016240000",
+    "entryUntilMs": 1793016421000,
+    "plan": {
+      "referenceEntry": 1.002,
+      "entryLow": 1.0004248650877237,
+      "entryHigh": 1.0059378372806909,
+      "stopLoss": 0.9660621627193092,
+      "tp1": 1.037937837280691,
+      "tp2": 1.0738756745613816,
+      "tp3": 1.1098135118420722,
+      "riskPct": 3.586610507054968,
+      "roomToResistanceR": 2.1704144128313776
+    },
+    "frames": [
+      {
+        "timeframe": "1m",
+        "availability": "READY",
+        "candleEndMs": 1793016240000,
+        "close": 1.002,
+        "ma7": 0.9879999999999999,
+        "ma25": 0.9894399999999999,
+        "ma99": 0.9898585858585847,
+        "trend": "MIXED",
+        "relativeVolume": 2.5,
+        "atr14": 0.015751349122763023
+      },
+      {
+        "timeframe": "5m",
+        "availability": "READY",
+        "candleEndMs": 1793016000000,
+        "close": 1.00148,
+        "ma7": 1.0014199999999998,
+        "ma25": 1.00124,
+        "ma99": 0.9928383838383839,
+        "trend": "UP",
+        "relativeVolume": 1,
+        "atr14": 0.078905204228044
+      },
+      {
+        "timeframe": "15m",
+        "availability": "READY",
+        "candleEndMs": 1793016000000,
+        "close": 1.00148,
+        "ma7": 1.0014199999999998,
+        "ma25": 1.00124,
+        "ma99": 0.9928383838383839,
+        "trend": "UP",
+        "relativeVolume": 1,
+        "atr14": 0.078905204228044
+      },
+      {
+        "timeframe": "1h",
+        "availability": "READY",
+        "candleEndMs": 1793016000000,
+        "close": 1.00148,
+        "ma7": 1.0014199999999998,
+        "ma25": 1.00124,
+        "ma99": 0.9928383838383839,
+        "trend": "UP",
+        "relativeVolume": 1,
+        "atr14": 0.078905204228044
+      }
+    ],
+    "greenPublishedAtMs": null,
+    "paper": {
+      "status": "WAITING_ENTRY",
+      "entryAtMs": 1793016300000,
+      "deadlineMs": 1793023500000,
+      "lastBarEndMs": 1793016300000,
+      "entryPrice": null,
+      "exitPrice": null,
+      "endedAtMs": null,
+      "mfePct": 0,
+      "maePct": 0,
+      "grossReturnPct": null,
+      "netReturnPct": null,
+      "costBps": 14
+    },
+    "greenPaper": null,
+    "confirmedBarEndMs": 1793016240000,
+    "currentFrames": [
+      {
+        "timeframe": "1m",
+        "availability": "READY",
+        "candleEndMs": 1793016240000,
+        "close": 1.002,
+        "ma7": 0.9879999999999999,
+        "ma25": 0.9894399999999999,
+        "ma99": 0.9898585858585847,
+        "trend": "MIXED",
+        "relativeVolume": 2.5,
+        "atr14": 0.015751349122763023
+      },
+      {
+        "timeframe": "5m",
+        "availability": "READY",
+        "candleEndMs": 1793016000000,
+        "close": 1.00148,
+        "ma7": 1.0014199999999998,
+        "ma25": 1.00124,
+        "ma99": 0.9928383838383839,
+        "trend": "UP",
+        "relativeVolume": 1,
+        "atr14": 0.078905204228044
+      },
+      {
+        "timeframe": "15m",
+        "availability": "READY",
+        "candleEndMs": 1793016000000,
+        "close": 1.00148,
+        "ma7": 1.0014199999999998,
+        "ma25": 1.00124,
+        "ma99": 0.9928383838383839,
+        "trend": "UP",
+        "relativeVolume": 1,
+        "atr14": 0.078905204228044
+      },
+      {
+        "timeframe": "1h",
+        "availability": "READY",
+        "candleEndMs": 1793016000000,
+        "close": 1.00148,
+        "ma7": 1.0014199999999998,
+        "ma25": 1.00124,
+        "ma99": 0.9928383838383839,
+        "trend": "UP",
+        "relativeVolume": 1,
+        "atr14": 0.078905204228044
+      }
+    ]
+  },
+  "entryLight": {
+    "method": "YELLOW_PULLBACK_WATCH_V1",
+    "eventId": "QUSDT:1m:1793016000000:LONG_A",
+    "checkedAtMs": 1793016242000,
+    "tickerPrice": 1.002,
+    "tickerAtMs": 1793016242000,
+    "status": "GREEN",
+    "reason": "PULLBACK_TERKONFIRMASI"
+  }
+}
