@@ -11,9 +11,11 @@ export function trafficLight(analysis,ticker,nowMs){
   if(!analysis||analysis.availability!=='READY'||!analysis.plan||
      !Array.isArray(analysis.frames)||analysis.frames.length!==4)
     return result('YELLOW','ANALISIS_BELUM_LENGKAP',nowMs);
+  if(analysis.invalidated || analysis.paper && !['WAITING_ENTRY','OPEN'].includes(analysis.paper.status))
+    return result('OFF',analysis.invalidated?.reason??'SKENARIO_SELESAI',nowMs);
   const p=analysis.plan;
   if(!Number.isSafeInteger(analysis.expiresAtMs)||nowMs>=analysis.expiresAtMs)
-    return result('YELLOW','SKENARIO_KEDALUWARSA',nowMs);
+    return result('OFF','SKENARIO_KEDALUWARSA',nowMs);
   if(!ticker||!finite(ticker.lastPrice)||ticker.lastPrice<=0||
      !Number.isSafeInteger(ticker.observedAtMs)||ticker.observedAtMs>nowMs+10_000||
      nowMs-ticker.observedAtMs>=30_000)

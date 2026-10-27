@@ -63,10 +63,22 @@ final class AnalysisSnapshot {
         JSONObject light=item.optJSONObject("analysisLight");
         if(light==null||!id.equals(light.optString("eventId")))return null;
         String status=light.optString("status"),reason=light.optString("reason");
-        if(!("GREEN".equals(status)||"YELLOW".equals(status)||"RED".equals(status))||
+        if(!("GREEN".equals(status)||"YELLOW".equals(status)||"RED".equals(status)||"OFF".equals(status))||
             !reason.matches("[A-Z_]{4,50}"))return null;
         long checked=light.optLong("checkedAtMs",-1);
         if(checked<=0||checked>nowMs+10_000L||nowMs-checked>=45_000L)return null;
+        if("YELLOW_PULLBACK_WATCH_V1".equals(light.optString("method"))){
+            JSONObject watch=entryWatch(item.optJSONObject("entryWatch"),id,nowMs);
+            if(watch==null)return null;
+            if("GREEN".equals(status)){
+                JSONObject p=watch.optJSONObject("plan");double px=light.optDouble("tickerPrice",Double.NaN);
+                long at=light.optLong("tickerAtMs",-1);
+                if(!"CONFIRMED".equals(watch.optString("state"))||p==null||nowMs>=watch.optLong("entryUntilMs")||
+                    nowMs-watch.optLong("lastBarEndMs")>=90_000L||!Double.isFinite(px)||px>=10||!Double.isFinite(light.optDouble("change24hPct",Double.NaN))||!Double.isFinite(light.optDouble("quoteVolume24h",Double.NaN))||light.optDouble("change24hPct",0)<=1||light.optDouble("quoteVolume24h",0)<=10_000_000||px<p.optDouble("entryLow")||px>p.optDouble("entryHigh")||
+                    at<watch.optLong("confirmedAtMs")||at>checked+10_000L||checked-at>=30_000L||!"PULLBACK_TERKONFIRMASI".equals(reason))return null;
+            }
+            return light;
+        }
         if("GREEN".equals(status)||"RED".equals(status)){
             if(!item.optBoolean("analysisCaptured",false))return null;
             JSONObject plan=homePreview(item,nowMs);
@@ -80,6 +92,42 @@ final class AnalysisSnapshot {
                 !"KONDISI_TEKNIS_MENDUKUNG".equals(reason)))return null;
         }
         return light;
+    }
+    static JSONObject entryWatch(JSONObject w,String id,long now){
+        if(w==null||!validId(id)||w.optInt("schemaVersion",-1)!=1||
+            !"YELLOW_PULLBACK_WATCH_V1".equals(w.optString("method"))||!id.equals(w.optString("eventId")))return null;
+        long signal=Long.parseLong(id.split(":")[2]),started=w.optLong("startedAtMs",-1),bar=w.optLong("lastBarEndMs",-1);
+        String state=w.optString("state");
+        if(w.optLong("signalAtMs",-1)!=signal||w.optLong("watchUntilMs",-1)!=signal+21_600_000L||
+            started<signal||started>signal+300_000L||started>now+10_000L||bar<signal||bar%60_000L!=0||bar>now+10_000L||
+            !state.matches("WATCHING|PULLBACK|CONFIRMED|ENDED|DATA_GAP")||!w.optString("reason").matches("[A-Z0-9_]{3,80}"))return null;
+        JSONObject p=w.optJSONObject("plan");
+        if(p!=null){
+            for(String key:new String[]{"referenceEntry","entryLow","entryHigh","stopLoss","tp1","tp2","tp3","riskPct","roomToResistanceR"})if(!positive(p,key))return null;
+            long confirmed=w.optLong("confirmedAtMs",-1),end=w.optLong("confirmedBarEndMs",-1);
+            if(confirmed<started||confirmed>now+10_000L||end<signal||end%60_000L!=0||end>confirmed||
+                !w.optString("scenarioId").equals(id+":ENTRY:"+end)||w.optLong("entryUntilMs",-1)!=confirmed+180_000L||
+                !(p.optDouble("stopLoss")<p.optDouble("entryLow")&&p.optDouble("entryLow")<=p.optDouble("referenceEntry")&&
+                p.optDouble("referenceEntry")<=p.optDouble("entryHigh")&&p.optDouble("entryHigh")<p.optDouble("tp1")&&
+                p.optDouble("tp1")<p.optDouble("tp2")&&p.optDouble("tp2")<p.optDouble("tp3")))return null;
+        }else if("CONFIRMED".equals(state))return null;
+        return w;
+    }
+    static JSONObject watchAssessment(JSONObject analysis,String eventId,long now){
+        if(analysis==null)return null;
+        try{
+            String[] parts=eventId.split(":");
+            JSONObject item=new JSONObject().put("id",eventId).put("symbol",parts[0]).put("timeframe",parts[1])
+                .put("signal","LONG_A").put("barClosedAtMs",Long.parseLong(parts[2])).put("analysisCaptured",true)
+                .put("entryWatch",analysis.optJSONObject("entryWatch")).put("analysisLight",analysis.optJSONObject("entryLight"));
+            return homeLight(item,now);
+        }catch(Exception invalid){return null;}
+    }
+    static String lightLabel(JSONObject light){
+        if(light==null)return "DATA";
+        String status=light.optString("status"),reason=light.optString("reason");
+        if("OFF".equals(status)||reason.contains("KEDALUWARSA")||reason.contains("BERAKHIR")||reason.contains("SELESAI"))return "BERAKHIR";
+        return "GREEN".equals(status)?"MENDUKUNG":"RED".equals(status)?"HINDARI":"TUNGGU";
     }
     private static boolean positive(JSONObject o,String key){
         double value=o.optDouble(key,Double.NaN);return Double.isFinite(value)&&value>0;

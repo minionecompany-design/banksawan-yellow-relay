@@ -1,0 +1,212 @@
+{
+  "purpose": "ALL_RETAINED_HOME_EVENTS_PLUS_KNOWN_AIN_CASE",
+  "missingCases": [
+    {
+      "eventId": "NOMUSDT:1m:1793084820000:LONG_A",
+      "symbol": "NOMUSDT",
+      "reason": "SYMBOL_NOT_BUFFERED"
+    },
+    {
+      "eventId": "NOMUSDT:5m:1793082900000:LONG_A",
+      "symbol": "NOMUSDT",
+      "reason": "SYMBOL_NOT_BUFFERED"
+    }
+  ],
+  "cases": [
+    {
+      "event": {
+        "id": "AINUSDT:1m:1793053140000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "AINUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793053140000,
+        "detectedAtMs": 1793053140059,
+        "price": 0.07383
+      },
+      "candlesFile": "../yellow-v15-ain-candles-20261027.json.gz",
+      "candlesSha256": "9643eff8949f81efdc0b1cae8a62088d06d77a81aeaf721dcb0333cc06bffb3f"
+    },
+    {
+      "event": {
+        "id": "LSKUSDT:1m:1793104260000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "LSKUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793104260000,
+        "detectedAtMs": 1793104260060,
+        "price": 0.1715
+      },
+      "candlesFile": "LSKUSDT.json.gz",
+      "candlesSha256": "5353ac32f906cd6f2a78e113fce7e7a2c51816b8db9ab093b68a48cac1cba0bf"
+    },
+    {
+      "event": {
+        "id": "CHIPUSDT:5m:1793103900000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "CHIPUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793103900000,
+        "detectedAtMs": 1793103902302,
+        "price": 0.05376
+      },
+      "candlesFile": "CHIPUSDT.json.gz",
+      "candlesSha256": "597bffcf3bdda79d4155a62e1280b5034055ce34b969e70d9667af56756acc79"
+    },
+    {
+      "event": {
+        "id": "WUSDT:1m:1793103360000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "WUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793103360000,
+        "detectedAtMs": 1793103360416,
+        "price": 0.012555
+      },
+      "candlesFile": "WUSDT.json.gz",
+      "candlesSha256": "928f3fb64afed8dfd710a5ea2fb5c6ae1e48941529cbd2a7dbfd84914a0bb538"
+    },
+    {
+      "event": {
+        "id": "PONSUSDT:15m:1793101500000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "PONSUSDT",
+        "timeframe": "15m",
+        "barClosedAtMs": 1793101500000,
+        "detectedAtMs": 1793101501409,
+        "price": 0.2474
+      },
+      "candlesFile": "PONSUSDT.json.gz",
+      "candlesSha256": "cd611002592689ca0bf96b51bbacebe6ab2212ae6b9665036f239fa461eb20af"
+    },
+    {
+      "event": {
+        "id": "BEATUSDT:5m:1793100300000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "BEATUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793100300000,
+        "detectedAtMs": 1793100300111,
+        "price": 0.08388
+      },
+      "candlesFile": "BEATUSDT.json.gz",
+      "candlesSha256": "fc882f9161ea563f059701bc34a11bf2105033f67e85c9b04ed47dd9f3aa8ad3"
+    },
+    {
+      "event": {
+        "id": "ETHFIUSDT:5m:1793100000000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "ETHFIUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793100000000,
+        "detectedAtMs": 1793100000434,
+        "price": 0.6585
+      },
+      "candlesFile": "ETHFIUSDT.json.gz",
+      "candlesSha256": "99854d16cd85c4fb6d9ce34f91c8611742b63ea5ceda52721b88c2646dda25b2"
+    },
+    {
+      "event": {
+        "id": "PARTIUSDT:1m:1793099760000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "PARTIUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793099760000,
+        "detectedAtMs": 1793099760449,
+        "price": 0.03859
+      },
+      "candlesFile": "PARTIUSDT.json.gz",
+      "candlesSha256": "65377892462472ca499e80d6afd177c4abb5dd24951a57ba9fef062e3ac217a6"
+    },
+    {
+      "event": {
+        "id": "TAGUSDT:5m:1793098500000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "TAGUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793098500000,
+        "detectedAtMs": 1793098500271,
+        "price": 0.0008023
+      },
+      "candlesFile": "TAGUSDT.json.gz",
+      "candlesSha256": "84caf01f90099ee50b21c20e36c3b8fff392b3aed147c7f5f949eb58c35bfbc0"
+    },
+    {
+      "event": {
+        "id": "HUMAUSDT:1m:1793093820000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "HUMAUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793093820000,
+        "detectedAtMs": 1793093820181,
+        "price": 0.026464
+      },
+      "candlesFile": "HUMAUSDT.json.gz",
+      "candlesSha256": "6d5f85d511ce51bbebf3864db3779eeef1e858326c73951ab34388ec272bb7e6"
+    },
+    {
+      "event": {
+        "id": "CHIPUSDT:5m:1793089800000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "CHIPUSDT",
+        "timeframe": "5m",
+        "barClosedAtMs": 1793089800000,
+        "detectedAtMs": 1793089800149,
+        "price": 0.05179
+      },
+      "candlesFile": "CHIPUSDT.json.gz",
+      "candlesSha256": "597bffcf3bdda79d4155a62e1280b5034055ce34b969e70d9667af56756acc79"
+    },
+    {
+      "event": {
+        "id": "REZUSDT:1m:1793087640000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "REZUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793087640000,
+        "detectedAtMs": 1793087640532,
+        "price": 0.004879
+      },
+      "candlesFile": "REZUSDT.json.gz",
+      "candlesSha256": "99ff33145c50a5cff666d26785af70bdc26d33d084ecb99b5e9faff954681156"
+    },
+    {
+      "event": {
+        "id": "BRUSDT:1m:1793086860000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "BRUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793086860000,
+        "detectedAtMs": 1793086861164,
+        "price": 0.5016
+      },
+      "candlesFile": "BRUSDT.json.gz",
+      "candlesSha256": "bcc92ab512458657f92c141da70c8154b1f7caf8877479eb725770d45b9bd7b2"
+    },
+    {
+      "event": {
+        "id": "BEATUSDT:1m:1793081160000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "BEATUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793081160000,
+        "detectedAtMs": 1793081160516,
+        "price": 0.08098
+      },
+      "candlesFile": "BEATUSDT.json.gz",
+      "candlesSha256": "fc882f9161ea563f059701bc34a11bf2105033f67e85c9b04ed47dd9f3aa8ad3"
+    },
+    {
+      "event": {
+        "id": "AINUSDT:1m:1793080560000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "AINUSDT",
+        "timeframe": "1m",
+        "barClosedAtMs": 1793080560000,
+        "detectedAtMs": 1793080560066,
+        "price": 0.11592
+      },
+      "candlesFile": "AINUSDT.json.gz",
+      "candlesSha256": "86fb674bbcdd998ad3ad4621fc4a65fc7da91c023c237b34fa916569d44863cb"
+    }
+  ]
+}

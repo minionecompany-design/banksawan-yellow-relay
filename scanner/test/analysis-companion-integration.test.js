@@ -29,7 +29,7 @@ test('capture is immutable, deferred, deduplicated, persisted and recoverable wi
     const file=path.join(dir,'yellow-analysis-companion-v1.json');
     assert.equal(JSON.parse(await readFile(file,'utf8')).records.length,1);
     now+=1000;const restored=new AnalysisCompanionBridge({dataDir:dir,clock:()=>now});
-    assert.equal(await restored.initialize(),true);assert.deepEqual(restored.get(event.id),first);
+    assert.equal(await restored.initialize(),true);assert.deepEqual(restored.get(event.id),{...first,invalidated:{atMs:now,reason:'RESTART_CONTINUITY_UNPROVEN'}});
     await restored.flush();
     await writeFile(file,'{"schemaVersion":1,"method":"WRONG","records":[]}');
     const broken=new AnalysisCompanionBridge({dataDir:dir,clock:()=>now});
@@ -44,7 +44,8 @@ test('queue/retention/capacity are bounded and expose rejected/evicted observati
   const other={...event,symbol:'OTHERUSDT',id:event.id.replace('TESTUSDT','OTHERUSDT')};
   b.capture(other,snapshot);await b.waitIdle();assert.equal(b.metrics.rejected,1,'active observation not silently evicted');
   now=T+125*M;assert.equal(b.get(event.id).paper.status,'INCOMPLETE_DATA');
-  b.capture(other,snapshot);await b.waitIdle();assert.equal(b.metrics.evicted,1);assert.equal(b.records.size,1);
+  b.capture(other,snapshot);await b.waitIdle();assert.equal(b.metrics.evicted,0,'six-hour watch remains active after baseline observation');
+  now=T+361*M;b.capture(other,snapshot);await b.waitIdle();assert.equal(b.metrics.evicted,1);assert.equal(b.records.size,1);
   now=T+25*60*M;assert.equal(b.get(other.id),null);assert.equal(b.records.size,0);await b.flush();
 });
 
@@ -107,6 +108,13 @@ test('read-only API binds analysis to real HOME event and rejects wrong ids, dis
   const server=createLiveApi(market);await new Promise(r=>server.listen(0,'127.0.0.1',r));
   const origin=`http://127.0.0.1:${server.address().port}`;
   try{
+    market.covered=new Map([[event.symbol,{book:{pineSnapshot:()=>snapshot}}]]);
+    let candles=await fetch(origin+'/api/research/candles?symbol='+event.symbol);
+    assert.equal(candles.status,200);const exportBody=await candles.json();
+    assert.equal(exportBody.networkRequests,0);assert.equal(exportBody.symbol,event.symbol);
+    assert.ok(exportBody.candles.oneMinute.every(bar=>bar.endMs<=now));
+    assert.equal((await fetch(origin+'/api/research/candles?symbol=USDT')).status,400);
+    assert.equal((await fetch(origin+'/api/research/candles?symbol=QUSDT')).status,404);
     let reply=await fetch(origin+'/api/home');const home=await reply.json();
     assert.equal(home.analysisAvailable,true);assert.equal(home.home[0].analysisCaptured,true);
     const preview=home.home[0].analysisPreview;

@@ -1,0 +1,32 @@
+# YELLOW v15 — pullback entry observation
+
+The owner requested improving entry after LONG A, pointing to AIN 27 Oct 08:34 WIB and BULLA 26 Oct 10:58 WIB. These crosshair times are retrospective review targets, not proven executable bottoms. The chart crosshair's horizontal price is not necessarily the selected candle's trade price. No rule is fitted to reproduce those two outcomes or to predict their later gains.
+
+HOME v14's layout stays: symbol, lamps, original LONG A facts and existing buttons. Original Pine, four LONG A notification lanes, package, Firebase topic, permanent signer, eligibility, max50 slots and HOME retention remain unchanged. This is not a momentum detector without LONG A. No orders or additional Binance data subscriptions/requests are added. VersionCode 15 is required for the new detail/status semantics.
+
+## Two separate records
+
+The original YELLOW_COMPANION_V1 snapshot and its 15-minute scenario remain immutable research history. A terminal paper outcome or observed SL/TP quote locks its light; expiry is OFF/BERAKHIR, never TUNGGU. A different optional field `entryWatch` implements YELLOW_PULLBACK_WATCH_V1. It is created only on NEW accepted LONG A events, after original FCM delivery. Existing v12–v14 journal entries are restored without retroactive watches or invented entries. A watch can produce at most one new confirmation/scenario ID, never resurrect it after completion.
+
+## Frozen first-version research rules
+
+- Watch for up to six hours after original signal close. LONG A alone does not turn GREEN. Every calculation uses only closed candles ending at/before the decision bar. At least 100 contiguous bars for all four timeframes and their expected completed boundaries are required. Future bars are excluded; late candles (>90s processing lag) cannot mint an entry.
+- Track the lowest actually observed post-signal 1m low. Require a pullback of at least max(0.5% of original signal price, 0.8 of current 1m ATR14). Two later closed candles must both have strictly higher lows. The confirming close must exceed the preceding three highs and SMA7, with relative 1m volume at least 1.2 versus the previous 20 bars.
+- Require current closed 5m close above SMA7 and SMA7 >= SMA25. Closed 15m/1h trends must not be DOWN under the original public SMA7/25/99 definition. This is a declared research hypothesis, not an empirically calibrated accuracy score.
+- Freeze the new plan at confirmation: reference=confirming close; zone -0.10/+0.25 ATR1m; SL=observed pullback low minus 0.25 ATR1m; TP1/2/3=1R/2R/3R. Require positive ordered prices, risk distance 0.3–5%, and known nearest overhead resistance from existing 5m/15m/1h contexts at least 1.5R away. Unknown resistance does not imply unlimited room and cannot grant GREEN.
+- Entry window is three minutes from actual processing/confirmation time. A fresh existing ticker (<30s) must be inside the frozen zone AND still meet price<10, change24h>1%, quoteVolume24h>10M to publish GREEN. Last observed closed minute must remain fresh (<90s). Missing contexts cause YELLOW; subsequent opposing closed 5m/15m/1h trends end eligibility. A subsequent new low is never used to move a confirmed stop or plan.
+- Fresh existing quotes touching SL or TP1 permanently lock eligibility. CLOSED 1m paper outcomes are recorded separately; quotes do not invent OHLC exit ordering. Quote invalidation before the assumed entry cancels that simulated entry. Gaps/restarts without continuous bars become DATA_GAP/INCOMPLETE_DATA, never a win.
+
+## Measurement and durability
+
+The bounded independent analysis journal also stores watch state, immutable confirmation plan, confirmed-scenario paper and a separate paper observation starting only when GREEN was first PUBLISHED by the server. Publication is not proof the phone rendered it or the user entered. First GREEN publication is deduplicated. Each paper assumes open of the next FULL minute at/after confirmation/publication and checks that open against zone, stop and TP1. Horizon120m, combined cost assumption14bps, ambiguous OHLC order and missing/unfilled exclusions remain explicit. TP2/3 are references; statistics measure TP1 versus SL only. The same journal capacity500/24h/8MiB, bounded queue128 and write spacing5m apply; abrupt crashes can lose unsaved observations. On restart, already confirmed watches and their still-active paper observations become DATA_GAP/INCOMPLETE_DATA; active baseline lights are locked too. Continuous intraminute quote history cannot be proven, so a restart never re-publishes the same confirmed opportunity. Watch data is supplemental: analysis failures cannot suppress original LONG A/FCM.
+
+`/api/analysis/summary.entryWatch` separates watch states, confirmed scenarios and greenPublished denominators. It does not combine their results with baseline LONG A outcomes or claim live win rate. Active six-hour watches are protected from capacity eviction even when their baseline paper observation has ended.
+
+## Android and review
+
+ANALISIS shows live watch phase, translated reason, current quote, check time, confirmation/window and the new plan above the distinctly labeled original snapshot. While the dialog is open, its existing analysis endpoint refreshes every5s and local expiry updates every1s. Dismissal/destroy cancels callbacks; a failed/stale reply cannot retain a fresh GREEN. Strict client validation binds method, full original event ID, confirmation ID, clocks and ordered prices. HOME remains compact. No new entry push notification is introduced.
+
+A read-only bounded `/api/research/candles?symbol=...` exports only an already buffered covered symbol for offline case review, at most1000 bars per context, no Binance request. Missing/unbuffered symbols return404; invalid symbols400. `scanner/scripts/replay-entry-watch.mjs` consumes saved candles plus an actual recorded LONG A, never sends alerts or mutates LIVE. Replay assumes context delivery at close and cannot prove actual historical feed latency or later 24h eligibility.
+
+Functional regression, synthetic causal/no-lookahead scenarios, persistence/restart, terminal locks, denominator separation and Node-generated Android fixtures must pass before the signed build/deployment. Real AIN/BULLA replay and forward observations must be reported honestly, including mismatches and missing data. No demonstrated accuracy improvement or exact-bottom claim follows from this implementation.
