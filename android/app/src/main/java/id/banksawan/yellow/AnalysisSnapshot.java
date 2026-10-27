@@ -23,6 +23,36 @@ final class AnalysisSnapshot {
         String expected=item.optString("symbol")+":"+item.optString("timeframe")+":"+item.optLong("barClosedAtMs",-1)+":LONG_A";
         return validId(id)&&id.equals(expected)?id:"";
     }
+    /**
+     * HOME displays only a frozen preview bound to the exact accepted LONG A.
+     * Any malformed/mismatched level is hidden instead of producing false guidance.
+     */
+    static JSONObject homePreview(JSONObject item,long nowMs){
+        String eventId=homeEventId(item);
+        if(eventId.isEmpty()||!item.optBoolean("analysisCaptured",false))return null;
+        JSONObject p=item.optJSONObject("analysisPreview");
+        if(p==null||p.optInt("schemaVersion",-1)!=1||
+            !"YELLOW_COMPANION_V1".equals(p.optString("method"))||
+            !"RESEARCH_ONLY".equals(p.optString("mode"))||
+            !eventId.equals(p.optString("eventId")))return null;
+        long signalAt=item.optLong("barClosedAtMs",-1);
+        long captured=p.optLong("capturedAtMs",-1);
+        if(p.optLong("signalAtMs",-1)!=signalAt||captured<signalAt||
+            captured-signalAt>300_000L||captured>nowMs+30_000L||
+            p.optLong("expiresAtMs",-1)!=signalAt+900_000L)return null;
+        for(String key:new String[]{"referenceEntry","entryLow","entryHigh","stopLoss","tp1","tp2","tp3"})
+            if(!positive(p,key))return null;
+        double stop=p.optDouble("stopLoss"),low=p.optDouble("entryLow"),high=p.optDouble("entryHigh");
+        double reference=p.optDouble("referenceEntry"),tp1=p.optDouble("tp1"),tp2=p.optDouble("tp2"),tp3=p.optDouble("tp3");
+        double eventPrice=item.optDouble("price",Double.NaN);
+        if(!Double.isFinite(eventPrice)||eventPrice<=0||
+            Math.abs(reference-eventPrice)>Math.max(eventPrice*1e-8,1e-12)||
+            !(stop<low&&low<=reference&&reference<=high&&high<=tp1&&tp1<tp2&&tp2<tp3)||
+            !p.has("trendConflict")||!p.has("resistanceBeforeTp1")||
+            !(p.opt("trendConflict") instanceof Boolean)||
+            !(p.opt("resistanceBeforeTp1") instanceof Boolean))return null;
+        return p;
+    }
     private static boolean positive(JSONObject o,String key){
         double value=o.optDouble(key,Double.NaN);return Double.isFinite(value)&&value>0;
     }
