@@ -258,7 +258,17 @@ public class MainActivity extends Activity {
         LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(dp(12),dp(10),dp(12),dp(10));
         box.setBackground(shape(CARD,LINE));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);
         p.setMargins(0,0,0,dp(8));list.addView(box,p);
-        box.addView(text(symbol,24,Color.WHITE,true));
+        JSONObject light=isHome&&analysisAvailable?
+            AnalysisSnapshot.homeLight(item,System.currentTimeMillis()):null;
+        if(isHome&&analysisAvailable){
+            LinearLayout header=new LinearLayout(this);
+            header.setOrientation(LinearLayout.HORIZONTAL);
+            header.setGravity(Gravity.CENTER_VERTICAL);
+            TextView coin=text(symbol,24,Color.WHITE,true);
+            header.addView(coin,new LinearLayout.LayoutParams(0,-2,1));
+            if(light!=null)header.addView(analysisTrafficBadge(light),new LinearLayout.LayoutParams(-2,-2));
+            box.addView(header);
+        }else box.addView(text(symbol,24,Color.WHITE,true));
         double price=item.optDouble(isHome?"price":"price",0);
         line(box,isHome?(BuildConfig.DEMO_MODE?"Harga LONG A (DEMO):":"Harga LONG A:"):
             (BuildConfig.DEMO_MODE?"Harga contoh:":"Harga terakhir:"),number(price)+" USDT");
@@ -287,6 +297,15 @@ public class MainActivity extends Activity {
                         analysisHomeNote(box,"PERHATIAN: ada tren TF turun.");
                     if(preview.optBoolean("resistanceBeforeTp1",false))
                         analysisHomeNote(box,"PERHATIAN: resistance sebelum TP1.");
+                    if(light!=null){
+                        String code=light.optString("reason","");
+                        if("GREEN".equals(light.optString("status")))analysisHomeNote(box,
+                            "Kondisi mendukung, tetap konfirmasi manual di chart.");
+                        else if("RED".equals(light.optString("status")))analysisHomeNote(box,
+                            "Hindari entry: "+analysisLightReason(code));
+                        else if("YELLOW".equals(light.optString("status")))analysisHomeNote(box,
+                            "Tunggu: "+analysisLightReason(code));
+                    }
                     if(expired)analysisHomeNote(box,"Level historis, BUKAN entry saat ini.");
                 }else if(item.optBoolean("analysisCaptured",false)){
                     analysisHomeNote(box,"ENTRY / SL / TP belum tersedia • data analisis tidak lengkap.");
@@ -295,6 +314,56 @@ public class MainActivity extends Activity {
             tradingView(symbol,box);
             if(analysisAvailable&&item.optBoolean("analysisCaptured",false)&&!analysisId.isEmpty())analysisButton(analysisId,box);
         }
+    }
+
+    // Three compact signals in the top-right corner, only one active.
+    // The label carries the meaning for accessibility and cannot promise profit.
+    private String analysisLightReason(String code){
+        switch(code){
+            case "HARGA_TEMBUS_SL":return "harga melewati SL";
+            case "HARGA_SUDAH_MENCAPAI_TP1":return "harga sudah menyentuh TP1";
+            case "TREN_BESAR_MELAWAN":return "tren besar menentang";
+            case "BREAKDOWN":return "harga breakdown";
+            case "RESISTANCE_TERLALU_DEKAT":return "resistance sebelum TP1";
+            case "RISIKO_SL_TIDAK_SESUAI":return "jarak SL tidak sesuai";
+            case "DI_LUAR_ZONA_ENTRY":return "harga di luar zona entry";
+            case "KONFIRMASI_BELUM_CUKUP":return "konfirmasi 4 TF/volume belum cukup";
+            case "SKENARIO_KEDALUWARSA":return "skenario entry sudah kedaluwarsa";
+            case "HARGA_LIVE_TIDAK_SEGAR":return "harga live belum segar";
+            default:return "data analisis belum siap";
+        }
+    }
+
+    private LinearLayout analysisTrafficBadge(JSONObject light){
+        String status=light.optString("status","YELLOW");
+        LinearLayout column=new LinearLayout(this);
+        column.setOrientation(LinearLayout.VERTICAL);
+        column.setGravity(Gravity.END);
+        LinearLayout lamps=new LinearLayout(this);
+        lamps.setOrientation(LinearLayout.HORIZONTAL);
+        lamps.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);
+        for(String kind:new String[]{"RED","YELLOW","GREEN"}){
+            int tint="RED".equals(kind)?Color.rgb(255,110,110):
+                "GREEN".equals(kind)?GREEN:YELLOW;
+            GradientDrawable disc=new GradientDrawable();
+            disc.setShape(GradientDrawable.OVAL);
+            disc.setColor(kind.equals(status)?tint:Color.rgb(55,70,86));
+            View circle=new View(this);
+            circle.setBackground(disc);
+            LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(dp(13),dp(13));
+            cp.setMargins(dp(3),0,dp(3),0);
+            lamps.addView(circle,cp);
+        }
+        column.addView(lamps);
+        String verdict="GREEN".equals(status)?"MENDUKUNG":
+            "RED".equals(status)?"HINDARI":"TUNGGU";
+        int color="GREEN".equals(status)?GREEN:
+            "RED".equals(status)?Color.rgb(255,110,110):YELLOW;
+        TextView note=text(verdict,12,color,true);
+        note.setGravity(Gravity.END);
+        note.setPadding(0,dp(4),dp(2),0);
+        column.addView(note);
+        return column;
     }
 
     private void analysisHomeLine(LinearLayout parent,String label,String value,int color){
