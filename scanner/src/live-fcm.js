@@ -7,7 +7,7 @@ import {productEligible} from './long-a.js';
 const TOKEN_URL='https://oauth2.googleapis.com/token';
 const scope='https://www.googleapis.com/auth/firebase.messaging';
 const b64=value=>Buffer.from(JSON.stringify(value)).toString('base64url');
-const allowed=/^[A-Z0-9]{2,25}USDT$/;
+const allowed=/^[A-Z0-9]{1,25}USDT$/;
 export class YellowFcm {
   constructor({serviceAccountJson='',enabled=false,fetchImpl=globalThis.fetch,clock=()=>Date.now(),
      topic='banksawan-yellow-v2'}={}){

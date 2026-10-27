@@ -13,7 +13,7 @@ final class AnalysisSnapshot {
             case "15m":return 900_000L;case "1h":return 3_600_000L;default:return 0;}
     }
     static boolean validId(String id){
-        if(id==null||id.length()>100||!id.matches("[A-Z0-9]{2,25}USDT:(1m|5m|15m|1h):[1-9][0-9]{0,15}:LONG_A"))return false;
+        if(id==null||id.length()>100||!id.matches("[A-Z0-9]{1,25}USDT:(1m|5m|15m|1h):[1-9][0-9]{0,15}:LONG_A"))return false;
         try{String[] parts=id.split(":");long end=Long.parseLong(parts[2]);return end>0&&end<=9_007_199_254_740_991L&&end%period(parts[1])==0;}
         catch(Exception bad){return false;}
     }

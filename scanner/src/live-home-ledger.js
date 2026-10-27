@@ -27,7 +27,7 @@ export class LiveHomeLedger {
   async accept(event){const job=this.chain.then(async()=>{
       const now=this.clock();this.#prune();
       if(!event||event.signal!=='LONG_A'||!frames.has(event.timeframe)||
-        !/^[A-Z0-9]{2,25}USDT$/.test(event.symbol||'')||
+        !/^[A-Z0-9]{1,25}USDT$/.test(event.symbol||'')||
         event.id!==`${event.symbol}:${event.timeframe}:${event.barClosedAtMs}:LONG_A`||
         !Number.isSafeInteger(event.barClosedAtMs)||now<event.barClosedAtMs||now-event.barClosedAtMs>MAX_AGE||
         !productEligible(event))

@@ -12,7 +12,7 @@ function normalizedCexSymbol(item){
  const exchange=typeof item==='string'?undefined:item?.exchange;
  if(exchange!==undefined&&exchange!=='BINANCE')throw Error('CEX_EXCHANGE_NOT_BINANCE');
  if(typeof raw!=='string')throw Error('CEX_SYMBOL_REQUIRED');
- const match=/^(?:BINANCE:)?([A-Z0-9]{2,25}USDT)\.P$/.exec(raw);
+ const match=/^(?:BINANCE:)?([A-Z0-9]{1,25}USDT)\.P$/.exec(raw);
  if(!match)throw Error('CEX_PERPETUAL_USDT_SYMBOL_REQUIRED');
  return match[1];
 }
@@ -20,7 +20,7 @@ export function auditCexUniverse({exchangeInfo,tickers,observedAtMs,cexSymbols=n
  if(!Array.isArray(exchangeInfo?.symbols)||!Array.isArray(tickers)||
     !validTime(observedAtMs))throw Error('BINANCE_TIMESTAMPED_SNAPSHOTS_REQUIRED');
  const metadata=new Map(exchangeInfo.symbols.filter(item=>
-   typeof item?.symbol==='string' && /^[A-Z0-9]{2,25}USDT$/.test(item.symbol) &&
+   typeof item?.symbol==='string' && /^[A-Z0-9]{1,25}USDT$/.test(item.symbol) &&
    item.quoteAsset==='USDT'&&item.contractType==='PERPETUAL'&&item.status==='TRADING'
  ).map(item=>[item.symbol,item]));
  const snapshots=[],seen=new Set();let rejectedMalformed=0,ignoredOtherContracts=0;

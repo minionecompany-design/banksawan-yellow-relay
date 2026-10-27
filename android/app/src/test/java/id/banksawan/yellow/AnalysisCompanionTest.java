@@ -56,6 +56,18 @@ public class AnalysisCompanionTest {
             .put("firstSeenMs",System.currentTimeMillis()).put("homeExpiresMs",System.currentTimeMillis()+3_600_000);
     }
 
+    @Test public void oneLetterSymbolsKeepFullAnalysisAndHomeIdentity()throws Exception {
+        for(String symbol:new String[]{"QUSDT","WUSDT"}) {
+            JSONObject reply=new JSONObject(fixture().toString().replace("TESTUSDT",symbol));
+            assertEquals(symbol,AnalysisSnapshot.parse(reply,id(reply),now(reply)).data.getString("symbol"));
+            try(ActivityController<CapturingActivity> controller=Robolectric.buildActivity(CapturingActivity.class).create()) {
+                CapturingActivity activity=controller.get();field("analysisAvailable").set(activity,true);
+                activity.applyLiveSnapshot(new JSONArray().put(home(symbol,id(reply))),new JSONArray(),0,0);
+                ArrayList<Button> buttons=analysisButtons(activity);assertEquals(1,buttons.size());
+                buttons.get(0).performClick();assertEquals(id(reply),activity.requestedId);
+            }
+        }
+    }
     @Test public void actualNodeFixturePassesAndKeepsIdentityAndFrozenPrices()throws Exception{
         JSONObject reply=fixture();AnalysisSnapshot parsed=AnalysisSnapshot.parse(reply,id(reply),now(reply));
         assertEquals("TESTUSDT",parsed.data.getString("symbol"));assertEquals(4,parsed.data.getJSONArray("frames").length());

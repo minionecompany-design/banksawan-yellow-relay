@@ -70,7 +70,7 @@ test('independent storage failure disables only analysis and does not throw into
   }finally{await rm(dir,{recursive:true,force:true});}
 });
 
-async function actualDelivery(companionFactory){
+async function actualDelivery(companionFactory,symbol='TESTUSDT'){
   const dir=await mkdtemp(path.join(os.tmpdir(),'yellow-analysis-delivery-'));
   const {at}=pineDeliveryFixture(),input=at(704),end=input.oneMinute.at(-1).endMs,now=end+4000;
   let requests=0,sends=0;
@@ -78,14 +78,14 @@ async function actualDelivery(companionFactory){
   const market=new YellowLiveMarket({dataDir:dir,clock:()=>now,wsClass:class{},analysisCompanion:companion,
     guard:{closedReason:null,metrics:()=>({}),getJson:()=>{requests++;throw Error('NO_NETWORK');}},
     sendEvent:async()=>{sends++;assert.equal(companion?.records?.size??0,0,'FCM runs before analysis');},log:()=>{}});
-  const states=newParallelState();states['1m']=rebuildPineOneMinute('TESTUSDT',at(703)).state;
+  const states=newParallelState();states['1m']=rebuildPineOneMinute(symbol,at(703)).state;
   for(const [tf,key] of [['5m','fiveMinute'],['15m','fifteenMinute'],['1h','oneHour']])states[tf].lastProcessedEndMs=input[key].at(-1).endMs;
   const tracked={states,book:{snapshot:()=>input,pineSnapshot:()=>input}};
-  market.covered.set('TESTUSDT',tracked);
-  market.getTickerAsOf=()=>({symbol:'TESTUSDT',source:'BINANCE_USDM_FUTURES',contractType:'PERPETUAL',status:'TRADING',
+  market.covered.set(symbol,tracked);
+  market.getTickerAsOf=()=>({symbol:symbol,source:'BINANCE_USDM_FUTURES',contractType:'PERPETUAL',status:'TRADING',
     lastPrice:input.oneMinute.at(-1).close,priceChangePercent:2.5,quoteVolume24h:20_000_000,observedAtMs:end});
   try{
-    await market.flushTracked('TESTUSDT',tracked);await companion?.flush?.();
+    await market.flushTracked(symbol,tracked);await companion?.flush?.();
     assert.equal(sends,1);assert.equal(requests,0);assert.equal(market.isHalted,false);
     return {home:market.home(),events:market.events(0),record:companion?.get?.(market.home()[0].id),states};
   }finally{await rm(dir,{recursive:true,force:true});}
@@ -123,4 +123,11 @@ test('read-only API binds analysis to real HOME event and rejects wrong ids, dis
     assert.equal((await (await fetch(origin+'/api/home')).json()).home.length,1,'analysis outage preserves HOME');
     b.enabled=true;now+=30_000;assert.equal((await fetch(origin+'/api/analysis?eventId='+encodeURIComponent(event.id))).status,503);
   }finally{await new Promise(r=>server.close(r));await b.flush();}
+});
+
+for(const symbol of ['QUSDT','WUSDT'])test(`${symbol}: actual Pine delivery reaches durable HOME and a complete analysis`,async()=>{
+  const result=await actualDelivery(now=>bridge({clock:()=>now}),symbol);
+  assert.equal(result.home[0].symbol,symbol);
+  assert.equal(result.record.symbol,symbol);
+  assert.ok(result.record.plan);
 });

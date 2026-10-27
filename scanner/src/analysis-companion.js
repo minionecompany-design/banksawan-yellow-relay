@@ -16,7 +16,7 @@ const low = bars => Math.min(...bars.map(b => b.low));
 
 export function validAnalysisEventId(id) {
   if (typeof id !== 'string' || id.length > 100) return false;
-  const m = /^([A-Z0-9]{2,25}USDT):(1m|5m|15m|1h):([1-9][0-9]{0,15}):LONG_A$/.exec(id);
+  const m = /^([A-Z0-9]{1,25}USDT):(1m|5m|15m|1h):([1-9][0-9]{0,15}):LONG_A$/.exec(id);
   return !!m && Number.isSafeInteger(Number(m[3])) && Number(m[3]) % ANALYSIS_PERIODS[m[2]] === 0;
 }
 

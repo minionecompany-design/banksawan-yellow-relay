@@ -135,7 +135,7 @@ public class MainActivity extends Activity {
                     String symbol=e.optString("symbol","");
                     String tf=e.optString("timeframe","");
                     String id=e.optString("id","");
-                    if(!symbol.matches("[A-Z0-9]{2,25}USDT") ||
+                    if(!symbol.matches("[A-Z0-9]{1,25}USDT") ||
                        !(tf.equals("1m")||tf.equals("5m")||tf.equals("15m")||tf.equals("1h"))||
                        !id.equals(symbol+":"+tf+":"+e.optLong("barClosedAtMs",-1)+":LONG_A")) continue;
                     YellowNotifier.claimAndNotify(this,id,symbol,tf,
@@ -215,7 +215,7 @@ public class MainActivity extends Activity {
         // A symbol-specific, public HTTPS page is less vulnerable to the
         // last-used chart layout than /chart/?symbol= after TradingView updates.
         // No private/undocumented TradingView app URI scheme is assumed.
-        if(symbol==null||!symbol.matches("[A-Z0-9]{2,25}USDT"))return null;
+        if(symbol==null||!symbol.matches("[A-Z0-9]{1,25}USDT"))return null;
         return new Uri.Builder().scheme("https").authority("www.tradingview.com")
             .appendPath("symbols").appendPath(symbol+".P")
             .appendQueryParameter("exchange","BINANCE").build();
@@ -377,7 +377,7 @@ public class MainActivity extends Activity {
             double price = coin.optDouble("price", Double.NaN);
             double change = coin.optDouble("binance24hChangePct", Double.NaN);
             double quoteVolume = coin.optDouble("quoteVolume24h", Double.NaN);
-            if (!symbol.matches("[A-Z0-9]{2,25}USDT")
+            if (!symbol.matches("[A-Z0-9]{1,25}USDT")
                 || !Double.isFinite(price) || price <= 0 || price >= 10.0
                 || !Double.isFinite(change) || change <= 1.0
                 || !Double.isFinite(quoteVolume) || quoteVolume <= 10_000_000.0) continue;
@@ -465,7 +465,7 @@ public class MainActivity extends Activity {
             double price=row.optDouble("price",Double.NaN),change=row.optDouble("binance24hChangePct",Double.NaN);
             double volume=row.optDouble("quoteVolume24h",Double.NaN);
             String coverage=row.optString("coverage","");
-            if(!symbol.matches("[A-Z0-9]{2,25}USDT") || !symbols.add(symbol)
+            if(!symbol.matches("[A-Z0-9]{1,25}USDT") || !symbols.add(symbol)
                 || !Double.isFinite(price) || price<=0 || price>=10
                 || !Double.isFinite(change) || change<=1
                 || !Double.isFinite(volume) || volume<=10_000_000
@@ -546,7 +546,7 @@ public class MainActivity extends Activity {
             if (item == null || item.optLong("homeExpiresMs", 0) <= System.currentTimeMillis())
                 continue;
             String symbol = item.optString("symbol", "");
-            if (!symbol.matches("[A-Z0-9]{2,25}USDT")) continue;
+            if (!symbol.matches("[A-Z0-9]{1,25}USDT")) continue;
             double price = item.optDouble("price", Double.NaN);
             double pct = item.optDouble("binance24hChangePct", Double.NaN);
             double quoteVolume = item.optDouble("quoteVolume24h", Double.NaN);

@@ -35,7 +35,7 @@ function reasonDataUnhealthy(reason){
  * priceChangePercent, lastPrice, symbol.
  */
 export function replayParallelHistorical(dataset,{contextMode='CAUSAL_REALTIME'}={}){
-  if(!dataset||!/^[A-Z0-9]{2,25}USDT$/.test(dataset.symbol||''))throw new Error('SYMBOL_REQUIRED');
+  if(!dataset||!/^[A-Z0-9]{1,25}USDT$/.test(dataset.symbol||''))throw new Error('SYMBOL_REQUIRED');
   for(const tf of TIMEFRAMES)validateChronology(dataset[keys[tf]],keys[tf],PERIODS[tf]);
   if(!Array.isArray(dataset.tickers))throw new Error('TICKERS_REQUIRED');
   for(let i=0;i<dataset.tickers.length;i++){

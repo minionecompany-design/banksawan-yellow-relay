@@ -65,7 +65,7 @@ public final class YellowNotifier {
              long closedAt,long expiresAt,double price,double change,double quoteVolume24h){
         long now=System.currentTimeMillis();
         if(id==null||symbol==null||timeframe==null||
-            !symbol.matches("[A-Z0-9]{2,25}USDT")||
+            !symbol.matches("[A-Z0-9]{1,25}USDT")||
             !(timeframe.equals("1m")||timeframe.equals("5m")||timeframe.equals("15m")||timeframe.equals("1h"))||
             !id.equals(symbol+":"+timeframe+":"+closedAt+":LONG_A")||
             closedAt<=0||closedAt>now||now-closedAt>300_000||expiresAt<=now||

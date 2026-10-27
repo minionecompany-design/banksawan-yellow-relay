@@ -40,7 +40,7 @@ export function normalizeBinanceKlines(rows,interval,{asOfMs}={}) {
 }
 
 export function normalizeBinanceTicker({symbol,ticker,exchangeSymbol,observedAtMs}) {
-  if(typeof symbol!=='string'||!/^[A-Z0-9]{2,25}USDT$/.test(symbol))
+  if(typeof symbol!=='string'||!/^[A-Z0-9]{1,25}USDT$/.test(symbol))
     throw new Error('INVALID_SYMBOL');
   requireObject(ticker,'TICKER_REQUIRED');
   requireObject(exchangeSymbol,'EXCHANGE_INFO_REQUIRED');

@@ -12,7 +12,7 @@ import {PERIODS} from './parallel-long-a.js';
 const MAX_BODY=32*1024;
 const ORIGINAL_SOURCE='BINANCE_USDM_24H+LOCAL_PARALLEL_MTF_EVALUATOR';
 const allowedTf=new Set(['1m','5m','15m','1h']);
-const validSymbol=s=>typeof s==='string'&&/^[A-Z0-9]{2,25}USDT$/.test(s);
+const validSymbol=s=>typeof s==='string'&&/^[A-Z0-9]{1,25}USDT$/.test(s);
 function reply(res,status,obj){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',
   'X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(obj));}
 function checkEvent(e){

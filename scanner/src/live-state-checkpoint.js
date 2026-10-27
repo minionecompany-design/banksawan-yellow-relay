@@ -5,7 +5,7 @@ import path from 'node:path';
 import {newParallelState,PERIODS} from './parallel-long-a.js';
 import {validPineOneMinuteState} from './pine-v13-one-minute.js';
 const revision='long-a-v1-causal-realtime';
-const validSymbol=s=>/^[A-Z0-9]{2,25}USDT$/.test(s);
+const validSymbol=s=>/^[A-Z0-9]{1,25}USDT$/.test(s);
 function valid(s,tf,now){
   return s && [0,1,2].includes(s.tradeState) &&
     (tf!=='1m'||s.pine1m===undefined||validPineOneMinuteState(s)) &&

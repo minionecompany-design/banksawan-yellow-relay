@@ -1,4 +1,4 @@
-name: YELLOW V2 scoped update QA (offline only)
+name: YELLOW V2 scoped QA and approved APK release
 on:
   push:
     branches: [fix/yellow-v2-4tf-50-q10m-20261022, 'feat/yellow-analysis-companion-*']
@@ -65,7 +65,7 @@ jobs:
       - name: Validate same package and planned update version
         run: |
           grep -q "applicationId 'id.banksawan.yellow'" android/app/build.gradle
-          grep -q 'versionCode 11' android/app/build.gradle
+          grep -q 'versionCode 12' android/app/build.gradle
           test -s android/app/build/outputs/apk/debug/app-debug.apk
       - name: Signing protection cannot be bypassed without permanent key
         run: |
@@ -73,3 +73,118 @@ jobs:
             echo 'Unsafe unsigned release accepted'; exit 1
           fi
           grep -q YELLOW_PERMANENT_SIGNING_REQUIRED "$RUNNER_TEMP/release-probe.log"
+
+  signed-release:
+    needs: [scanner, android-compile]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/yellow-analysis-companion-20261026' && contains(github.event.head_commit.message, '[yellow-release-v12]')
+    concurrency:
+      group: yellow-permanent-signed-apk
+      cancel-in-progress: false
+    name: Build permanently signed YELLOW APK; no deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      YELLOW_SOURCE_SHA: ${{ github.sha }}
+      YELLOW_API_BASE_URL: 'https://yellow-live-shadow-yc94-production.up.railway.app'
+      YELLOW_ALERTS_ENABLED: 'true'
+      YELLOW_RELEASE_SIGNING: 'true'
+      EXPECTED_FIREBASE_PROJECT_ID: ${{ secrets.YELLOW_FIREBASE_PROJECT_ID }}
+      YELLOW_FIREBASE_CONFIG_B64: ${{ secrets.YELLOW_FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}
+      YELLOW_SIGNING_KEYSTORE_B64: ${{ secrets.YELLOW_SIGNING_KEYSTORE_B64 }}
+      YELLOW_SIGNING_STORE_PASSWORD: ${{ secrets.YELLOW_SIGNING_STORE_PASSWORD }}
+      YELLOW_SIGNING_CERT_SHA256: ${{ secrets.YELLOW_SIGNING_CERT_SHA256 }}
+    steps:
+      - name: Require an exact reviewed source commit and all signing inputs
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os,re
+          if not re.fullmatch(r'[0-9a-fA-F]{40}',os.environ.get('YELLOW_SOURCE_SHA','')):
+              raise SystemExit('EXACT_SOURCE_SHA_REQUIRED')
+          for name in ['EXPECTED_FIREBASE_PROJECT_ID','YELLOW_FIREBASE_CONFIG_B64','YELLOW_SIGNING_KEYSTORE_B64','YELLOW_SIGNING_STORE_PASSWORD','YELLOW_SIGNING_CERT_SHA256']:
+              if not os.environ.get(name): raise SystemExit('MISSING_INPUT: '+name)
+          if not re.fullmatch(r'[0-9a-fA-F]{64}',os.environ['YELLOW_SIGNING_CERT_SHA256'].replace(':','').strip()):
+              raise SystemExit('INVALID_CERTIFICATE_FINGERPRINT')
+          PY
+      - name: Checkout exact source; never deploy or move a branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify source receipt and prepare protected temporary inputs
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$YELLOW_SOURCE_SHA"
+          git rev-parse HEAD > source-commit.txt
+          python3 - <<'PY'
+          import os,base64,pathlib
+          store=pathlib.Path(os.environ['RUNNER_TEMP'])/'yellow-permanent.p12'
+          store.write_bytes(base64.b64decode(os.environ['YELLOW_SIGNING_KEYSTORE_B64'],validate=True))
+          store.chmod(0o600)
+          config=pathlib.Path('android/app/google-services.json')
+          config.write_bytes(base64.b64decode(os.environ['YELLOW_FIREBASE_CONFIG_B64'],validate=True))
+          config.chmod(0o600)
+          with open(os.environ['GITHUB_ENV'],'a') as f: f.write('YELLOW_SIGNING_STORE_FILE='+str(store)+'\n')
+          PY
+          python3 scripts/verify-yellow-firebase.py android/app/google-services.json "$EXPECTED_FIREBASE_PROJECT_ID"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify private keystore matches the pinned public certificate
+        shell: bash
+        run: |
+          keytool -exportcert -keystore "$YELLOW_SIGNING_STORE_FILE" -storetype PKCS12 -alias yellow-permanent -storepass:env YELLOW_SIGNING_STORE_PASSWORD -file "$RUNNER_TEMP/yellow-public.cer"
+          python3 - <<'PY'
+          import os,pathlib,hashlib,hmac
+          digest=hashlib.sha256((pathlib.Path(os.environ['RUNNER_TEMP'])/'yellow-public.cer').read_bytes()).hexdigest()
+          expected=os.environ['YELLOW_SIGNING_CERT_SHA256'].replace(':','').strip().lower()
+          if expected != 'e01d7a096fe4c50736726baab406af91e0444d9fad462b787d17d937063e8e4f': raise SystemExit('ORIGINAL_V2_SIGNER_REQUIRED')
+          if not hmac.compare_digest(digest,expected): raise SystemExit('KEYSTORE_CERTIFICATE_MISMATCH')
+          pathlib.Path('signer-sha256.txt').write_text(digest.upper()+'\n')
+          print('YELLOW_KEYSTORE_CERTIFICATE_PASS')
+          PY
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: ''
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Build the one YELLOW release variant
+        run: gradle -p android :app:assembleRelease --no-daemon --stacktrace
+      - name: Verify LIVE, FCM, integrity, signer, version and release mode
+        shell: bash
+        run: |
+          CONFIG=android/app/build/generated/source/buildConfig/release/id/banksawan/yellow/BuildConfig.java
+          test -s "$CONFIG"
+          grep -Eq 'DEMO_MODE[[:space:]]*=[[:space:]]*false' "$CONFIG"
+          grep -Eq 'ALERTS_ENABLED[[:space:]]*=[[:space:]]*true' "$CONFIG"
+          grep -Eq 'FCM_ENABLED[[:space:]]*=[[:space:]]*true' "$CONFIG"
+          export YELLOW_APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          python3 scripts/verify-yellow-apk-signature.py android/app/build/outputs/apk/release/app-release.apk "$YELLOW_SIGNING_CERT_SHA256"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android/app/build/outputs/apk/release/app-release.apk > "$RUNNER_TEMP/yellow-release-badging.txt"
+          grep -q "package: name='id.banksawan.yellow'" "$RUNNER_TEMP/yellow-release-badging.txt"
+          if grep -q application-debuggable "$RUNNER_TEMP/yellow-release-badging.txt"; then exit 1; fi
+          python3 - <<'PY'
+          import os,pathlib,re
+          text=(pathlib.Path(os.environ['RUNNER_TEMP'])/'yellow-release-badging.txt').read_text()
+          match=re.search(r"versionCode='(\d+)'",text)
+          if not match or int(match.group(1))<=11: raise SystemExit('YELLOW_VERSION_NOT_NEWER_THAN_INSTALLED')
+          PY
+          sha256sum android/app/build/outputs/apk/release/app-release.apk > apk-sha256.txt
+      - name: Upload signed APK and public receipts only
+        uses: actions/upload-artifact@v4
+        with:
+          name: banksawan-yellow-permanent-LIVE-FCM-release
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            source-commit.txt
+            apk-sha256.txt
+            signer-sha256.txt
+          if-no-files-found: error
+          retention-days: 14
+      - name: Remove temporary private key and Firebase configuration
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/yellow-permanent.p12" android/app/google-services.json

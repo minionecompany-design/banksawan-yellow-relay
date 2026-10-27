@@ -16,7 +16,7 @@ const API='https://fapi.binance.com';
 const WS_RAW='wss://fstream.binance.com/market/ws';
 const WS_SUBSCRIBE='wss://fstream.binance.com/market/stream';
 const frames=['1m','5m','15m','1h'];
-const validSymbol=s=>/^[A-Z0-9]{2,25}USDT$/.test(s||'');
+const validSymbol=s=>/^[A-Z0-9]{1,25}USDT$/.test(s||'');
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
 export class YellowLiveMarket {

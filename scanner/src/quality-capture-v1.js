@@ -13,7 +13,7 @@ const cloneEvent=e=>({id:e.id,symbol:e.symbol,timeframe:e.timeframe,signal:'LONG
 const validBar=(b,p)=>b&&Number.isSafeInteger(b.endMs)&&b.endMs>0&&b.endMs%p===0&&keys.slice(1).every(k=>finite(b[k]))&&
  b.open>0&&b.high>0&&b.low>0&&b.close>0&&b.volume>=0&&b.high>=Math.max(b.open,b.close)&&b.low<=Math.min(b.open,b.close)&&b.high>=b.low;
 const validEvent=e=>e&&e.signal==='LONG_A'&&Object.hasOwn(TIMEFRAME_MS,e.timeframe)&&
- /^[A-Z0-9]{2,25}USDT$/.test(e.symbol||'')&&Number.isSafeInteger(e.barClosedAtMs)&&e.barClosedAtMs>0&&
+ /^[A-Z0-9]{1,25}USDT$/.test(e.symbol||'')&&Number.isSafeInteger(e.barClosedAtMs)&&e.barClosedAtMs>0&&
  e.barClosedAtMs%TIMEFRAME_MS[e.timeframe]===0&&e.id===e.symbol+':'+e.timeframe+':'+e.barClosedAtMs+':LONG_A'&&finite(e.price)&&e.price>0;
 const lastCloseMatches=(e,b)=>Math.abs(b.close-e.price)<=Math.max(1e-10,e.price*1e-8);
 export class QualityCaptureV1 {

@@ -43,6 +43,14 @@ public class YellowNotifierTest {
             closedAt,closedAt+300_000,.05,2.0,20_000_000);
     }
 
+    @Test public void oneLetterSymbolsNotifyOnEveryLaneAndRemainDeduplicated() {
+        for(String symbol:new String[]{"QUSDT","WUSDT"})
+            for(String tf:new String[]{"1m","5m","15m","1h"}) {
+                assertTrue(notify(symbol,tf));assertFalse(notify(symbol,tf));
+            }
+        assertEquals(8,manager.getActiveNotifications().length);
+        assertFalse(notify("USDT","1m"));
+    }
     @Test public void fourTimeframesAndTwoSymbolsRemainIndependent() {
         for(String symbol:new String[]{"PLAYUSDT","FOGOUSDT"})
             for(String tf:new String[]{"1m","5m","15m","1h"}) assertTrue(notify(symbol,tf));
