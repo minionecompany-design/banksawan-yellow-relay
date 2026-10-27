@@ -15,3 +15,9 @@ Release acceptance:
 3. Existing ANALISIS detail still includes entry/SL/TP and stale warning; lamp refuses fake/expired/out-of-zone signals.
 4. Signed v14 APK is upgradeable from v13, package id and certificate identical, release mode LIVE FCM, never debug.
 5. Real device install and subsequent natural LONG A remain field acceptance checks.
+
+## Reviewed QA before permanent signing
+- GitHub Actions run 40461593162: scanner SUCCESS, Android debug compilation + Robolectric SUCCESS.
+- Source implementation is UI-only. Backend remains previously LIVE v13; no Railway deployment is part of this Android release.
+- The signed-release job must verify package ID, versionCode 14, original V2 certificate, FCM enabled, LIVE API HTTPS and not demo.
+- The final commit creates the signed release artifact only after both scoped jobs succeed.
