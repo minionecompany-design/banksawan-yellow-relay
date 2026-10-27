@@ -131,10 +131,11 @@ test('read-only API binds analysis to real HOME event and rejects wrong ids, dis
     assert.equal((await fetch(origin+'/api/analysis?eventId='+encodeURIComponent(event.id.replace('TESTUSDT','OTHERUSDT')))).status,404);
     assert.equal((await fetch(origin+'/api/analysis',{method:'POST'})).status,405);
     const summary=await (await fetch(origin+'/api/analysis/summary')).json();assert.equal(summary.summary.sampleSize,1);
-    const originalHas=b.has;b.has=()=>{throw Error('LOOKUP_FAILED');};
+    b.get=()=>{throw Error('LOOKUP_FAILED');};
     const degraded=await (await fetch(origin+'/api/home')).json();
     assert.equal(degraded.home.length,1);assert.equal(degraded.analysisAvailable,false);
-    b.has=originalHas;
+    assert.equal(degraded.home[0].analysisPreview,undefined);
+    b.get=originalGet;
     b.enabled=false;assert.equal((await fetch(origin+'/api/analysis?eventId='+encodeURIComponent(event.id))).status,503);
     assert.equal((await (await fetch(origin+'/api/home')).json()).home.length,1,'analysis outage preserves HOME');
     b.enabled=true;now+=30_000;assert.equal((await fetch(origin+'/api/analysis?eventId='+encodeURIComponent(event.id))).status,503);
