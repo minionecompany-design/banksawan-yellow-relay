@@ -14,7 +14,9 @@ export function createLiveApi(market){return http.createServer((req,res)=>{
     (market.lastTickerDataAtMs && market.clock()-market.lastTickerDataAtMs>=30000))
     return response(res,503,{error:'MARKET_NOT_READY_FAIL_CLOSED'});
   if(url.pathname==='/api/home'){
-    const home=market.home();let analysisAvailable=market.analysisCompanion?.enabled===true;
+    // Never decorate original ledger objects: a later missing/partial analysis must
+    // not leak an earlier preview through shared mutable HOME references.
+    const home=market.home().map(event=>({...event}));let analysisAvailable=market.analysisCompanion?.enabled===true;
     try {
       if(analysisAvailable)for(const event of home){
         // Read an existing frozen result only: never calculate or delay LONG A/FCM here.
