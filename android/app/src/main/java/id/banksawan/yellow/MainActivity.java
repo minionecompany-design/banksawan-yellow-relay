@@ -269,10 +269,41 @@ public class MainActivity extends Activity {
             line(box,"Mulai",formattedTime(first));}
         else line(box,"Prioritas:",item.optString("priority","STANDARD"));
         if (isHome) {
-            tradingView(symbol,box);
             String analysisId=AnalysisSnapshot.homeEventId(item);
+            if(!BuildConfig.DEMO_MODE&&analysisAvailable&&!analysisId.isEmpty()){
+                JSONObject preview=AnalysisSnapshot.homePreview(item,System.currentTimeMillis());
+                if(preview!=null){
+                    boolean expired=System.currentTimeMillis()>=preview.optLong("expiresAtMs");
+                    TextView heading=text(expired?"LEVEL SAAT SINYAL • ENTRY KEDALUWARSA":
+                        "SKENARIO LONG A • OBSERVASI",14,YELLOW,true);
+                    heading.setPadding(0,dp(10),0,dp(4));box.addView(heading);
+                    analysisHomeLine(box,"ENTRY",analysisPrice(preview.optDouble("entryLow"))+" – "+
+                        analysisPrice(preview.optDouble("entryHigh")),Color.WHITE);
+                    analysisHomeLine(box,"SL",analysisPrice(preview.optDouble("stopLoss")),Color.rgb(255,155,125));
+                    analysisHomeLine(box,"TP1",analysisPrice(preview.optDouble("tp1")),GREEN);
+                    analysisHomeLine(box,"TP2 / TP3",analysisPrice(preview.optDouble("tp2"))+" / "+
+                        analysisPrice(preview.optDouble("tp3")),GREEN);
+                    if(preview.optBoolean("trendConflict",false))
+                        analysisHomeNote(box,"PERHATIAN: ada tren TF turun.");
+                    if(preview.optBoolean("resistanceBeforeTp1",false))
+                        analysisHomeNote(box,"PERHATIAN: resistance sebelum TP1.");
+                    if(expired)analysisHomeNote(box,"Level historis, BUKAN entry saat ini.");
+                }else if(item.optBoolean("analysisCaptured",false)){
+                    analysisHomeNote(box,"ENTRY / SL / TP belum tersedia • data analisis tidak lengkap.");
+                }else analysisHomeNote(box,"ENTRY / SL / TP belum tersedia untuk LONG A ini.");
+            }
+            tradingView(symbol,box);
             if(analysisAvailable&&item.optBoolean("analysisCaptured",false)&&!analysisId.isEmpty())analysisButton(analysisId,box);
         }
+    }
+
+    private void analysisHomeLine(LinearLayout parent,String label,String value,int color){
+        TextView row=text(label+": "+value,16,color,true);
+        row.setPadding(0,dp(3),0,dp(3));parent.addView(row);
+    }
+    private void analysisHomeNote(LinearLayout parent,String value){
+        TextView note=text(value,14,MUTED,false);
+        note.setPadding(0,dp(3),0,dp(3));parent.addView(note);
     }
 
     private void analysisButton(String eventId,LinearLayout parent){
