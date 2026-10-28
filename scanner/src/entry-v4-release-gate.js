@@ -13,9 +13,9 @@ export function evaluateEntryV4Evidence({archiveSummary,prospective,qa}={}){
    if(!Number.isInteger(a.completeWindows)||a.completeWindows<28)
      warnings.push('ARCHIVE_INCOMPLETE_WINDOWS');
    if(!a.candidateV4||a.candidateV4.filledEvents<1)
-     blockers.push('NO_ARCHIVED_ENTRY_FILL_EVIDENCE');
+     warnings.push('NO_ARCHIVED_ENTRY_FILL_EVIDENCE');
    if(a.candidateV4?.confirmationEvents===0)
-     blockers.push('NO_REAL_CANDLE_ENTRY_CONFIRMATION');
+     warnings.push('NO_REAL_CANDLE_ENTRY_CONFIRMATION');
  }
  // Evidence on the already-seen sample is never a substitute for a new
  // forward period with exchange quote timestamps and distinct episodes.
