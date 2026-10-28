@@ -45,7 +45,8 @@ public class V16HomePresentationTest {
       JSONObject e=one(now,"PRIORITY");e.getJSONObject("monitor1m").put("status","GREEN");
       a.applyLiveSnapshot(new JSONArray().put(e),new JSONArray(),0,0);
       ArrayList<String> texts=new ArrayList<>();collect(a.getWindow().getDecorView(),texts);
-      assertFalse(texts.stream().anyMatch(x->x.contains("PEMANTAUAN 1M")));
+      assertTrue(texts.stream().anyMatch(x->x.contains("PEMANTAUAN 1M")&&x.contains("DATA TIDAK TERSEDIA")));
+      assertFalse(texts.stream().anyMatch(x->x.contains("PANTAU PRIORITAS")||x.contains("MENDUKUNG")));
     }
   }
 }
