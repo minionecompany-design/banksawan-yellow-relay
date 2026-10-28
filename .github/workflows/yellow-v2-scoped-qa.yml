@@ -25,6 +25,7 @@ jobs:
           node --check scanner/src/forward-shadow-1m.js
           node --check scanner/src/forward-shadow-journal.js
           node --check scanner/scripts/collect-forward-shadow-1m.mjs
+          node --check scanner/scripts/summarize-forward-shadow-journal.mjs
           node --check scanner/scripts/lib/forward-shadow-source.mjs
           node --check scanner/scripts/lib/replay-continuation-v4.mjs
           node --check scanner/scripts/compare-continuation-v4.mjs
@@ -48,6 +49,19 @@ jobs:
         run: |
           node scanner/scripts/collect-forward-shadow-1m.mjs --plan
           node scanner/scripts/prove-forward-shadow-1m.mjs "$RUNNER_TEMP/forward-shadow-evidence"
+          node scanner/scripts/summarize-forward-shadow-journal.mjs "$RUNNER_TEMP/forward-shadow-evidence/synthetic-shadow.ndjson" '' "$RUNNER_TEMP/forward-shadow-evidence/verified-wal-summary.json" > /dev/null
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';
+          const p=process.env.RUNNER_TEMP+'/forward-shadow-evidence/verified-wal-summary.json';
+          const a=JSON.parse(readFileSync(p,'utf8'));
+          assert.equal(a.journal.verified,true);
+          assert.equal(a.provenance,'SYNTHETIC_QA');
+          assert.equal(a.counts.acceptedLongA1m,1);
+          assert.equal(a.counts.observedGreenEvents,1);
+          assert.equal(a.canClaimWinRate,false);
+          assert.equal(a.releaseDecision,'NO_GO_LIVE');
+          console.log(JSON.stringify({walVerified:true,syntheticEvents:1,notRealMarket:true}));
+          NODE
       - name: Preserve forward shadow synthetic proof (NOT market performance)
         if: always()
         uses: actions/upload-artifact@v4
