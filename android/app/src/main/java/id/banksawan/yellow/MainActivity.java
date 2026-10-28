@@ -258,8 +258,9 @@ public class MainActivity extends Activity {
         LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(dp(12),dp(10),dp(12),dp(10));
         box.setBackground(shape(CARD,LINE));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);
         p.setMargins(0,0,0,dp(8));list.addView(box,p);
-        JSONObject watch16=isHome?AnalysisSnapshot.monitor1m(item,System.currentTimeMillis()):null;
-        JSONObject light=isHome&&analysisAvailable&&watch16==null?
+        boolean v16Present=isHome&&"1m".equals(item.optString("timeframe"))&&item.has("monitor1m");
+        JSONObject watch16=v16Present?AnalysisSnapshot.monitor1m(item,System.currentTimeMillis()):null;
+        JSONObject light=isHome&&analysisAvailable&&!v16Present?
             AnalysisSnapshot.homeLight(item,System.currentTimeMillis()):null;
         if(isHome&&analysisAvailable){
             LinearLayout header=new LinearLayout(this);
@@ -293,6 +294,10 @@ public class MainActivity extends Activity {
                     box.addView(text("Pola terpantau; belum konfirmasi ENTRY.",12,MUTED,false));
                 if("OFF".equals(state))
                     box.addView(text("Data tidak lengkap atau pemantauan berakhir.",12,MUTED,false));
+            }else if(v16Present){
+                // Invalid/stale V16 must not fall back to an older GREEN badge.
+                TextView unavailable=text("PEMANTAUAN 1M • DATA TIDAK TERSEDIA",14,YELLOW,true);
+                unavailable.setPadding(0,dp(6),0,dp(2));box.addView(unavailable);
             }
         }
         else line(box,"Prioritas:",item.optString("priority","STANDARD"));
@@ -302,7 +307,7 @@ public class MainActivity extends Activity {
             // TradingView and the existing ANALISIS button only. Analysis levels
             // remain available exclusively inside the detailed ANALISIS dialog.
             tradingView(symbol,box);
-            if(watch16==null&&analysisAvailable&&item.optBoolean("analysisCaptured",false)&&!analysisId.isEmpty())
+            if(!v16Present&&analysisAvailable&&item.optBoolean("analysisCaptured",false)&&!analysisId.isEmpty())
                 analysisButton(analysisId,box);
         }
     }
