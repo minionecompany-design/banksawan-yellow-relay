@@ -5,6 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {resolve,join} from 'node:path';
 import {pathToFileURL,fileURLToPath} from 'node:url';
 import {ForwardShadowJournal} from '../src/forward-shadow-journal.js';
+import {ForwardSubscriptionBudget} from './lib/forward-shadow-subscription-budget.mjs';
 import {readShadowJson,captureShadowWarmup,parseShadowMarket,SHADOW_WS,YELLOW_READ_BASE} from './lib/forward-shadow-source.mjs';
 
 export async function main(args=process.argv.slice(2)){
@@ -36,7 +37,8 @@ export async function main(args=process.argv.slice(2)){
   const journal=new ForwardShadowJournal({filename:join(directory,'forward-shadow.ndjson'),config});
   await journal.initialize(Date.now());
   const symbols=new Set(journal.observer.books.keys());
-  const ws=new WebSocket(SHADOW_WS);let id=1,stopped=false,polling=false,timer,stopTimer,lastWs=Date.now();
+  const ws=new WebSocket(SHADOW_WS);let id=1,stopped=false,polling=false,timer,stopTimer,subscribeTimer,lastWs=Date.now();
+  const subscriptionBudget=new ForwardSubscriptionBudget();
   let stopPromise=null;
   const report=async()=>{
     const target=join(directory,'forward-receipt.json');
@@ -45,7 +47,7 @@ export async function main(args=process.argv.slice(2)){
   };
   const stop=(reason,error=null)=>{
     if(stopPromise)return stopPromise;
-    stopped=true;clearInterval(timer);clearTimeout(stopTimer);
+    stopped=true;clearInterval(timer);clearInterval(subscribeTimer);clearTimeout(stopTimer);
     stopPromise=(async()=>{
       try{if(!journal.failed)await journal.ingest({type:'GAP',reason,receivedAtMs:Date.now()});}
       finally{try{ws.close();}catch{}await journal.close();await report();}
@@ -55,9 +57,15 @@ export async function main(args=process.argv.slice(2)){
     })();return stopPromise;
   };
   const ingest=input=>journal.ingest(input).catch(e=>{void stop('COLLECTOR_FAULT',e);});
-  const subscribe=added=>{
-    const params=added.flatMap(s=>['1m','5m','15m','1h'].map(tf=>s.toLowerCase()+'@kline_'+tf));
-    if(params.length)ws.send(JSON.stringify({method:'SUBSCRIBE',params,id:String(id++)}));
+  // Outbound WebSocket SUBSCRIBE controls are budgeted to ONE PER SECOND.
+  // Even if dozens of LONG A events arrive together, do not burst controls
+  // into Binance's IP limiter. Data lag must be recorded as missing, not
+  // silently repaired from later candles.
+  const subscribe=added=>subscriptionBudget.enqueue(added);
+  const flushSubscriptions=()=>{
+    if(stopped||ws.readyState!==1)return;
+    const batch=subscriptionBudget.take(Date.now());
+    if(batch)ws.send(JSON.stringify({method:'SUBSCRIBE',params:batch.params,id:String(id++)}));
   };
   ws.addEventListener('message',e=>{
     if(stopped)return;
@@ -94,8 +102,15 @@ export async function main(args=process.argv.slice(2)){
   };
   ws.addEventListener('open',()=>{
     if(stopped)return;
-    ws.send(JSON.stringify({method:'SUBSCRIBE',params:['!ticker@arr'],id:String(id++)}));
-    subscribe([...symbols]);void poll();timer=setInterval(()=>void poll(),5000);
+    try {
+      ws.send(JSON.stringify({method:'SUBSCRIBE',params:['!ticker@arr'],id:String(id++)}));
+      subscriptionBudget.noteControlSent(Date.now());
+      subscribe([...symbols]);
+      subscribeTimer=setInterval(()=>{
+        try{flushSubscriptions();}catch(error){void stop('SUBSCRIBE_BUDGET_FAULT',error);}
+      },1000);
+      void poll();timer=setInterval(()=>void poll(),5000);
+    }catch(error){void stop('SUBSCRIBE_STARTUP_FAULT',error);}
   });
   process.once('SIGINT',()=>void stop('OPERATOR_STOP'));
   process.once('SIGTERM',()=>void stop('OPERATOR_STOP'));
