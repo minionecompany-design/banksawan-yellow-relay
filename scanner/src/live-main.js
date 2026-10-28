@@ -7,6 +7,7 @@ import {createLiveApi} from './live-api.js';
 import {YellowFcm} from './live-fcm.js';
 import {QualityCaptureBridgeV1} from './quality-capture-bridge-v1.js';
 import {AnalysisCompanionBridge} from './analysis-companion-bridge.js';
+import {YellowV16WatchMonitor} from './yellow-v16-watch-monitor.js';
 const enabled=process.env.YELLOW_LIVE_ENABLED==='true';
 const dataDir=process.env.YELLOW_DATA_DIR;
 const port=Number(process.env.PORT||8080);
@@ -24,9 +25,14 @@ if(research)await research.initialize();
 const analysis=process.env.YELLOW_ANALYSIS_ENABLED==='true'
   ?new AnalysisCompanionBridge({dataDir,log:(...args)=>console.warn(...args)}):null;
 if(analysis)await analysis.initialize();
+// V16 deliberately off unless operator enables it after production review.
+// Shares EXISTING native candles and tickers; no Binance/API connections added.
+const monitor1m=process.env.YELLOW_V16_WATCH_ONLY_ENABLED==='true'
+  ?new YellowV16WatchMonitor():null;
 const market=new YellowLiveMarket({dataDir,maxTracked:Number(process.env.YELLOW_MAX_TRACKED||50),
   passiveEvidence:research,
   analysisCompanion:analysis,
+  monitor1m,
   sendEvent:async event=>{
     const delivery=await fcm.send(event);
     if(fcm.enabled)console.log('YELLOW_FCM',event.id,delivery.sent?'SENT':delivery.reason);
