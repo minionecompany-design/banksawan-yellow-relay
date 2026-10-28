@@ -47,6 +47,8 @@ const s={method:'V4_THREE_BAR_STAIRCASE_RESEARCH_OFFLINE',
  },{}),
  unifiedRedEventCount:inScope.filter(r=>r.unified1m.firstRed).length,
  unifiedHistoricalGreenEvents:inScope.filter(r=>r.unified1m.counts.GREEN>0).length,
+ unifiedPriorityTransitionEvents:inScope.filter(r=>
+   r.unified1m.transitions.some(t=>t.priority===true)).length,
  watchPriorityEvents:inScope.filter(r=>r.firstWatchPriority).length,
  watchPriorityFollowThrough5Pct:inScope.filter(r=>r.laterGainFromPriorityPct!==null&&
    r.laterGainFromPriorityPct>=5).length,
