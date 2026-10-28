@@ -25,7 +25,8 @@ export function replayV4Comparison(source,event){
  const a=source.candles,deadline=event.barClosedAtMs+360*M;
  let v3=newReadinessWatch(event),v4=newContinuationWatchV4(event),
    p3=null,p4=null,c3=null,c4=null,last=event.barClosedAtMs,hasGap=false,
-   maxHigh=event.price,minLow=event.price,maxBarEndMs=null;
+   maxHigh=event.price,minLow=event.price,maxBarEndMs=null,
+   reasonsV4={},patternCandidates=0,firstPatternAtMs=null,firstRiskGateAtMs=null;
  const bars=a.oneMinute.filter(x=>x.endMs>event.barClosedAtMs&&x.endMs<=deadline+123*M);
  for(const bar of bars){
    if(last<deadline&&bar.endMs!==last+M)hasGap=true;
@@ -34,6 +35,15 @@ export function replayV4Comparison(source,event){
      [key,a[key].filter(x=>x.endMs<=bar.endMs)]));
    v3=advanceReadinessWatch(v3,bar,snapshot,bar.endMs+1000);
    v4=advanceContinuationWatchV4(v4,bar,snapshot,bar.endMs+1000);
+   if(bar.endMs<=deadline){
+     reasonsV4[v4.reason]=(reasonsV4[v4.reason]||0)+1;
+     if(v4.evidence?.continuation?.pass){
+       patternCandidates++;
+       firstPatternAtMs??=bar.endMs;
+     }
+     if(v4.evidence?.risk?.pass&&v4.evidence?.room?.pass)
+       firstRiskGateAtMs??=bar.endMs;
+   }
    if(p3&&v3.state==='DATA_GAP'&&ACTIVE.has(p3.status))
      p3={...p3,status:'INCOMPLETE_DATA',endedAtMs:bar.endMs};
    else if(p3)p3=advancePaperOutcome(v3,p3,bar);
@@ -65,7 +75,8 @@ export function replayV4Comparison(source,event){
    completeSixHourWindow:completed,candleGap:hasGap,
    mfePct:valid((maxHigh/event.price-1)*100),
    maePct:valid((minLow/event.price-1)*100),
-   recordedPeakAtMs:maxBarEndMs,
+   recordedPeakAtMs:maxBarEndMs,reasonsV4,patternCandidates,
+   firstPatternAtMs,firstRiskGateAtMs,
    baselineV3:outcome(c3,p3),candidateV4:outcome(c4,p4),
    historicalGreen:'NOT_RECONSTRUCTED_NO_HISTORICAL_QUOTE'};
 }
