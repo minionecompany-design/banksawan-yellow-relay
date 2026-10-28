@@ -29,3 +29,6 @@ Riset collector sekarang dapat menyimpan `forward-fault.json` berisi alasan/erro
 5. Bila signer permanen atau verifikasi versi asli V15 tidak tersedia, JANGAN menyebar APK yang tak dapat mengupdate app asli; hentikan dan laporkan.
 
 **Status:** staged draft, belum merged, belum deploy, belum signed/released, APK perangkat belum berubah. Tetap **NO GO ENTRY V4 LIVE**.
+
+## Owner approval / controlled artifact build — 28 Oct 2026
+The owner explicitly instructed ChatGPT to finish the V16 build and LIVE rollout. The APK release is still a WATCH-ONLY product, not an ENTRY recommender. The dedicated GitHub Actions `signed-release-v16` job requires the original certificate, keystore and Firebase secrets, reruns scanner+Android/FCM/signing QA, and publishes a **signed artifact only**; it cannot deploy itself. Deployment is contingent on signing success, a separately reviewed Railway source+flag stage and healthy monitoring; if unavailable, preserve production V15. This release authorization is not authorization to trade, alter LONG A, turn on GREEN, substitute another certificate, or add paid infrastructure.
