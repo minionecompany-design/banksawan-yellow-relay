@@ -53,7 +53,9 @@ public class WatchOnlyV16Test {
     assertNull(AnalysisSnapshot.monitor1m(e,t+130_000L));
     w.put("checkedAtMs",t+21_600_000L).put("lastBarEndMs",t+21_600_000L);
     assertNull(AnalysisSnapshot.monitor1m(e,t+21_600_001L));
-    w.put("status","OFF");
+    // An OFF result after six hours must no longer carry a stale old ticker.
+    w.put("status","OFF").put("priceChangeSinceAPct",JSONObject.NULL)
+      .put("tickerAtMs",JSONObject.NULL);
     assertNotNull(AnalysisSnapshot.monitor1m(e,t+21_600_001L));
   }
 }
