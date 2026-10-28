@@ -1,8 +1,12 @@
 package id.banksawan.yellow;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 import static org.junit.Assert.*;
 
+@RunWith(RobolectricTestRunner.class) @Config(sdk=35)
 public class WatchOnlyV16Test {
   private final long t=1793073600000L;
   private final String id="QUSDT:1m:"+t+":LONG_A";
