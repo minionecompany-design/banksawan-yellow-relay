@@ -75,3 +75,11 @@ test('PANTAU priority is YELLOW only, regardless of subsequent rise',()=>{
  const later=decideSecondSignal1m({...s,nowMs:s.nowMs+100_000});
  assert.equal(later.priority,false);assert.notEqual(later.status,'GREEN');
 });
+
+test('invalid event, forged identity or wrong watch method cannot be GREEN',()=>{
+ const s=setup();
+ assert.equal(decideSecondSignal1m({...s,event:{...s.event,id:'FORGED'}}).status,'OFF');
+ assert.equal(decideSecondSignal1m({...s,event:{...s.event,signal:'LONG_B'}}).status,'OFF');
+ assert.equal(decideSecondSignal1m({...s,v4:{...s.v4,method:'UNTRUSTED'}}).status,'YELLOW');
+ assert.equal(decideSecondSignal1m({...s,v3:{...s.v3,method:'UNTRUSTED'}}).status,'YELLOW');
+});
