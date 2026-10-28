@@ -82,7 +82,9 @@ test('GREEN is possible only for confirmed pullback or continuation in live elig
    assert.equal(g.status,'GREEN');assert.equal(g.reason,reason);
    assert.equal(g.setupPath,path);
    assert.equal(secondSignal1m({...x,ticker:{...x.ticker,priceChangePercent:.9}}).status,'YELLOW');
-   assert.equal(secondSignal1m({...x,ticker:{...x.ticker,lastPrice:x.watch.plan.entryHigh+.01}}).status,'YELLOW');
+   assert.equal(secondSignal1m({...x,ticker:{...x.ticker,lastPrice:x.watch.plan.entryHigh+.002}}).status,'YELLOW');
+   // A price already at TP1 is an invalidated setup, not an out-of-zone wait.
+   assert.equal(secondSignal1m({...x,ticker:{...x.ticker,lastPrice:x.watch.plan.tp1}}).status,'RED');
    assert.equal(secondSignal1m({...x,ticker:{...x.ticker,observedAtMs:x.nowMs-45_000}}).status,'YELLOW');
  }
 });
