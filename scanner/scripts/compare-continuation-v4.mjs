@@ -31,11 +31,19 @@ const metrics=key=>{
    meanNetPct:settled.length?settled.reduce((s,r)=>s+r[key].netReturnPct,0)/settled.length:null,
    paperStatuses:statuses};
 };
+const reasonTotals=inScope.reduce((t,r)=>{for(const [key,value]of Object.entries(r.reasonsV4))
+ t[key]=(t[key]||0)+value;return t;},{});
+const patternEvents=inScope.filter(r=>r.patternCandidates>0);
 const s={method:'V4_THREE_BAR_STAIRCASE_RESEARCH_OFFLINE',
  cases:records.length,oneMinuteCases:inScope.length,
  outOfScope:excluded.length,completeWindows:inScope.filter(r=>r.completeSixHourWindow).length,
  missingCases:manifest.missingCases??[],
  baselineV3:metrics('baselineV3'),candidateV4:metrics('candidateV4'),
+ diagnosticReasonsV4:reasonTotals,
+ structuralPatternEvents:patternEvents.length,
+ structuralPatternDetails:patternEvents.map(r=>({eventId:r.eventId,
+   firstPatternAtMs:r.firstPatternAtMs,patterns:r.patternCandidates,
+   firstRiskGateAtMs:r.firstRiskGateAtMs,confirm:!!r.candidateV4.confirmed})),
  rose20Pct:inScope.filter(r=>r.mfePct>=20).map(r=>r.eventId),
  rose20PctWithoutV4Confirmation:inScope.filter(r=>r.mfePct>=20&&!r.candidateV4.confirmed).map(r=>r.eventId),
  v4ConfirmationEvents:inScope.filter(r=>r.candidateV4.confirmed).map(r=>({id:r.eventId,
