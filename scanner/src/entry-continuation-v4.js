@@ -121,7 +121,7 @@ export function continuationColorV4(w,ticker,now){
   if(!w.plan)return output('YELLOW',w.reason);
   if(!w.evidence?.dataReady||now-w.lastBarEndMs>=90_000)
     return output('YELLOW','STALE_OR_MISSING_CONTEXT');
-  if(!freshQuote(ticker,now)||ticker.observedAtMs<w.confirmedAtMs)
+  if(!freshQuote(ticker,now)||ticker.observedAtMs>now||ticker.observedAtMs<w.confirmedAtMs)
     return output('YELLOW','STALE_OR_PRE_CONFIRMATION_QUOTE');
   if(ticker.lastPrice>=10||!finite(ticker.priceChangePercent)||ticker.priceChangePercent<=1||
      !finite(ticker.quoteVolume24h)||ticker.quoteVolume24h<=10_000_000)
@@ -131,6 +131,15 @@ export function continuationColorV4(w,ticker,now){
   if(ticker.lastPrice<w.plan.entryLow||ticker.lastPrice>w.plan.entryHigh)
     return output('YELLOW','OUTSIDE_ENTRY_ZONE');
   return output('GREEN','CONTINUATION_CONFIRMED');
+}
+
+/** Persist the first observed quote boundary. A rebound cannot revive entry. */
+export function observeContinuationQuoteV4(w,ticker,now){
+  if(w.state!=='CONFIRMED'||!freshQuote(ticker,now)||ticker.observedAtMs>now||
+     ticker.observedAtMs<w.confirmedAtMs)return w;
+  if(ticker.lastPrice>w.plan.stopLoss&&ticker.lastPrice<w.plan.tp1)return w;
+  return {...structuredClone(w),state:'INVALIDATED',checkedAtMs:now,
+    reason:ticker.lastPrice<=w.plan.stopLoss?'STOP_TOUCHED':'TARGET_TOUCHED'};
 }
 
 /** A secondary WATCH-PRIORITY hypothesis, never an entry or a new traffic light.

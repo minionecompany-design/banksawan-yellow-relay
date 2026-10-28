@@ -22,6 +22,10 @@ jobs:
           node --check scanner/src/entry-continuation-v4.js
           node --check scanner/src/second-signal-compositor-1m.js
           node --check scanner/src/entry-v4-release-gate.js
+          node --check scanner/src/forward-shadow-1m.js
+          node --check scanner/src/forward-shadow-journal.js
+          node --check scanner/scripts/collect-forward-shadow-1m.mjs
+          node --check scanner/scripts/lib/forward-shadow-source.mjs
           node --check scanner/scripts/lib/replay-continuation-v4.mjs
           node --check scanner/scripts/compare-continuation-v4.mjs
           node --check scanner/scripts/lib/replay-second-signal-1m.mjs
@@ -40,6 +44,18 @@ jobs:
           node --check scanner/scripts/lib/v2-api-contract.mjs
       - name: Offline scanner regression (no Binance, Railway, FCM sends)
         run: node --test --test-concurrency=4 scanner/test/*.test.js
+      - name: Forward shadow persistence and safety acceptance (SYNTHETIC, NO NETWORK)
+        run: |
+          node scanner/scripts/collect-forward-shadow-1m.mjs --plan
+          node scanner/scripts/prove-forward-shadow-1m.mjs "$RUNNER_TEMP/forward-shadow-evidence"
+      - name: Preserve forward shadow synthetic proof (NOT market performance)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yellow-forward-shadow-synthetic-qa
+          path: ${{ runner.temp }}/forward-shadow-evidence
+          if-no-files-found: error
+          retention-days: 14
       - name: Offline archived candle replay — ENTRY v3 LONG A 1M only
         shell: bash
         run: |

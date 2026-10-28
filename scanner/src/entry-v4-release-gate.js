@@ -16,12 +16,23 @@ export function evaluateEntryV4Evidence({archiveSummary,prospective,qa}={}){
      warnings.push('NO_ARCHIVED_ENTRY_FILL_EVIDENCE');
    if(a.candidateV4?.confirmationEvents===0)
      warnings.push('NO_REAL_CANDLE_ENTRY_CONFIRMATION');
+   if(!Number.isInteger(a.candidateV4?.confirmationEvents)||a.candidateV4.confirmationEvents<0||
+      !Number.isInteger(a.candidateV4?.filledEvents)||a.candidateV4.filledEvents<0||
+      a.candidateV4.filledEvents>a.candidateV4.confirmationEvents)
+     blockers.push('ARCHIVE_OUTCOME_COUNTS_INVALID');
  }
  // Evidence on the already-seen sample is never a substitute for a new
  // forward period with exchange quote timestamps and distinct episodes.
  if(!prospective||prospective.source!=='FORWARD_LIVE_OBSERVED_NOT_BACKFILLED')
    blockers.push('PROSPECTIVE_COHORT_NOT_COLLECTED');
  else{
+   const keys=['cohortEvents','independentEpisodes','completeSixHourEpisodes','quoteVerifiedEntrySetups','paperFillsWithKnownExit'];
+   if(!keys.every(k=>Number.isSafeInteger(prospective[k])&&prospective[k]>=0)||
+      prospective.independentEpisodes>prospective.cohortEvents||
+      prospective.completeSixHourEpisodes>prospective.independentEpisodes||
+      prospective.quoteVerifiedEntrySetups>prospective.cohortEvents||
+      prospective.paperFillsWithKnownExit>prospective.quoteVerifiedEntrySetups)
+     blockers.push('PROSPECTIVE_COUNTS_INCONSISTENT');
    if(!Number.isInteger(prospective.independentEpisodes)||prospective.independentEpisodes<100)
      blockers.push('PROSPECTIVE_INDEPENDENT_EPISODES_LT_100');
    if(!Number.isInteger(prospective.completeSixHourEpisodes)||
@@ -42,6 +53,14 @@ export function evaluateEntryV4Evidence({archiveSummary,prospective,qa}={}){
      blockers.push('FALSE_RED_OR_MISSED_WINNER_AUDIT_MISSING');
    if(prospective.baselineComparisonComplete!==true)
      blockers.push('BASELINE_COMPARISON_MISSING');
+   // A large sample of losing fills is not evidence of improvement. These
+   // attestations refer to a separately reviewed, hash-identified report;
+   // the collector never sets them true merely because collection or CI ran.
+   const review=prospective.improvementReview;
+   if(review?.protocolFrozen!==true||review?.independentHoldoutReviewed!==true||
+      review?.netOutcomeVsBaselinePassed!==true||review?.coverageAndFalseSignalsReviewed!==true||
+      !/^[a-f0-9]{64}$/.test(review?.evidenceSha256??''))
+     blockers.push('INDEPENDENT_IMPROVEMENT_REVIEW_MISSING');
  }
  if(!qa||qa.androidPassed!==true||qa.scannerPassed!==true||
     qa.fcmIsolationPassed!==true||qa.persistenceRestartPassed!==true||

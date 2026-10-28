@@ -27,7 +27,7 @@ export function replayV4Comparison(source,event){
  let v3=newReadinessWatch(event),v4=newContinuationWatchV4(event),
    p3=null,p4=null,c3=null,c4=null,last=event.barClosedAtMs,hasGap=false,
    maxHigh=event.price,minLow=event.price,maxBarEndMs=null,
-   reasonsV4={},patternCandidates=0,firstPatternAtMs=null,firstPatternClose=null,
+   reasonsV4={},patternGateTrace=[],patternCandidates=0,firstPatternAtMs=null,firstPatternClose=null,
    firstRiskGateAtMs=null,firstWatchPriority=null,priorityMinutes=0,
    compositeCounts={YELLOW:0,RED:0,OFF:0,GREEN:0},compositeTransitions=[],lastComposite=null;
  const bars=a.oneMinute.filter(x=>x.endMs>event.barClosedAtMs&&x.endMs<=deadline+123*M);
@@ -54,6 +54,9 @@ export function replayV4Comparison(source,event){
      reasonsV4[v4.reason]=(reasonsV4[v4.reason]||0)+1;
      if(v4.evidence?.atMs===bar.endMs&&v4.evidence?.continuation?.pass){
        patternCandidates++;
+       patternGateTrace.push({atMs:bar.endMs,close:bar.close,reason:v4.reason,
+         trend:structuredClone(v4.evidence.trend),risk:structuredClone(v4.evidence.risk??null),
+         room:structuredClone(v4.evidence.room??null),continuation:structuredClone(v4.evidence.continuation)});
        if(firstPatternAtMs===null){firstPatternAtMs=bar.endMs;firstPatternClose=bar.close;}
      }
      const hint=continuationPriorityV4(v4,bar.endMs+1000);
@@ -106,7 +109,7 @@ export function replayV4Comparison(source,event){
    completeSixHourWindow:completed,candleGap:hasGap,
    mfePct:valid((maxHigh/event.price-1)*100),
    maePct:valid((minLow/event.price-1)*100),
-   recordedPeakAtMs:maxBarEndMs,reasonsV4,patternCandidates,
+   recordedPeakAtMs:maxBarEndMs,reasonsV4,patternCandidates,patternGateTrace,
    firstPatternAtMs,firstPatternClose,firstRiskGateAtMs,
    firstWatchPriority,priorityMinutes,laterGainFromFirstPatternPct,laterGainFromPriorityPct,
    unified1m:{counts:compositeCounts,transitions:compositeTransitions,

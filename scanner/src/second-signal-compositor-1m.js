@@ -28,7 +28,10 @@ export function decideSecondSignal1m({event,v3,v4,snapshot,ticker,nowMs}={}){
  if(v3?.method!==READINESS_METHOD||v4?.method!==CONTINUATION_V4_METHOD||
     v3?.eventId!==event.id||v4?.eventId!==event.id)
    return output('YELLOW','RESEARCH_STATE_MISSING');
- const fresh=freshQuote(ticker,nowMs)&&ticker.observedAtMs>=event.barClosedAtMs&&
+ // Research decisions are strictly as-of. The legacy LIVE helper permits a
+ // small clock skew; that must not admit a future quote into this study.
+ const asOfTicker=ticker?.observedAtMs<=nowMs?ticker:null;
+ const fresh=freshQuote(asOfTicker,nowMs)&&ticker.observedAtMs>=event.barClosedAtMs&&
    finite(event.price)&&event.price>0;
  const live={priceChangeSinceAPct:fresh?(ticker.lastPrice/event.price-1)*100:null,
    livePriceAtMs:fresh?ticker.observedAtMs:null};
@@ -36,13 +39,10 @@ export function decideSecondSignal1m({event,v3,v4,snapshot,ticker,nowMs}={}){
  // for an entry label. Do not revive an old green on the remaining engine.
  if(v3.state==='DATA_GAP'||v4.state==='DATA_GAP')
    return output('OFF','NATIVE_CANDLE_DATA_GAP',live);
- if(v3.state==='INVALIDATED'&&v3.reason==='TARGET_TOUCHED'||
-    v4.state==='INVALIDATED'&&v4.reason==='TARGET_TOUCHED')
-   return output('OFF','TP1_ALREADY_REACHED',live);
  if(nowMs>=event.barClosedAtMs+360*60_000)
    return output('OFF','WATCH_WINDOW_ENDED',live);
- const red3=secondSignal1m({event,watch:v3,snapshot,ticker,nowMs});
- const decision4=continuationColorV4(v4,ticker,nowMs);
+ const red3=secondSignal1m({event,watch:v3,snapshot,ticker:asOfTicker,nowMs});
+ const decision4=continuationColorV4(v4,asOfTicker,nowMs);
  const priority=continuationPriorityV4(v4,nowMs);
  // Risk VETO: a real structural failure/stop/trend invalidation beats
  // another engine's tentative entry confirmation; never show both colors.
@@ -50,6 +50,9 @@ export function decideSecondSignal1m({event,v3,v4,snapshot,ticker,nowMs}={}){
    const reason=red3.status==='RED'?red3.reason:decision4.reason;
    return output('RED',reason,{...live,riskSource:red3.status==='RED'?'V3_OR_STRUCTURE':'CONTINUATION_V4'});
  }
+ if(v3.state==='INVALIDATED'&&v3.reason==='TARGET_TOUCHED'||
+    v4.state==='INVALIDATED'&&v4.reason==='TARGET_TOUCHED')
+   return output('OFF','TP1_ALREADY_REACHED',live);
  const green=[];
  if(red3.status==='GREEN'&&v3.plan&&v3.state==='CONFIRMED')
    green.push({at:v3.confirmedAtMs,source:'V3',path:v3.path,plan:v3.plan});
