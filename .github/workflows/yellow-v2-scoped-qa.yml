@@ -20,6 +20,8 @@ jobs:
           node --check scanner/src/entry-readiness-v3.js
           node --check scanner/src/second-signal-1m.js
           node --check scanner/src/entry-continuation-v4.js
+          node --check scanner/scripts/lib/replay-continuation-v4.mjs
+          node --check scanner/scripts/compare-continuation-v4.mjs
           node --check scanner/scripts/lib/replay-second-signal-1m.mjs
           node --check scanner/scripts/compare-second-signal-1m.mjs
           node --check scanner/scripts/lib/replay-readiness-v3.mjs
@@ -116,6 +118,36 @@ jobs:
         with:
           name: yellow-second-signal-1m-actual-candle-replay
           path: second-signal-1m-evidence
+          if-no-files-found: warn
+          retention-days: 14
+      - name: V4 continuation vs V3 archived market candle replay (NO LIVE)
+        shell: bash
+        run: |
+          mkdir -p continuation-v4-evidence
+          node --max-old-space-size=2048 scanner/scripts/compare-continuation-v4.mjs docs/evidence/entry-v3-20261028/manifest.json > continuation-v4-evidence/v3-v4-full.json
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const d=JSON.parse(readFileSync('continuation-v4-evidence/v3-v4-full.json','utf8')),q=d.summary;
+          assert.equal(q.method,'V4_THREE_BAR_STAIRCASE_RESEARCH_OFFLINE');
+          assert.equal(q.cases,46);assert.equal(q.oneMinuteCases,28);
+          assert.equal(q.outOfScope,18);
+          assert.equal(q.completeWindows,15);
+          assert.ok(d.records.filter(r=>r.scope==='LONG_A_1M_ONLY').every(r=>
+            r.historicalGreen==='NOT_RECONSTRUCTED_NO_HISTORICAL_QUOTE'));
+          for(const m of [q.baselineV3,q.candidateV4]){
+            assert.equal(Object.values(m.paperStatuses).reduce((a,b)=>a+b,0),28);
+            assert.ok(m.filledEvents<=m.confirmationEvents);
+          }
+          writeFileSync('continuation-v4-evidence/summary.json',JSON.stringify(q,null,2)+'\n');
+          console.log(JSON.stringify(q));
+          NODE
+      - name: Preserve V3 vs V4 full cohort evidence for Work (NO LIVE)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yellow-continuation-v4-research-comparison
+          path: continuation-v4-evidence
           if-no-files-found: warn
           retention-days: 14
       - name: Android source policy contract
