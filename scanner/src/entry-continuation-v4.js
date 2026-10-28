@@ -93,7 +93,10 @@ export function advanceContinuationWatchV4(previous,bar,snapshot,now){
   w.evidence.risk={riskPct,pass:positive(stopLoss)&&riskPct>=.3&&riskPct<=5};
   w.evidence.room={resistance,roomToResistanceR,pass:finite(roomToResistanceR)&&roomToResistanceR>=1.5};
   if(!w.evidence.risk.pass){w.reason='RISK_DISTANCE';return w;}
-  if(!w.evidence.room.pass){w.reason='RESISTANCE_ROOM';return w;}
+  if(!w.evidence.room.pass){
+    w.reason=resistance===null?'UNKNOWN_OVERHEAD_RESISTANCE':'RESISTANCE_ROOM';
+    return w;
+  }
   const plan={referenceEntry:entry,entryLow:entry-.1*atr,entryHigh:entry+.25*atr,
     stopLoss,tp1:entry+risk,tp2:entry+2*risk,tp3:entry+3*risk,riskPct,roomToResistanceR};
   if(plan.entryLow<=stopLoss||plan.entryHigh>=plan.tp1){
@@ -125,4 +128,22 @@ export function continuationColorV4(w,ticker,now){
   if(ticker.lastPrice<w.plan.entryLow||ticker.lastPrice>w.plan.entryHigh)
     return output('YELLOW','OUTSIDE_ENTRY_ZONE');
   return output('GREEN','CONTINUATION_CONFIRMED');
+}
+
+/** A secondary WATCH-PRIORITY hypothesis, never an entry or a new traffic light.
+ * Rejecting entry for unknown resistance does not erase early structure.
+ * Unknown overhead must never silently pass the 1.5R entry gate.
+ */
+export function continuationPriorityV4(w){
+  const reason=w?.reason??'NO_WATCH';
+  const out=(status)=>({method:CONTINUATION_V4_METHOD,mode:'RESEARCH_ONLY',
+    status,reason,eventId:w?.eventId??null,entryAllowed:false});
+  if(!w||terminal.has(w.state))return out('OFF');
+  if(w.state==='CONFIRMED')return out('CONFIRMED_NEEDS_FRESH_QUOTE');
+  if(!w.evidence?.continuation?.pass)return out('WAIT_SETUP');
+  if(!w.evidence?.trend?.pass)return out('WAIT_HTF');
+  if(!w.evidence?.risk?.pass)return out('WAIT_RISK');
+  if(w.evidence?.room?.resistance===null)return out('WATCH_PRIORITY_UNKNOWN_OVERHEAD');
+  if(!w.evidence?.room?.pass)return out('WAIT_RESISTANCE_ROOM');
+  return out('WAIT_CONFIRMATION');
 }
