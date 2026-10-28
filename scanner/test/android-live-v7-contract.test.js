@@ -32,7 +32,7 @@ test('V8 foreground sound test is opt-in and never creates a false LONG A' ,asyn
  assert.match(gradle,/allowAlerts && file\('google-services\.json'\)\.exists\(\)/);
  assert.match(src,/BuildConfig\.ALERTS_ENABLED/);
  assert.doesNotMatch(src,/LIVE SHADOW • PENELITIAN, BUKAN SINYAL ENTRY/);
- assert.match(gradle,/versionCode 15/);
+ assert.match(gradle,/versionCode 16/);
  const notifier=await r('android/app/src/main/java/id/banksawan/yellow/YellowNotifier.java');
  assert.match(notifier,/TEST_CHANNEL=\"yellow_sound_test_v8\"/);
  assert.match(notifier,/testSound\(Context context\)/);
