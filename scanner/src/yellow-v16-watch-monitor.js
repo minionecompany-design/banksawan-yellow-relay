@@ -46,7 +46,7 @@ export class YellowV16WatchMonitor {
      const v4=newContinuationWatchV4(event,event.detectedAtMs);
      this.records.set(event.id,{event:structuredClone(event),v3,v4,
        baseSnapshot:structuredClone(snapshot),lastSnapshot:structuredClone(snapshot),
-       riskLatchedAtMs:null,priorityLatchedAtMs:null,
+       riskLatchedAtMs:null,priorityLatchedAtMs:null,lastPriorityAtMs:null,
        lastClosedAtMs:event.barClosedAtMs,invalid:false});
      this.metrics.accepted++;return true;
    }catch(e){this.metrics.errors++;return false;}
@@ -91,7 +91,10 @@ export class YellowV16WatchMonitor {
    const d=decideSecondSignal1m({event:r.event,v3:r.v3,v4:r.v4,
      snapshot:r.lastSnapshot,ticker,nowMs:now});
    if(d.status==='RED')r.riskLatchedAtMs=now;
-   else if(d.priority===true&&r.priorityLatchedAtMs===null)r.priorityLatchedAtMs=now;
+   else if(d.priority===true){
+     if(r.priorityLatchedAtMs===null)r.priorityLatchedAtMs=now;
+     r.lastPriorityAtMs=now;
+   }
  }
  view(eventId,ticker,now=this.clock()){
    const r=this.records.get(eventId);
@@ -107,7 +110,7 @@ export class YellowV16WatchMonitor {
    else{
      this.latch(r,ticker,now);
      if(r.riskLatchedAtMs!==null){status='AVOID';reason='RISK_LATCHED';}
-     else if(r.priorityLatchedAtMs!==null){status='PRIORITY';reason='STRUCTURE_WATCH_PRIORITY';}
+     else if(r.lastPriorityAtMs!==null&&now-r.lastPriorityAtMs<=5*M){status='PRIORITY';reason='STRUCTURE_WATCH_PRIORITY';}
      else if(r.v3.state==='ENDED'&&r.v4.state==='ENDED'){status='OFF';reason='WATCHES_ENDED';}
    }
    const validTicker=ticker&&validPrice(ticker.lastPrice)&&Number.isSafeInteger(ticker.observedAtMs)&&
@@ -116,7 +119,7 @@ export class YellowV16WatchMonitor {
    return {method:V16_MONITOR_METHOD,schemaVersion:1,mode:'WATCH_ONLY',eventId,
      status,reason,checkedAtMs:now,lastBarEndMs:r.lastClosedAtMs,
      startedAtMs:r.event.barClosedAtMs,watchUntilMs:r.event.barClosedAtMs+WINDOW,
-     priority:r.priorityLatchedAtMs!==null,priorityAtMs:r.priorityLatchedAtMs,
+     priority:status==='PRIORITY',priorityAtMs:status==='PRIORITY'?r.priorityLatchedAtMs:null,
      riskAtMs:r.riskLatchedAtMs,
      priceChangeSinceAPct:validTicker?Number(((ticker.lastPrice/r.event.price-1)*100).toFixed(4)):null,
      tickerAtMs:validTicker?ticker.observedAtMs:null,
