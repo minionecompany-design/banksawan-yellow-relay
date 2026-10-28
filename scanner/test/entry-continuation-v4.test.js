@@ -95,9 +95,9 @@ test('PANTAU priority is separate from GREEN and cannot bypass risk/resistance',
  assert.equal(priority.entryAllowed,false);
  assert.notEqual(continuationColorV4(candidate,null,candidate.checkedAtMs).status,'GREEN');
  assert.equal(continuationPriorityV4({...candidate,evidence:{...candidate.evidence,
-   risk:{pass:false}}}).status,'WAIT_RISK');
+   risk:{pass:false}}},candidate.checkedAtMs).status,'WAIT_RISK');
  assert.equal(continuationPriorityV4({...candidate,evidence:{...candidate.evidence,
-   room:{pass:false,resistance:w.plan.referenceEntry+.0001}}}).status,'WAIT_RESISTANCE_ROOM');
+   room:{pass:false,resistance:w.plan.referenceEntry+.0001}}},candidate.checkedAtMs).status,'WAIT_RESISTANCE_ROOM');
  assert.equal(continuationPriorityV4({...candidate,evidence:{...candidate.evidence,
-   trend:{pass:false}}}).status,'WAIT_HTF');
+   trend:{pass:false}}},candidate.checkedAtMs).status,'WAIT_HTF');
 });
