@@ -13,8 +13,15 @@ export class YellowV16WatchMonitor {
  constructor({clock=()=>Date.now(),maxRecords=100}={}){
    if(!Number.isInteger(maxRecords)||maxRecords<1||maxRecords>200)throw Error('INVALID_MONITOR_CAP');
    this.clock=clock;this.maxRecords=maxRecords;this.records=new Map();
-   this.metrics={accepted:0,excluded:0,candleUpdates:0,duplicate:0,errors:0,expired:0};
+   this.metrics={accepted:0,excluded:0,candleUpdates:0,duplicate:0,errors:0,expired:0,resets:0};
    this.enabled=true;
+ }
+ resetContinuity(reason='WS_RECOVERY_CONTINUITY_LOST'){
+   if(!this.enabled)return;
+   // Old 1M candidate cannot be reconstructed across a broken market stream.
+   // Unlike a fatal monitor fault, NEW original LONG A may start a fresh watch.
+   this.records.clear();this.metrics.resets++;
+   this.metrics.lastResetReason=String(reason).slice(0,90);
  }
  disable(reason='MONITOR_FAULT'){
    this.enabled=false;this.records.clear();this.metrics.errors++;
