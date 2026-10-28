@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {newContinuationWatchV4,advanceContinuationWatchV4,continuationColorV4,
+import {newContinuationWatchV4,advanceContinuationWatchV4,continuationColorV4,continuationPriorityV4,
   CONTINUATION_V4_METHOD} from '../src/entry-continuation-v4.js';
 import {newReadinessWatch,advanceReadinessWatch} from '../src/entry-readiness-v3.js';
 import {event as raw,context} from './fixtures/entry-watch.mjs';
@@ -80,4 +80,24 @@ test('No future candle changes past V4 decision; immutable plan and terminal gap
  assert.equal(gap.state,'DATA_GAP');
  assert.strictEqual(advanceContinuationWatchV4(gap,bar(10,1,1.01,.99,1.0),
    context(T+10*M),T+10*M+1000),gap);
+});
+
+test('PANTAU priority is separate from GREEN and cannot bypass risk/resistance',()=>{
+ const w=run(stair());
+ assert.equal(continuationPriorityV4(w).status,'CONFIRMED_NEEDS_FRESH_QUOTE');
+ const candidate={...w,state:'WATCHING',plan:null,reason:'UNKNOWN_OVERHEAD_RESISTANCE',
+   evidence:{...w.evidence,continuation:{...w.evidence.continuation,pass:true},
+     trend:{...w.evidence.trend,pass:true},
+     risk:{...w.evidence.risk,pass:true},
+     room:{...w.evidence.room,resistance:null,pass:false}}};
+ const priority=continuationPriorityV4(candidate);
+ assert.equal(priority.status,'WATCH_PRIORITY_UNKNOWN_OVERHEAD');
+ assert.equal(priority.entryAllowed,false);
+ assert.notEqual(continuationColorV4(candidate,null,candidate.checkedAtMs).status,'GREEN');
+ assert.equal(continuationPriorityV4({...candidate,evidence:{...candidate.evidence,
+   risk:{pass:false}}}).status,'WAIT_RISK');
+ assert.equal(continuationPriorityV4({...candidate,evidence:{...candidate.evidence,
+   room:{pass:false,resistance:w.plan.referenceEntry+.0001}}}).status,'WAIT_RESISTANCE_ROOM');
+ assert.equal(continuationPriorityV4({...candidate,evidence:{...candidate.evidence,
+   trend:{pass:false}}}).status,'WAIT_HTF');
 });
