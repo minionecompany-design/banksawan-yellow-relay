@@ -20,6 +20,7 @@ jobs:
           node --check scanner/src/entry-readiness-v3.js
           node --check scanner/src/second-signal-1m.js
           node --check scanner/src/entry-continuation-v4.js
+          node --check scanner/src/second-signal-compositor-1m.js
           node --check scanner/scripts/lib/replay-continuation-v4.mjs
           node --check scanner/scripts/compare-continuation-v4.mjs
           node --check scanner/scripts/lib/replay-second-signal-1m.mjs
