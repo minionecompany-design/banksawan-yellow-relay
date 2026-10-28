@@ -99,7 +99,8 @@ export async function auditForwardJournal(filename,{expectedCommit,receiptPath}=
   }));
   return {
     mode:'VERIFIED_WAL_FORWARD_OBSERVATION_DIAGNOSTIC_ONLY',sourceCommit:header.sourceCommit,
-    provenance:header.provenance,sourceStartedAtMs:header.startedAtMs,
+    provenance:header.provenance,provenanceSelfDeclared:true,
+    marketOriginIndependentlyVerified:false,sourceStartedAtMs:header.startedAtMs,
     journal:{verified:true,transactions,finalHash:previous,bytes:info.size},
     counts:{acceptedLongA1m:cases.length,excluded,independentEpisodes:report?.independentEpisodes??null,
       completeSixHourEvents:report?.completeSixHourEvents??null,
@@ -111,7 +112,8 @@ export async function auditForwardJournal(filename,{expectedCommit,receiptPath}=
     limitations:['NO_INDEPENDENT_TRADING_PERFORMANCE_CERTIFICATION',
       'LTP_PAPER_NOT_EXECUTABLE_ASK','NO_CERTIFIED_SPREAD_OR_SLIPPAGE',
       'SMALL_OR_INCOMPLETE_WINDOWS_MUST_NOT_BE_TREATED_AS_LOSSES',
-      'GREEN_NEEDS_A_REAL_POST_CONFIRMATION_QUOTE']
+      'GREEN_NEEDS_A_REAL_POST_CONFIRMATION_QUOTE',
+      'HASH_CHAIN_PROVES_WAL_INTEGRITY_NOT_MARKET_SOURCE_AUTHENTICITY']
   };
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
