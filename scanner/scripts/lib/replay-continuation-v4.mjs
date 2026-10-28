@@ -6,6 +6,7 @@ import {ANALYSIS_KEYS,ANALYSIS_PERIODS,validAnalysisBar,validAnalysisEventId,
   newPaperOutcome,advancePaperOutcome} from '../../src/analysis-companion.js';
 import {newReadinessWatch,advanceReadinessWatch} from '../../src/entry-readiness-v3.js';
 import {newContinuationWatchV4,advanceContinuationWatchV4,continuationPriorityV4} from '../../src/entry-continuation-v4.js';
+import {decideSecondSignal1m} from '../../src/second-signal-compositor-1m.js';
 const M=60_000,ACTIVE=new Set(['WAITING_ENTRY','OPEN']),valid=x=>Number.isFinite(x)?Number(x.toFixed(5)):null;
 function check(data,event){
  if(data?.symbol!==event?.symbol)throw Error('REPLAY_SYMBOL_MISMATCH');
@@ -27,7 +28,8 @@ export function replayV4Comparison(source,event){
    p3=null,p4=null,c3=null,c4=null,last=event.barClosedAtMs,hasGap=false,
    maxHigh=event.price,minLow=event.price,maxBarEndMs=null,
    reasonsV4={},patternCandidates=0,firstPatternAtMs=null,firstPatternClose=null,
-   firstRiskGateAtMs=null,firstWatchPriority=null,priorityMinutes=0;
+   firstRiskGateAtMs=null,firstWatchPriority=null,priorityMinutes=0,
+   compositeCounts={YELLOW:0,RED:0,OFF:0,GREEN:0},compositeTransitions=[],lastComposite=null;
  const bars=a.oneMinute.filter(x=>x.endMs>event.barClosedAtMs&&x.endMs<=deadline+123*M);
  for(const bar of bars){
    if(last<deadline&&bar.endMs!==last+M)hasGap=true;
@@ -36,7 +38,16 @@ export function replayV4Comparison(source,event){
      [key,a[key].filter(x=>x.endMs<=bar.endMs)]));
    v3=advanceReadinessWatch(v3,bar,snapshot,bar.endMs+1000);
    v4=advanceContinuationWatchV4(v4,bar,snapshot,bar.endMs+1000);
+   const unified=decideSecondSignal1m({event,v3,v4,snapshot,ticker:null,nowMs:bar.endMs+1000});
+   if(unified.status==='GREEN'||unified.entryAllowed||unified.priceChangeSinceAPct!==null)
+     throw Error('HISTORICAL_GREEN_OR_TICKER_WAS_FABRICATED');
    if(bar.endMs<=deadline){
+     compositeCounts[unified.status]=(compositeCounts[unified.status]||0)+1;
+     if(unified.status!==lastComposite){
+       compositeTransitions.push({atMs:bar.endMs,status:unified.status,reason:unified.reason,
+         priority:unified.priority});
+       lastComposite=unified.status;
+     }
      reasonsV4[v4.reason]=(reasonsV4[v4.reason]||0)+1;
      if(v4.evidence?.atMs===bar.endMs&&v4.evidence?.continuation?.pass){
        patternCandidates++;
@@ -95,6 +106,8 @@ export function replayV4Comparison(source,event){
    recordedPeakAtMs:maxBarEndMs,reasonsV4,patternCandidates,
    firstPatternAtMs,firstPatternClose,firstRiskGateAtMs,
    firstWatchPriority,priorityMinutes,laterGainFromFirstPatternPct,laterGainFromPriorityPct,
+   unified1m:{counts:compositeCounts,transitions:compositeTransitions,
+     firstRed:compositeTransitions.find(x=>x.status==='RED')??null},
    baselineV3:outcome(c3,p3),candidateV4:outcome(c4,p4),
    historicalGreen:'NOT_RECONSTRUCTED_NO_HISTORICAL_QUOTE'};
 }
