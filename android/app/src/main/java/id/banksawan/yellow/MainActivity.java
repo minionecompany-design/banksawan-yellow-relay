@@ -276,7 +276,24 @@ public class MainActivity extends Activity {
             String.format(Locale.US,"%+.2f%%",item.optDouble("binance24hChangePct")));
         if(isHome){line(box,"Timeframe",item.optString("timeframe","1m").toUpperCase(Locale.ROOT));
             long first=item.optLong("firstSeenMs",0);
-            line(box,"Mulai",formattedTime(first));}
+            line(box,"Mulai",formattedTime(first));
+            // One compact status line; no new lamp or notification.
+            JSONObject w16=AnalysisSnapshot.monitor1m(item,System.currentTimeMillis());
+            if(w16!=null){
+                String state=w16.optString("status");
+                int tint="AVOID".equals(state)?Color.rgb(255,110,110):YELLOW;
+                TextView title16=text("PEMANTAUAN 1M • "+AnalysisSnapshot.monitor1mLabel(w16),14,tint,true);
+                title16.setPadding(0,dp(6),0,dp(2));box.addView(title16);
+                if(w16.has("priceChangeSinceAPct")&&!w16.isNull("priceChangeSinceAPct")){
+                    double change=w16.optDouble("priceChangeSinceAPct",Double.NaN);
+                    if(Double.isFinite(change))line(box,"Sejak LONG A",String.format(Locale.US,"%+.2f%%",change));
+                }
+                if("PRIORITY".equals(state))
+                    box.addView(text("Pola terpantau; belum konfirmasi ENTRY.",12,MUTED,false));
+                if("OFF".equals(state))
+                    box.addView(text("Data tidak lengkap atau pemantauan berakhir.",12,MUTED,false));
+            }
+        }
         else line(box,"Prioritas:",item.optString("priority","STANDARD"));
         if (isHome) {
             String analysisId=AnalysisSnapshot.homeEventId(item);
