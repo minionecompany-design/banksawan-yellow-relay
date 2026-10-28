@@ -41,6 +41,12 @@ const s={method:'V4_THREE_BAR_STAIRCASE_RESEARCH_OFFLINE',
  baselineV3:metrics('baselineV3'),candidateV4:metrics('candidateV4'),
  diagnosticReasonsV4:reasonTotals,
  structuralPatternEvents:patternEvents.length,
+ unifiedStatusClosedMinutes:inScope.reduce((out,r)=>{
+   for(const [name,n] of Object.entries(r.unified1m.counts))out[name]=(out[name]||0)+n;
+   return out;
+ },{}),
+ unifiedRedEventCount:inScope.filter(r=>r.unified1m.firstRed).length,
+ unifiedHistoricalGreenEvents:inScope.filter(r=>r.unified1m.counts.GREEN>0).length,
  watchPriorityEvents:inScope.filter(r=>r.firstWatchPriority).length,
  watchPriorityFollowThrough5Pct:inScope.filter(r=>r.laterGainFromPriorityPct!==null&&
    r.laterGainFromPriorityPct>=5).length,
