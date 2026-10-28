@@ -1,0 +1,104 @@
+name: YELLOW 1M LIVE read-only shadow observation 60 minutes
+on:
+  push:
+    branches:
+      - feat/yellow-v4-continuation-1m-offline-20261028
+    paths:
+      - .github/workflows/yellow-forward-live-observation-60m.yml
+permissions:
+  contents: read
+jobs:
+  observe-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 78
+    steps:
+      - name: Checkout research branch only
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check exact clean source and research-only commands
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = 'feat/yellow-v4-continuation-1m-offline-20261028'
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain -- scanner)"
+          node --check scanner/scripts/collect-forward-shadow-1m.mjs
+          node --check scanner/scripts/summarize-forward-shadow-journal.mjs
+          node scanner/scripts/collect-forward-shadow-1m.mjs --plan
+      - name: Collect genuinely new LONG A 1M in LIVE SHADOW for one hour
+        id: collect
+        shell: bash
+        env:
+          OBS_DIR: ${{ runner.temp }}/yellow-live-shadow-1m
+        run: |
+          set -euo pipefail
+          mkdir -p "$OBS_DIR"
+          # Single independent observer; only allowlisted production GET routes
+          # and public Binance futures WS. Never import into live-main/FCM/APK.
+          node scanner/scripts/collect-forward-shadow-1m.mjs \
+            --collect "$OBS_DIR" "$GITHUB_SHA" 1 \
+            2>&1 | tee "$OBS_DIR/operator.log"
+      - name: Verify journal and create as-observed decision report
+        id: report
+        if: always()
+        shell: bash
+        env:
+          OBS_DIR: ${{ runner.temp }}/yellow-live-shadow-1m
+        run: |
+          set -euo pipefail
+          mkdir -p "$OBS_DIR"
+          if test -s "$OBS_DIR/forward-shadow.ndjson"; then
+            node scanner/scripts/summarize-forward-shadow-journal.mjs \
+              "$OBS_DIR/forward-shadow.ndjson" \
+              "$OBS_DIR/forward-receipt.json" \
+              "$OBS_DIR/per-candidate-verified.json" \
+              > "$OBS_DIR/audit-stdout.json"
+          fi
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync,existsSync} from 'node:fs';
+          const dir=process.env.OBS_DIR;
+          const read=(file)=>{
+            if(!existsSync(dir+'/'+file))return null;
+            try{return JSON.parse(readFileSync(dir+'/'+file,'utf8'));}catch{return null;}
+          };
+          const receipt=read('forward-receipt.json');
+          const verified=read('per-candidate-verified.json');
+          const summary={
+            kind:'LIVE_OBSERVATION_1M_NOT_APP_OR_TRADING_RELEASE',
+            sourceCommit:process.env.GITHUB_SHA,
+            observerRuntime:'GITHUB_EPHEMERAL_ONE_HOUR',
+            readOnly:true,productionWrites:0,fcmSends:0,orders:0,
+            releaseDecision:'NO_GO_LIVE_ENTRY',
+            journalVerified:verified?.journal?.verified===true,
+            longA1mEvents:verified?.counts?.acceptedLongA1m??null,
+            independentEpisodes:verified?.counts?.independentEpisodes??null,
+            completedSixHourEpisodes:verified?.counts?.completeSixHourEvents??null,
+            priorityCandidates:verified?.counts?.watchPriorities??null,
+            redCandidates:verified?.counts?.redEvents??null,
+            greenCandidates:verified?.counts?.observedGreenEvents??null,
+            coverageIssues:verified?.counts?.coverageIssues??null,
+            collectorFailed:receipt?.failed??null,
+            caveats:[
+              'ONE_HOUR_MAX_OBSERVATION_NO_SIX_HOUR_COMPLETION_EXPECTED',
+              'NO_ANDROID_UI_UPDATE_OR_RAILWAY_DEPLOY',
+              'FRESH_QUOTES_ONLY; PAPER_LTP_IS_NOT_EXECUTABLE_FILL',
+              'ZERO_EVENTS_IS_NOT_A_TRADING_PERFORMANCE_RESULT',
+              'GITHUB_ACTIONS_USAGE_CONSUMES_ACCOUNT_RUNNER_MINUTES',
+              'INDEPENDENT_FORWARD_COHORT_STILL_REQUIRED_BEFORE_PRODUCTION_ENTRY'
+            ]
+          };
+          writeFileSync(dir+'/one-hour-report.json',JSON.stringify(summary,null,2)+'\n');
+          console.log(JSON.stringify(summary));
+          NODE
+      - name: Preserve every event, missing event, quote and failure for audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yellow-live-shadow-1m-60min-original-observations
+          path: ${{ runner.temp }}/yellow-live-shadow-1m/
+          if-no-files-found: error
+          retention-days: 14
