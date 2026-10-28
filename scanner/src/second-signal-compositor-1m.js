@@ -3,6 +3,9 @@
  * The goal is to prevent RED/GREEN contradiction across independent engines.
  */
 import {freshQuote} from './entry-watch.js';
+import {validAnalysisEventId} from './analysis-companion.js';
+import {READINESS_METHOD} from './entry-readiness-v3.js';
+import {CONTINUATION_V4_METHOD} from './entry-continuation-v4.js';
 import {secondSignal1m} from './second-signal-1m.js';
 import {continuationColorV4,continuationPriorityV4} from './entry-continuation-v4.js';
 export const SECOND_SIGNAL_COMPOSITOR='YELLOW_ONE_DECISION_1M_RESEARCH';
@@ -18,7 +21,12 @@ export function decideSecondSignal1m({event,v3,v4,snapshot,ticker,nowMs}={}){
  if(event?.timeframe!=='1m')return output('NOT_APPLICABLE','SECOND_SIGNAL_1M_ONLY');
  if(!Number.isSafeInteger(nowMs)||!Number.isSafeInteger(event?.barClosedAtMs)||
    nowMs<event.barClosedAtMs)return output('OFF','INVALID_CLOCK');
- if(v3?.eventId!==event?.id||v4?.eventId!==event?.id)
+ if(!validAnalysisEventId(event.id)||event.signal!=='LONG_A'||
+    event.id!==`${event.symbol}:1m:${event.barClosedAtMs}:LONG_A`||
+    !finite(event.price)||event.price<=0)
+   return output('OFF','INVALID_LONG_A_EVENT');
+ if(v3?.method!==READINESS_METHOD||v4?.method!==CONTINUATION_V4_METHOD||
+    v3?.eventId!==event.id||v4?.eventId!==event.id)
    return output('YELLOW','RESEARCH_STATE_MISSING');
  const fresh=freshQuote(ticker,nowMs)&&ticker.observedAtMs>=event.barClosedAtMs&&
    finite(event.price)&&event.price>0;
