@@ -83,8 +83,12 @@ test('GREEN is possible only for confirmed pullback or continuation in live elig
    assert.equal(g.setupPath,path);
    assert.equal(secondSignal1m({...x,ticker:{...x.ticker,priceChangePercent:.9}}).status,'YELLOW');
    assert.equal(secondSignal1m({...x,ticker:{...x.ticker,lastPrice:x.watch.plan.entryHigh+.002}}).status,'YELLOW');
-   // A price already at TP1 is an invalidated setup, not an out-of-zone wait.
-   assert.equal(secondSignal1m({...x,ticker:{...x.ticker,lastPrice:x.watch.plan.tp1}}).status,'RED');
+   // TP1 already reached means the setup is finished; never label the winner RED.
+   const tpDone=secondSignal1m({...x,ticker:{...x.ticker,lastPrice:x.watch.plan.tp1}});
+   assert.equal(tpDone.status,'OFF');
+   assert.equal(tpDone.reason,'TP1_ALREADY_REACHED');
+   // A true stop hit remains a RED risk condition.
+   assert.equal(secondSignal1m({...x,ticker:{...x.ticker,lastPrice:x.watch.plan.stopLoss}}).status,'RED');
    assert.equal(secondSignal1m({...x,ticker:{...x.ticker,observedAtMs:x.nowMs-45_000}}).status,'YELLOW');
  }
 });
