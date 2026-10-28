@@ -90,8 +90,14 @@ export function secondSignal1m({event,watch,snapshot,ticker,nowMs}={}){
         {...meta,risk,entryUntilMs:watch.entryUntilMs});
     if(decision.status==='OFF')
       return verdict('OFF',decision.reason,nowMs,meta);
-    if(decision.status==='RED')
+    if(decision.status==='RED'){
+      // Reaching TP1 is *completion*, not evidence this candidate failed.
+      // Stop hit is a risk warning. Both prohibit chasing a stale GREEN.
+      if(decision.reason==='SCENARIO_BOUNDARY'&&
+         Number.isFinite(ticker?.lastPrice)&&ticker.lastPrice>=watch.plan.tp1)
+        return verdict('OFF','TP1_ALREADY_REACHED',nowMs,meta);
       return verdict('RED',decision.reason,nowMs,{...meta,risk});
+    }
     return verdict('YELLOW',decision.reason,nowMs,{...meta,risk});
   }
 
