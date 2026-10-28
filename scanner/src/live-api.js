@@ -22,7 +22,12 @@ export function createLiveApi(market){return http.createServer((req,res)=>{
   if(url.pathname==='/api/home'){
     // Never decorate original ledger objects: a later missing/partial analysis must
     // not leak an earlier preview through shared mutable HOME references.
-    const home=market.home().map(event=>({...event}));let analysisAvailable=market.analysisCompanion?.enabled===true;
+    const home=market.home().map(event=>({...event}));
+    // WATCH_ONLY is never an entry authorization. No additional network.
+    if(market.monitor1m?.enabled)for(const event of home)if(event.timeframe==='1m')try{
+      event.monitor1m=market.monitor1m.view(event.id,market.getTickerAsOf?.(event.symbol,market.clock()));
+    }catch{event.monitor1m=null;}
+    let analysisAvailable=market.analysisCompanion?.enabled===true;
     try {
       if(analysisAvailable)for(const event of home){
         // Read an existing frozen result only: never calculate or delay LONG A/FCM here.
@@ -54,7 +59,8 @@ export function createLiveApi(market){return http.createServer((req,res)=>{
       analysisAvailable=false;
       for(const event of home){delete event.analysisCaptured;delete event.analysisPreview;}
     }
-    return response(res,200,{home,simulation:false,mode:'LIVE_SHADOW',analysisAvailable});
+    return response(res,200,{home,simulation:false,mode:'LIVE_SHADOW',analysisAvailable,
+      monitor1mAvailable:market.monitor1m?.enabled===true});
   }
   if(url.pathname==='/api/analysis'||url.pathname==='/api/analysis/summary'){
     const companion=market.analysisCompanion;
