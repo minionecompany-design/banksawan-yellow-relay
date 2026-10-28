@@ -41,6 +41,14 @@ const s={method:'V4_THREE_BAR_STAIRCASE_RESEARCH_OFFLINE',
  baselineV3:metrics('baselineV3'),candidateV4:metrics('candidateV4'),
  diagnosticReasonsV4:reasonTotals,
  structuralPatternEvents:patternEvents.length,
+ watchPriorityEvents:inScope.filter(r=>r.firstWatchPriority).length,
+ watchPriorityFollowThrough5Pct:inScope.filter(r=>r.laterGainFromPriorityPct!==null&&
+   r.laterGainFromPriorityPct>=5).length,
+ watchPriorityAfterMinutes:inScope.filter(r=>r.firstWatchPriority).map(r=>
+   ({eventId:r.eventId,afterMinutes:Number(((r.firstWatchPriority.atMs-
+     Number(r.eventId.split(':')[2]))/60000).toFixed(1)),
+     returnSinceAPct:r.firstWatchPriority.returnSinceAPct,
+     followingHighPct:r.laterGainFromPriorityPct,windowComplete:r.completeSixHourWindow})),
  structuralPatternDetails:patternEvents.map(r=>({eventId:r.eventId,
    firstPatternAtMs:r.firstPatternAtMs,patterns:r.patternCandidates,
    firstRiskGateAtMs:r.firstRiskGateAtMs,confirm:!!r.candidateV4.confirmed})),
