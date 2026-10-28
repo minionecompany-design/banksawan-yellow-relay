@@ -19,6 +19,7 @@ public class V16HomePresentationTest {
     return new JSONObject().put("id",id).put("symbol","QUSDT").put("signal","LONG_A")
       .put("timeframe","1m").put("barClosedAtMs",bar).put("firstSeenMs",now)
       .put("price",1.02).put("binance24hChangePct",2.5)
+      .put("quoteVolume24h",20_000_000.0).put("homeExpiresMs",now+600_000L)
       .put("monitor1m",new JSONObject().put("schemaVersion",1).put("method","YELLOW_V16_WATCH_ONLY_1M")
         .put("mode","WATCH_ONLY").put("eventId",id).put("status",state)
         .put("reason","PRIORITY".equals(state)?"STRUCTURE_WATCH_PRIORITY":"RISK_LATCHED")
