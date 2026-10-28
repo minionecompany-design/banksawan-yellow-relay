@@ -8,10 +8,10 @@ function caseAt1m(){
  return {event,source:{symbol:event.symbol,candles:snapshot}};
 }
 function append(source,n,step=.0003){
- const bars=source.candles.oneMinute,start=bars.at(-1).close;
+ const bars=source.candles.oneMinute,start=bars.at(-1).close,startAt=bars.at(-1).endMs;
  for(let j=1;j<=n;j++){
    const close=start+j*step,open=start+(j-1)*step;
-   bars.push({endMs:T+j*M,open,high:Math.max(open,close)+.00005,
+   bars.push({endMs:startAt+j*M,open,high:Math.max(open,close)+.00005,
      low:Math.min(open,close)-.00005,close,volume:120});
  }
 }
@@ -32,7 +32,7 @@ test('Historical 1M candle replay computes since-A return and refuses fake GREEN
  assert.equal(r.green,'NOT_RECONSTRUCTED_NO_HISTORICAL_QUOTE');
  assert.equal(r.colorsByClosedMinute.GREEN,0);
  assert.ok(r.maxFavorableFromAPct>0);
- assert.equal(r.chg24hAtA,null);
+ assert.equal(r.chg24hAtA,2.5); // fixture provides a frozen CHG-at-A value
  const fifth=r.observations.find(x=>x.afterMinutes===5);
  assert.ok(fifth?.returnSinceAPct>0);
 });
