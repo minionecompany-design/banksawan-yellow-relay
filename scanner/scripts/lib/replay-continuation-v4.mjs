@@ -43,10 +43,13 @@ export function replayV4Comparison(source,event){
      throw Error('HISTORICAL_GREEN_OR_TICKER_WAS_FABRICATED');
    if(bar.endMs<=deadline){
      compositeCounts[unified.status]=(compositeCounts[unified.status]||0)+1;
-     if(unified.status!==lastComposite){
+     // A priority-on or priority-off change MUST be recorded even when the
+     // traffic light stays YELLOW. Otherwise watch-only evidence vanishes.
+     const key=unified.status+':'+unified.priority;
+     if(key!==lastComposite){
        compositeTransitions.push({atMs:bar.endMs,status:unified.status,reason:unified.reason,
          priority:unified.priority});
-       lastComposite=unified.status;
+       lastComposite=key;
      }
      reasonsV4[v4.reason]=(reasonsV4[v4.reason]||0)+1;
      if(v4.evidence?.atMs===bar.endMs&&v4.evidence?.continuation?.pass){
