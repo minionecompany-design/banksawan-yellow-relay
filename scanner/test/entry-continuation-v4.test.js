@@ -84,13 +84,13 @@ test('No future candle changes past V4 decision; immutable plan and terminal gap
 
 test('PANTAU priority is separate from GREEN and cannot bypass risk/resistance',()=>{
  const w=run(stair());
- assert.equal(continuationPriorityV4(w).status,'CONFIRMED_NEEDS_FRESH_QUOTE');
+ assert.equal(continuationPriorityV4(w,w.checkedAtMs).status,'CONFIRMED_NEEDS_FRESH_QUOTE');
  const candidate={...w,state:'WATCHING',plan:null,reason:'UNKNOWN_OVERHEAD_RESISTANCE',
    evidence:{...w.evidence,continuation:{...w.evidence.continuation,pass:true},
      trend:{...w.evidence.trend,pass:true},
      risk:{...w.evidence.risk,pass:true},
      room:{...w.evidence.room,resistance:null,pass:false}}};
- const priority=continuationPriorityV4(candidate);
+ const priority=continuationPriorityV4(candidate,candidate.checkedAtMs);
  assert.equal(priority.status,'WATCH_PRIORITY_UNKNOWN_OVERHEAD');
  assert.equal(priority.entryAllowed,false);
  assert.notEqual(continuationColorV4(candidate,null,candidate.checkedAtMs).status,'GREEN');
