@@ -258,7 +258,9 @@ public class MainActivity extends Activity {
         LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(dp(12),dp(10),dp(12),dp(10));
         box.setBackground(shape(CARD,LINE));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);
         p.setMargins(0,0,0,dp(8));list.addView(box,p);
-        JSONObject light=isHome&&analysisAvailable?
+        boolean v16Present=isHome&&"1m".equals(item.optString("timeframe"))&&item.has("monitor1m");
+        JSONObject watch16=v16Present?AnalysisSnapshot.monitor1m(item,System.currentTimeMillis()):null;
+        JSONObject light=isHome&&analysisAvailable&&!v16Present?
             AnalysisSnapshot.homeLight(item,System.currentTimeMillis()):null;
         if(isHome&&analysisAvailable){
             LinearLayout header=new LinearLayout(this);
@@ -276,7 +278,28 @@ public class MainActivity extends Activity {
             String.format(Locale.US,"%+.2f%%",item.optDouble("binance24hChangePct")));
         if(isHome){line(box,"Timeframe",item.optString("timeframe","1m").toUpperCase(Locale.ROOT));
             long first=item.optLong("firstSeenMs",0);
-            line(box,"Mulai",formattedTime(first));}
+            line(box,"Mulai",formattedTime(first));
+            // One compact status line; no new lamp or notification.
+            JSONObject w16=watch16;
+            if(w16!=null){
+                String state=w16.optString("status");
+                int tint="AVOID".equals(state)?Color.rgb(255,110,110):YELLOW;
+                TextView title16=text("PEMANTAUAN 1M • "+AnalysisSnapshot.monitor1mLabel(w16),14,tint,true);
+                title16.setPadding(0,dp(6),0,dp(2));box.addView(title16);
+                if(w16.has("priceChangeSinceAPct")&&!w16.isNull("priceChangeSinceAPct")){
+                    double change=w16.optDouble("priceChangeSinceAPct",Double.NaN);
+                    if(Double.isFinite(change))line(box,"Sejak LONG A",String.format(Locale.US,"%+.2f%%",change));
+                }
+                if("PRIORITY".equals(state))
+                    box.addView(text("Pola terpantau; belum konfirmasi ENTRY.",12,MUTED,false));
+                if("OFF".equals(state))
+                    box.addView(text("Data tidak lengkap atau pemantauan berakhir.",12,MUTED,false));
+            }else if(v16Present){
+                // Invalid/stale V16 must not fall back to an older GREEN badge.
+                TextView unavailable=text("PEMANTAUAN 1M • DATA TIDAK TERSEDIA",14,YELLOW,true);
+                unavailable.setPadding(0,dp(6),0,dp(2));box.addView(unavailable);
+            }
+        }
         else line(box,"Prioritas:",item.optString("priority","STANDARD"));
         if (isHome) {
             String analysisId=AnalysisSnapshot.homeEventId(item);
@@ -284,7 +307,8 @@ public class MainActivity extends Activity {
             // TradingView and the existing ANALISIS button only. Analysis levels
             // remain available exclusively inside the detailed ANALISIS dialog.
             tradingView(symbol,box);
-            if(analysisAvailable&&item.optBoolean("analysisCaptured",false)&&!analysisId.isEmpty())analysisButton(analysisId,box);
+            if(!v16Present&&analysisAvailable&&item.optBoolean("analysisCaptured",false)&&!analysisId.isEmpty())
+                analysisButton(analysisId,box);
         }
     }
 

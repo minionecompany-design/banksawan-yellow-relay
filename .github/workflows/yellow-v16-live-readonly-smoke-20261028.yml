@@ -1,0 +1,78 @@
+name: YELLOW V16 LIVE read-only activation smoke
+on:
+  push:
+    branches: [feat/yellow-v16-watch-only-1m-20261028]
+    paths:
+      - .github/workflows/yellow-v16-live-readonly-smoke-20261028.yml
+permissions:
+  contents: read
+jobs:
+  v16-readonly-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect LIVE original scanner + V16 activation (no Binance REST)
+        env:
+          BASE_URL: 'https://yellow-live-shadow-yc94-production.up.railway.app'
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import {writeFileSync} from 'node:fs';
+          const base=process.env.BASE_URL;
+          const report={kind:'V16_READ_ONLY_PRODUCTION_SMOKE',source:'RAILWAY_PUBLIC_READ_ONLY_API',
+            executedAt:new Date().toISOString(),noBinanceRequests:true,noFcmSends:true,
+            noDeploy:true,noTradingOrders:true,releaseEntryStatus:'NOT_AUTHORIZED'};
+          async function read(endpoint){
+            const r=await fetch(base+endpoint,{method:'GET',signal:AbortSignal.timeout(10000),
+              headers:{'accept':'application/json'}});
+            if(!r.ok)throw Error(endpoint+':HTTP_'+r.status);
+            return r.json();
+          }
+          try{
+            const [s,h,u]=await Promise.all([read('/api/status'),read('/api/home'),read('/api/universe')]);
+            report.status={ok:s.ok,mode:s.mode,tickerConnected:s.tickerConnected,
+              klineConnected:s.klineConnected,eligible:s.eligible,covered:s.covered,
+              maxTracked:s.maxTracked,
+              fcmEnabled:s.fcm?.enabled??null,
+              requestCircuitOpen:s.requestGuard?.circuitOpen??null,
+              monitor1m:s.monitor1m??null};
+            report.home={mode:h.mode,analysisAvailable:h.analysisAvailable,
+              monitor1mAvailable:h.monitor1mAvailable,
+              count:Array.isArray(h.home)?h.home.length:null,
+              originalTfCounts:Object.fromEntries(['1m','5m','15m','1h'].map(tf=>[tf,
+                Array.isArray(h.home)?h.home.filter(e=>e.timeframe===tf).length:0])),
+              monitoredOneMinuteEvents:Array.isArray(h.home)?h.home.filter(e=>e.timeframe==='1m'&&e.monitor1m).length:0};
+            report.universe={mode:u.mode,eligible:u.coverage?.eligible,covered:u.coverage?.covered,
+              maxTracked:u.coverage?.maxTracked};
+            const checks={
+              scannerLive:s.ok===true&&s.mode==='LIVE_SHADOW'&&s.tickerConnected===true&&s.klineConnected===true,
+              max50:s.maxTracked>=1&&s.maxTracked<=50&&s.covered<=s.maxTracked,
+              noBan:s.requestGuard?.circuitOpen===false,
+              fcmPreserved:s.fcm?.enabled===true,
+              monitorEnabled:s.monitor1m?.enabled===true&&s.monitor1m?.mode==='WATCH_ONLY',
+              homeFlag:h.monitor1mAvailable===true&&h.mode==='LIVE_SHADOW',
+              universePreserved:u.mode==='LIVE_SHADOW'&&u.coverage?.maxTracked<=50,
+              entryForbidden:!Array.isArray(h.home)||h.home.every(e=>!e.monitor1m||
+                (e.monitor1m.entryAllowed===false&&e.monitor1m.mode==='WATCH_ONLY'&&
+                  e.monitor1m.status!=='GREEN'))
+            };
+            report.checks=checks;
+            report.verdict=Object.values(checks).every(Boolean)?'PASS':'FAIL_CLOSED';
+            writeFileSync('v16-live-smoke-public-evidence.json',JSON.stringify(report,null,2)+'\n');
+            console.log(JSON.stringify(report,null,2));
+            if(report.verdict!=='PASS')process.exitCode=1;
+          }catch(error){
+            report.verdict='UNAVAILABLE_FAIL_CLOSED';
+            report.errorCode=String(error?.message??error).slice(0,120);
+            writeFileSync('v16-live-smoke-public-evidence.json',JSON.stringify(report,null,2)+'\n');
+            console.log(JSON.stringify(report,null,2));process.exitCode=1;
+          }
+          NODE
+      - name: Keep sanitized smoke evidence, also on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yellow-v16-live-readonly-smoke-20261028
+          path: v16-live-smoke-public-evidence.json
+          if-no-files-found: error
+          retention-days: 14

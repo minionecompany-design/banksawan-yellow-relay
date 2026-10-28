@@ -113,6 +113,47 @@ final class AnalysisSnapshot {
         }else if("CONFIRMED".equals(state))return null;
         return w;
     }
+    /** V16 watch-only: never accept GREEN, levels or ENTRY from a server.
+     * Cross-event and stale status must be omitted from HOME.
+     */
+    static JSONObject monitor1m(JSONObject item,long now){
+        String eventId=homeEventId(item);
+        if(eventId.isEmpty()||!"1m".equals(item.optString("timeframe")))return null;
+        JSONObject w=item.optJSONObject("monitor1m");
+        if(w==null||w.optInt("schemaVersion",-1)!=1||
+            !"YELLOW_V16_WATCH_ONLY_1M".equals(w.optString("method"))||
+            !"WATCH_ONLY".equals(w.optString("mode"))||
+            !eventId.equals(w.optString("eventId"))||
+            w.optBoolean("entryAllowed",true)||
+            !w.isNull("entryPrice")||!w.isNull("stopLoss")||!w.isNull("tp1"))return null;
+        String status=w.optString("status"),reason=w.optString("reason");
+        if(!status.matches("WAIT|PRIORITY|AVOID|OFF")||
+            !reason.matches("[A-Z_]{4,60}"))return null;
+        long signal=item.optLong("barClosedAtMs",-1);
+        long checked=w.optLong("checkedAtMs",-1),bar=w.optLong("lastBarEndMs",-1);
+        if(w.optLong("startedAtMs",-1)!=signal||
+            w.optLong("watchUntilMs",-1)!=signal+21_600_000L||
+            checked<signal||checked>now+10_000L||now-checked>=45_000L||
+            bar<signal||bar>checked||bar%60_000L!=0)return null;
+        if(!"OFF".equals(status)&&(now>=signal+21_600_000L||now-bar>=90_000L))return null;
+        if(w.has("priceChangeSinceAPct")&&!w.isNull("priceChangeSinceAPct")){
+            double pct=w.optDouble("priceChangeSinceAPct",Double.NaN);
+            long at=w.optLong("tickerAtMs",-1);
+            if(!Double.isFinite(pct)||Math.abs(pct)>100_000||
+                at<signal||at>checked||checked-at>=30_000L)return null;
+        }
+        return w;
+    }
+    static String monitor1mLabel(JSONObject w){
+        if(w==null)return "DATA TIDAK TERSEDIA";
+        switch(w.optString("status")){
+            case "PRIORITY":return "PANTAU PRIORITAS";
+            case "AVOID":return "HINDARI";
+            case "OFF":return "DATA TIDAK TERSEDIA";
+            default:return "PANTAU";
+        }
+    }
+
     static JSONObject watchAssessment(JSONObject analysis,String eventId,long now){
         if(analysis==null)return null;
         try{
