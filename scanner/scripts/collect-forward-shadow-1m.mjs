@@ -38,21 +38,26 @@ export async function main(args=process.argv.slice(2)){
   await journal.initialize(Date.now());
   const symbols=new Set(journal.observer.books.keys());
   const ws=new WebSocket(SHADOW_WS);let id=1,stopped=false,polling=false,timer,stopTimer,subscribeTimer,lastWs=Date.now();
+  let finalFailure=null;
   const subscriptionBudget=new ForwardSubscriptionBudget();
   let stopPromise=null;
   const report=async()=>{
     const target=join(directory,'forward-receipt.json');
     await writeFile(target+'.tmp',JSON.stringify(journal.receipt(),null,2)+'\n',{mode:0o600});
     await rename(target+'.tmp',target);
+    if(finalFailure){await writeFile(join(directory,'forward-fault.json'),
+      JSON.stringify({...finalFailure,redacted:true,releaseDecision:'NO_GO_LIVE'},null,2)+'\n',{mode:0o600});}
   };
   const stop=(reason,error=null)=>{
     if(stopPromise)return stopPromise;
     stopped=true;clearInterval(timer);clearInterval(subscribeTimer);clearTimeout(stopTimer);
+    if(error)finalFailure={reason,code:String(error?.message||error).slice(0,140),atMs:Date.now()};
     stopPromise=(async()=>{
       try{if(!journal.failed)await journal.ingest({type:'GAP',reason,receivedAtMs:Date.now()});}
       finally{try{ws.close();}catch{}await journal.close();await report();}
       console.log(JSON.stringify({mode:'FORWARD_SHADOW_STOPPED',reason,failed:!!error,
-        cohortEvents:journal.observer.records.size,releaseDecision:'NO_GO_LIVE'}));
+        faultCode:finalFailure?.code??null,cohortEvents:journal.observer.records.size,
+        releaseDecision:'NO_GO_LIVE'}));
       if(error)process.exitCode=1;
     })();return stopPromise;
   };
