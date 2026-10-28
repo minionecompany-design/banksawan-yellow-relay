@@ -22,7 +22,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
 export class YellowLiveMarket {
   constructor({dataDir,clock=()=>Date.now(),guard=null,wsClass=globalThis.WebSocket,
-    maxTracked=50,fetchIntervalMs=600_000,sendEvent=async()=>{},passiveEvidence=null,analysisCompanion=null,random=Math.random,
+    maxTracked=50,fetchIntervalMs=600_000,sendEvent=async()=>{},passiveEvidence=null,analysisCompanion=null,monitor1m=null,random=Math.random,
     log=(...args)=>console.log(...args)}={}){
     if(!dataDir)throw new Error('YELLOW_DATA_DIR_REQUIRED');
     if(!wsClass)throw new Error('WEBSOCKET_NOT_AVAILABLE');
@@ -35,6 +35,7 @@ export class YellowLiveMarket {
     this.guard=guard||new RequestGuard({filename:path.join(dataDir,'binance-circuit.json'),clock});
     this.ledger=new LiveHomeLedger({filename:path.join(dataDir,'home-ledger.json'),clock});
     this.sendEvent=sendEvent;this.passiveEvidence=passiveEvidence;this.analysisCompanion=analysisCompanion;
+    this.monitor1m=monitor1m;
     this.exchangeSymbols=new Map();this.tickers=new Map();this.tickerHistory=new Map();
     this.covered=new Map();this.inProgress=new Set();this.retryAfter=new Map();this.ignored=0;this.eventsEmitted=0;
     this.isRunning=false;this.tickerConnected=false;this.klineConnected=false;
@@ -112,6 +113,7 @@ export class YellowLiveMarket {
     if(last && ticker.observedAtMs<last.observedAtMs)return false;
     this.tickers.set(ticker.symbol,ticker);
     try{this.analysisCompanion?.onTicker?.(ticker.symbol,ticker);}catch{}
+    try{this.monitor1m?.onTicker?.(ticker.symbol,ticker);}catch(e){this.monitor1m?.disable('TICKER_HOOK');}
     if(last?.observedAtMs===ticker.observedAtMs)history[history.length-1]=ticker;
     else history.push(ticker);
     while(history.length>180)history.shift();
@@ -185,6 +187,7 @@ export class YellowLiveMarket {
     this.tickerConnected=false;this.klineConnected=false;
     this.lastTickerDataAtMs=0;this.lastKlineDataAtMs=0;this.wsRecoveryDataAtMs=0;
     this.firstTrackedAtMs=0;this.lastClosedCandleMs=0;
+    this.monitor1m?.disable('WS_RECOVERY_CONTINUITY_LOST');
     this.covered.clear();this.tickers.clear();this.tickerHistory.clear();
     try{ticker?.close();}catch{}try{kline?.close();}catch{}
     const delay=[5000,20000,60000][this.wsRecoveryAttempts++]+Math.floor(Math.max(0,Math.min(1,this.random()))*1000);
@@ -310,6 +313,9 @@ export class YellowLiveMarket {
                }
              }catch(e){this.log('YELLOW_GOLD_RESEARCH_FAULT','EVENT_HOOK_'+String(e?.message).slice(0,80));}
              await this.sendEvent(accepted.event);
+             // WATCH-ONLY after original LONG A delivery; no extra Binance calls.
+             try{this.monitor1m?.capture(accepted.event,snapshot);}
+             catch(e){this.monitor1m?.disable('CAPTURE_HOOK');}
              // Analysis is queued only AFTER original delivery. It cannot veto
              // an event, write the ledger, or add market-data requests.
              try{
@@ -449,7 +455,7 @@ export class YellowLiveMarket {
     catch(e){this.covered.delete(symbol);this.unsubscribe(symbol);this.retryAfter.set(symbol,this.clock()+10*60_000);
       this.recordFault('CANDLE_GAP_'+symbol+'_'+e.message);return;}
     if(applied.status!=='APPENDED')return;
-    if(this.analysisCompanion?.enabled&&applied.timeframe==='1m')try{
+    if((this.analysisCompanion?.enabled||this.monitor1m?.enabled)&&applied.timeframe==='1m')try{
       tracked.analysisDelivery??=new LiveAnalysisDelivery();
       tracked.analysisDelivery.enqueue(tracked.book.latest('1m'));
     }catch(e){try{this.log('YELLOW_ANALYSIS_FAULT','QUEUE_'+String(e?.message).slice(0,80));}catch{}}
@@ -468,12 +474,18 @@ export class YellowLiveMarket {
     try{await job;}finally{if(tracked.analysisDraining===currentDrain)tracked.analysisDraining=null;}
   }
   flushAnalysisDelivery(symbol,tracked){
-    if(!this.analysisCompanion?.enabled||!tracked.analysisDelivery?.pending.length||
+    if(!(this.analysisCompanion?.enabled||this.monitor1m?.enabled)||!tracked.analysisDelivery?.pending.length||
       this.isHalted||this.covered.get(symbol)!==tracked)return;
     try{
       const snapshot=tracked.book.snapshot();
-      tracked.analysisDelivery.flush(snapshot,this.clock(),(bar,context)=>
-        this.analysisCompanion.onClosedBar(symbol,'1m',bar,context));
+      tracked.analysisDelivery.flush(snapshot,this.clock(),(bar,context)=>{
+        // Independent research-only hooks cannot delay the original LONG A.
+        let ok=true;
+        if(this.analysisCompanion?.enabled)ok=this.analysisCompanion.onClosedBar(symbol,'1m',bar,context)!==false&&ok;
+        if(this.monitor1m?.enabled)try{this.monitor1m.onClosedBar(symbol,'1m',bar,context);}
+          catch(e){this.monitor1m.disable('BAR_HOOK');}
+        return ok;
+      });
     }catch(e){try{this.log('YELLOW_ANALYSIS_FAULT','BAR_'+String(e?.message).slice(0,80));}catch{}}
   }
   home(){return this.ledger.home();}
@@ -500,6 +512,7 @@ export class YellowLiveMarket {
     requestGuard:this.guard.metrics(),fcm:this.fcm?.metrics()||{enabled:false},
     researchEvidence:this.passiveEvidence?.status?.()??{enabled:false},haltReason:this.haltReason,
     analysisCompanion:this.analysisCompanion?.status?.()??{enabled:false},
+    monitor1m:this.monitor1m?.status?.()??{enabled:false},
     analysisDelivery:[...this.covered].reduce((totals,[,t])=>{
       const s=t.analysisDelivery?.status();
       if(s)for(const [k,v] of Object.entries(s))totals[k]=(totals[k]||0)+v;
