@@ -187,7 +187,7 @@ export class YellowLiveMarket {
     this.tickerConnected=false;this.klineConnected=false;
     this.lastTickerDataAtMs=0;this.lastKlineDataAtMs=0;this.wsRecoveryDataAtMs=0;
     this.firstTrackedAtMs=0;this.lastClosedCandleMs=0;
-    this.monitor1m?.disable('WS_RECOVERY_CONTINUITY_LOST');
+    this.monitor1m?.resetContinuity?.('WS_RECOVERY_CONTINUITY_LOST');
     this.covered.clear();this.tickers.clear();this.tickerHistory.clear();
     try{ticker?.close();}catch{}try{kline?.close();}catch{}
     const delay=[5000,20000,60000][this.wsRecoveryAttempts++]+Math.floor(Math.max(0,Math.min(1,this.random()))*1000);
