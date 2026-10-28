@@ -258,7 +258,8 @@ public class MainActivity extends Activity {
         LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(dp(12),dp(10),dp(12),dp(10));
         box.setBackground(shape(CARD,LINE));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);
         p.setMargins(0,0,0,dp(8));list.addView(box,p);
-        JSONObject light=isHome&&analysisAvailable?
+        JSONObject watch16=isHome?AnalysisSnapshot.monitor1m(item,System.currentTimeMillis()):null;
+        JSONObject light=isHome&&analysisAvailable&&watch16==null?
             AnalysisSnapshot.homeLight(item,System.currentTimeMillis()):null;
         if(isHome&&analysisAvailable){
             LinearLayout header=new LinearLayout(this);
@@ -278,7 +279,7 @@ public class MainActivity extends Activity {
             long first=item.optLong("firstSeenMs",0);
             line(box,"Mulai",formattedTime(first));
             // One compact status line; no new lamp or notification.
-            JSONObject w16=AnalysisSnapshot.monitor1m(item,System.currentTimeMillis());
+            JSONObject w16=watch16;
             if(w16!=null){
                 String state=w16.optString("status");
                 int tint="AVOID".equals(state)?Color.rgb(255,110,110):YELLOW;
@@ -301,7 +302,8 @@ public class MainActivity extends Activity {
             // TradingView and the existing ANALISIS button only. Analysis levels
             // remain available exclusively inside the detailed ANALISIS dialog.
             tradingView(symbol,box);
-            if(analysisAvailable&&item.optBoolean("analysisCaptured",false)&&!analysisId.isEmpty())analysisButton(analysisId,box);
+            if(watch16==null&&analysisAvailable&&item.optBoolean("analysisCaptured",false)&&!analysisId.isEmpty())
+                analysisButton(analysisId,box);
         }
     }
 
