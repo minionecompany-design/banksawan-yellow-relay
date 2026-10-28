@@ -136,6 +136,9 @@ jobs:
           assert.equal(q.cases,46);assert.equal(q.oneMinuteCases,28);
           assert.equal(q.outOfScope,18);
           assert.equal(q.completeWindows,15);
+          assert.equal(q.unifiedHistoricalGreenEvents,0);
+          assert.equal(q.unifiedStatusClosedMinutes.GREEN,0);
+          assert.ok(q.unifiedRedEventCount>=0&&q.unifiedRedEventCount<=28);
           assert.ok(d.records.filter(r=>r.scope==='LONG_A_1M_ONLY').every(r=>
             r.historicalGreen==='NOT_RECONSTRUCTED_NO_HISTORICAL_QUOTE'));
           for(const m of [q.baselineV3,q.candidateV4]){
