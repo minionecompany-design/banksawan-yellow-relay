@@ -41,7 +41,7 @@ test('RED is latched and never flickers back to PANTAU on the same LONG A',()=>{
 test('priority is WATCH-ONLY and does not become entry or green',()=>{
  const q=setup(),r=q.m.records.get(event.id);
  q.advance(candle(1,1,1.002,.999,1.001));
- r.priorityLatchedAtMs=q.now;
+ r.priorityLatchedAtMs=q.now;r.lastPriorityAtMs=q.now;
  const x=q.m.view(event.id,fresh(q.now,1.2),q.now);
  assert.equal(x.status,'PRIORITY');assert.equal(x.priority,true);
  assert.equal(x.entryAllowed,false);
@@ -94,4 +94,18 @@ test('WS recovery cancels old hypotheses, but genuinely NEW 1M LONG A remains mo
  assert.equal(q.m.capture(e,context(nextTime)),true);
  assert.equal(q.m.view(e.id,null,q.now).status,'WAIT');
  assert.equal(q.m.status().resets,1);
+});
+
+test('stale priority never remains as an active watch for entire six hour window',()=>{
+ const q=setup();
+ q.advance(candle(1,1,1.002,.999,1.001));
+ const r=q.m.records.get(event.id);
+ r.priorityLatchedAtMs=q.now;r.lastPriorityAtMs=q.now;
+ assert.equal(q.m.view(event.id,null,q.now).status,'PRIORITY');
+ // Keep native 1M candle recent to isolate TTL, without manufacturing a
+ // fresh priority pattern.
+ q.setNow(q.now+6*M);
+ r.lastClosedAtMs=q.now-1_000;
+ assert.equal(q.m.view(event.id,null,q.now).status,'WAIT');
+ assert.equal(q.m.view(event.id,null,q.now).priority,false);
 });
