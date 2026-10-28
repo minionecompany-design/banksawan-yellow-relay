@@ -21,6 +21,7 @@ jobs:
           node --check scanner/src/second-signal-1m.js
           node --check scanner/src/entry-continuation-v4.js
           node --check scanner/src/second-signal-compositor-1m.js
+          node --check scanner/src/entry-v4-release-gate.js
           node --check scanner/scripts/lib/replay-continuation-v4.mjs
           node --check scanner/scripts/compare-continuation-v4.mjs
           node --check scanner/scripts/lib/replay-second-signal-1m.mjs
@@ -129,6 +130,7 @@ jobs:
           node --input-type=module <<'NODE'
           import {readFileSync,writeFileSync} from 'node:fs';
           import assert from 'node:assert/strict';
+          import {evaluateEntryV4Evidence} from './scanner/src/entry-v4-release-gate.js';
           const d=JSON.parse(readFileSync('continuation-v4-evidence/v3-v4-full.json','utf8')),q=d.summary;
           assert.equal(q.method,'V4_THREE_BAR_STAIRCASE_RESEARCH_OFFLINE');
           assert.equal(q.cases,46);assert.equal(q.oneMinuteCases,28);
@@ -141,7 +143,12 @@ jobs:
             assert.ok(m.filledEvents<=m.confirmationEvents);
           }
           writeFileSync('continuation-v4-evidence/summary.json',JSON.stringify(q,null,2)+'\n');
-          console.log(JSON.stringify(q));
+          const gate=evaluateEntryV4Evidence({archiveSummary:q});
+          assert.equal(gate.action,'NO_GO_LIVE');
+          assert.equal(gate.deploymentAuthorized,false);
+          assert.ok(gate.blockers.includes('PROSPECTIVE_COHORT_NOT_COLLECTED'));
+          writeFileSync('continuation-v4-evidence/release-gate.json',JSON.stringify(gate,null,2)+'\n');
+          console.log(JSON.stringify({archive:q,releaseGate:gate}));
           NODE
       - name: Preserve V3 vs V4 full cohort evidence for Work (NO LIVE)
         if: always()
