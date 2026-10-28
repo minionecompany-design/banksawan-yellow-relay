@@ -23,6 +23,7 @@ Later AIN pattern also fails5m recovery and another has6.1856% risk. EVAA has si
 3. V4 quote-boundary evaluation was stateless. New pure quote observer permanently invalidates the plan on an observed stop/target; a later rebound cannot revive GREEN.
 4. Release gate checked sample counts and boolean baseline review without requiring independently reviewed improvement. It now rejects inconsistent/invalid denominators and requires a hash-identified frozen-protocol/holdout/net-baseline/false-signal review. This is an attestation to reviewed evidence, not automatic statistical proof. `deploymentAuthorized` is always false.
 5. Passive HOME/analysis GETs can publish the existing v15 green through `assessment()`. The new reader deliberately allowlists only events and buffered-candle GETs; it never calls those publishing routes.
+6. A symbol may leave the scanner before warmup GET completes. A404 now records/censors that failed symbol and continues other candidates; it does not lose the entire cohort or backfill that opportunity.
 
 ## Forward mechanism prepared
 
@@ -36,7 +37,7 @@ Quote-paper exits are `OBSERVED_*`, not claims about the unsampled market path. 
 
 ## Validation and preserved evidence
 
-Local316/316 Node tests pass, including20 new forward/guard tests;15 Python permanent-signer/security tests pass. CI also performs Android compile/Robolectric, archived v15/V3/structural/V4 replays, source policy contracts and signer rejection. New synthetic WAL/restore acceptance is uploaded separately and clearly labeled NOT market performance. New CI result is recorded in PR metadata after verification. A release job must remain SKIPPED.
+Local317/317 Node tests pass, including21 new forward/guard tests;15 Python permanent-signer/security tests pass. Initial source94d6b939 passed CI40637397726 (316 tests), Android compile/Robolectric, archived replays and signer guards; signed release SKIPPED. The warmup404 follow-up adds one regression and requires its own final CI, recorded in PR metadata and follow-up receipt after verification. New synthetic WAL/restore acceptance is uploaded separately and clearly labeled NOT market performance. A release job must remain SKIPPED.
 
 Durable evidence: `docs/evidence/forward-shadow-20261028/audit-summary.json`, compressed full v15/V3 and V3/V4 replays, local test log, synthetic acceptance and its raw journal, plus production read-only receipt. Hashes accompany evidence; local synthetic receipt explicitly says sourceDirty=true rather than pretending it ran the already committed source. Future CI uses its exact clean commit.
 
@@ -44,6 +45,6 @@ Production verified separately: Railway configured source112023d50ad297eba36b9ac
 
 ## What is still needed
 
-Genuine prospective market events collected by this new observer: **0**. No background service was installed or deployed. Need a continuous separate host/durable directory, synchronized clock, public WS connectivity and monitoring, then all new successes AND failures through complete windows. Observer receipt is not the production scanner's native receipt. Need independent cohort/coverage, executable-cost/spread review, false RED and missed-winner audit, measured improvement versus baseline, and a separately tested Android/FCM/persistence integration before any release request. Synthetic restart/CI success cannot satisfy those gates.
+Genuine prospective market events collected by this new observer: **0**. No background service was installed or deployed. A bounded public WS handshake from Work received a genuine24h ticker at local1793164859286 / exchange1793164859035; this proves a ticker connection/schema only, not continuous native-close coverage or a forward LONG A cohort. Need a continuous separate host/durable directory, synchronized clock and monitoring, then all new successes AND failures through complete windows. Observer receipt is not the production scanner's native receipt. Need independent cohort/coverage, executable-cost/spread review, false RED and missed-winner audit, measured improvement versus baseline, and a separately tested Android/FCM/persistence integration before any release request. Synthetic restart/CI success cannot satisfy those gates.
 
 Operational protocol and exact commands: `docs/YELLOW_FORWARD_SHADOW_PROTOCOL_20261028.md`. The prepared collector is reviewable; real performance and continuous-host certification are still NO-GO. Explicit owner approval is required for any later merge, Railway deployment or APK publication.

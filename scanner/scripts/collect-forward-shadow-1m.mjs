@@ -5,7 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {resolve,join} from 'node:path';
 import {pathToFileURL,fileURLToPath} from 'node:url';
 import {ForwardShadowJournal} from '../src/forward-shadow-journal.js';
-import {readShadowJson,parseShadowMarket,SHADOW_WS,YELLOW_READ_BASE} from './lib/forward-shadow-source.mjs';
+import {readShadowJson,captureShadowWarmup,parseShadowMarket,SHADOW_WS,YELLOW_READ_BASE} from './lib/forward-shadow-source.mjs';
 
 export async function main(args=process.argv.slice(2)){
   if(!args.length||args[0]==='--plan'){
@@ -87,10 +87,7 @@ export async function main(args=process.argv.slice(2)){
       subscribe(added);
       for(const symbol of added){
         if(stopped)break;
-        const source=await readShadowJson('/api/research/candles?symbol='+symbol);
-        if(source.symbol!==symbol||source.source!=='EXISTING_BINANCE_CANDLE_BOOK')throw Error('INVALID_WARMUP_SOURCE');
-        await journal.ingest({type:'WARMUP',symbol,candles:source.candles,
-          capturedAtMs:source.capturedAtMs,receivedAtMs:Date.now()});
+        await captureShadowWarmup(symbol,journal);
       }
       if(!stopped){await journal.ingest({type:'HEARTBEAT',receivedAtMs:Date.now()});await report();}
     }catch(e){await stop('EVENT_FEED_OR_STORAGE_FAULT',e);}finally{polling=false;}

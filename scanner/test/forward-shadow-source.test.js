@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {readShadowJson,parseShadowMarket,SHADOW_WS} from '../scripts/lib/forward-shadow-source.mjs';
+import {readShadowJson,captureShadowWarmup,parseShadowMarket,SHADOW_WS} from '../scripts/lib/forward-shadow-source.mjs';
 import {T,M,event} from './fixtures/forward-shadow.mjs';
 test('only two non-publishing GET routes are allowed; no account/FCM/order/redirect or credential path',async()=>{
  const calls=[],fetcher=async(url,options)=>{calls.push({url:String(url),options});return new Response('{"events":[]}');};
@@ -25,6 +25,14 @@ test('native adapter records closed candles only and retains exchange time, loca
  assert.equal(ticks[0].tickers.length,1);assert.equal(ticks[0].tickers[0].ticker.exchangeAtMs,at-50);
  assert.equal(SHADOW_WS,'wss://fstream.binance.com/market/stream');
  assert.throws(()=>parseShadowMarket('{"code":-1}',at,symbols),/SERVER_ERROR/);
+});
+test('a symbol leaving the bounded scanner produces a recorded failed warmup, not loss of other candidates',async()=>{
+ const saved=[],journal={ingest:async i=>saved.push(i)};
+ const ok=await captureShadowWarmup(event.symbol,journal,{reader:async()=>{throw Error('FORWARD_HTTP_404');},clock:()=>T+5000});
+ assert.equal(ok,false);assert.deepEqual(saved,[{type:'GAP',symbol:event.symbol,
+  reason:'WARMUP_SYMBOL_NOT_BUFFERED',receivedAtMs:T+5000}]);
+ await assert.rejects(()=>captureShadowWarmup(event.symbol,journal,
+  {reader:async()=>{throw Error('FORWARD_HTTP_503');}}),/503/);
 });
 test('research observer is absent from LIVE/Android/FCM import paths; runner requires explicit opt-in and clean exact source',async()=>{
  for(const file of ['live-main.js','live-market.js','live-api.js','live-fcm.js','analysis-companion-bridge.js']){

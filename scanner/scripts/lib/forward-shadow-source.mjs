@@ -18,6 +18,20 @@ export async function readShadowJson(route,fetcher=globalThis.fetch){
   }
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
+export async function captureShadowWarmup(symbol,journal,{reader=readShadowJson,clock=()=>Date.now()}={}){
+  let source;
+  try{source=await reader('/api/research/candles?symbol='+symbol);}
+  catch(e){
+    // A genuine signal can leave the scanner's bounded universe before its
+    // warmup is fetched. Retain that failed case and continue other symbols.
+    if(e.message!=='FORWARD_HTTP_404')throw e;
+    await journal.ingest({type:'GAP',symbol,reason:'WARMUP_SYMBOL_NOT_BUFFERED',receivedAtMs:clock()});
+    return false;
+  }
+  if(source.symbol!==symbol||source.source!=='EXISTING_BINANCE_CANDLE_BOOK')throw Error('INVALID_WARMUP_SOURCE');
+  await journal.ingest({type:'WARMUP',symbol,candles:source.candles,capturedAtMs:source.capturedAtMs,receivedAtMs:clock()});
+  return true;
+}
 export function parseShadowMarket(raw,receivedAtMs,symbols){
   if(typeof raw!=='string'||Buffer.byteLength(raw)>2*1024*1024)throw Error('INVALID_SHADOW_WS_SIZE');
   const payload=JSON.parse(raw),data=payload.data??payload;

@@ -1,0 +1,21 @@
+{
+  "initialCodeCommit": "94d6b93936c2761261d74908d084f33ddaf6c584",
+  "initialCiRun": 40637397726,
+  "initialCi": "SUCCESS",
+  "initialNodePassed": 316,
+  "androidCompileRobolectric": "SUCCESS",
+  "signedRelease": "SKIPPED",
+  "followupLocalNodePassed": 317,
+  "followupLocalNodeFailed": 0,
+  "followupLogSha256": "7080ddc20f6b02013a0ad094e1efeb1b600492865bc56b8e5af3935d8620053b",
+  "followupCi": "PENDING_EXACT_SOURCE_RUN",
+  "followupChange": "Warmup404 censors missing-symbol cases and preserves other candidates",
+  "prospectiveMarketEvents": 0,
+  "publicTickerHandshake": {
+    "purpose": "CONNECTIVITY_ONLY_NOT_A_COHORT",
+    "status": "PUBLIC_TICKER_SCHEMA_OBSERVED",
+    "localReceivedAtMs": 1793164859286,
+    "exchangeAtMs": 1793164859035
+  },
+  "decision": "NO_GO_LIVE"
+}
