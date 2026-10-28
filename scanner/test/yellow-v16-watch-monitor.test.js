@@ -79,3 +79,19 @@ test('capacity and restart fail closed; original LONG A notifications unaffected
  const restarted=new YellowV16WatchMonitor({clock:()=>T+5000});
  assert.equal(restarted.view(event.id,null),null);
 });
+
+test('WS recovery cancels old hypotheses, but genuinely NEW 1M LONG A remains monitorable',()=>{
+ const q=setup();
+ const old=q.m.view(event.id,null,q.now);
+ assert.equal(old.status,'WAIT');
+ q.m.resetContinuity('WS_DISCONNECTED');
+ assert.equal(q.m.view(event.id,null,q.now),null);
+ assert.equal(q.m.enabled,true);
+ const nextTime=T+5*M;
+ const e={...event,id:`${event.symbol}:1m:${nextTime}:LONG_A`,
+  barClosedAtMs:nextTime,detectedAtMs:nextTime+3000};
+ q.setNow(nextTime+3000);
+ assert.equal(q.m.capture(e,context(nextTime)),true);
+ assert.equal(q.m.view(e.id,null,q.now).status,'WAIT');
+ assert.equal(q.m.status().resets,1);
+});
