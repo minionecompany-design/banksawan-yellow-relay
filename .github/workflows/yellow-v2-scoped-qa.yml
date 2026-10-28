@@ -27,6 +27,7 @@ jobs:
           node --check scanner/scripts/collect-forward-shadow-1m.mjs
           node --check scanner/scripts/summarize-forward-shadow-journal.mjs
           node --check scanner/scripts/lib/forward-shadow-source.mjs
+          node --check scanner/scripts/lib/forward-shadow-subscription-budget.mjs
           node --check scanner/scripts/lib/replay-continuation-v4.mjs
           node --check scanner/scripts/compare-continuation-v4.mjs
           node --check scanner/scripts/lib/replay-second-signal-1m.mjs
