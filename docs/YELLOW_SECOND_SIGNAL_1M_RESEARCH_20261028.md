@@ -12,7 +12,7 @@ Do not claim the engine can know that an asset will **never** rise again. Histor
 - **YELLOW / TUNGGU**: immediately after LONG A and through unconfirmed pullback, tentative recovery or controlled ascent. A red event is NOT triggered by a single declining candle or low volume.
 - **RED / HINDARI SEKARANG**: at least 2 consecutive *closed* 1M candles below a **frozen pre-signal 20-minute support floor minus 0.2%**, latest candle bearish with >=1.5x previous 20-bar average volume, **5M DOWN and 15M not UP**. Requires current native closed higher-TF context. It is a conservative current-risk warning; later recovery is possible. Numeric gates are deliberately initial hypotheses, NOT trained probabilities.
 - **GREEN / KONDISI ENTRY MENDUKUNG**: exclusively from the existing V3 **confirmed PULLBACK or CONTINUATION** path, native complete TF data, fresh eligible Binance quote after confirmation, frozen entry range and <=3min window, no expiry/gaps. Signal path and reason are visible inside ANALISIS. The research gate delegates to V3, does NOT issue trades.
-- **OFF / BERAKHIR**: six-hour watch expired, entry window expired, unsupported data continuity, scenario no longer valid. Never leave a stale GREEN.
+- **OFF / BERAKHIR**: six-hour watch expired, entry window expired, unsupported data continuity, **TP1 already reached**, scenario no longer valid. A candidate reaching TP1 should NOT turn RED as if it failed. Never leave a stale GREEN.
 - Existing LONG A lanes **1M/5M/15M/1H all stay active**. The extra second signal is for LONG A **1M only**, and borrows native 5M/15M/1H *context*, not additional 5M/15M/1H entry lanes.
 
 ## Prototype implementation — strict offline isolation
