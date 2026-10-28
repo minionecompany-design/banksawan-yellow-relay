@@ -38,11 +38,11 @@ export function replayV4Comparison(source,event){
    v4=advanceContinuationWatchV4(v4,bar,snapshot,bar.endMs+1000);
    if(bar.endMs<=deadline){
      reasonsV4[v4.reason]=(reasonsV4[v4.reason]||0)+1;
-     if(v4.evidence?.continuation?.pass){
+     if(v4.evidence?.atMs===bar.endMs&&v4.evidence?.continuation?.pass){
        patternCandidates++;
        if(firstPatternAtMs===null){firstPatternAtMs=bar.endMs;firstPatternClose=bar.close;}
      }
-     const hint=continuationPriorityV4(v4);
+     const hint=continuationPriorityV4(v4,bar.endMs+1000);
      if(hint.status==='WATCH_PRIORITY_UNKNOWN_OVERHEAD'){
        priorityMinutes++;
        if(firstWatchPriority===null)
