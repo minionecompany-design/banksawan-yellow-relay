@@ -1,7 +1,7 @@
 name: YELLOW V2 scoped QA and approved APK release
 on:
   push:
-    branches: [fix/yellow-v2-4tf-50-q10m-20261022, 'feat/yellow-analysis-companion-*', 'feat/yellow-home-entry-sl-tp-*', 'feat/yellow-v14-clean-home-lamps-*', 'feat/yellow-v15-entry-watch-*', 'feat/yellow-entry-v3-1m-only-*', 'feat/yellow-second-signal-1m-research-*']
+    branches: [fix/yellow-v2-4tf-50-q10m-20261022, 'feat/yellow-analysis-companion-*', 'feat/yellow-home-entry-sl-tp-*', 'feat/yellow-v14-clean-home-lamps-*', 'feat/yellow-v15-entry-watch-*', 'feat/yellow-entry-v3-1m-only-*', 'feat/yellow-second-signal-1m-research-*', 'feat/yellow-v4-continuation-1m-offline-*']
   workflow_dispatch:
 permissions:
   contents: read
@@ -19,6 +19,7 @@ jobs:
           node --check scanner/src/entry-watch.js
           node --check scanner/src/entry-readiness-v3.js
           node --check scanner/src/second-signal-1m.js
+          node --check scanner/src/entry-continuation-v4.js
           node --check scanner/scripts/lib/replay-second-signal-1m.mjs
           node --check scanner/scripts/compare-second-signal-1m.mjs
           node --check scanner/scripts/lib/replay-readiness-v3.mjs
