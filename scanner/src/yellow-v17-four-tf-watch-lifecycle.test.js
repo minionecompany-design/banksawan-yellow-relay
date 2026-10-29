@@ -54,3 +54,19 @@ test('malformed candle cannot advance a lane',()=>{
  assert.equal(m.onClosedBar('APRUSDT','5m',{endMs:now}),0);
  assert.equal(m.records.get(e.id).lastBarEndMs,base);
 });
+
+test('1h stays WAIT between native closes, then goes OFF on stale history',()=>{
+ let now=base;const m=new YellowV17WatchLifecycle({clock:()=>now});
+ const e=event('1h');assert.equal(m.capture(e),true);
+ now+=30*60_000;assert.equal(m.view(e.id).status,'WAIT');
+ now=base+3_600_000+90_000;assert.equal(m.view(e.id).status,'OFF');
+});
+test('out-of-order PRIORITY cannot shorten the last fresh priority timestamp',()=>{
+ let now=base;const m=new YellowV17WatchLifecycle({clock:()=>now});
+ const e=event('1m');assert.equal(m.capture(e),true);
+ now+=60_000;assert.equal(m.onClosedBar('APRUSDT','1m',bar(now)),1);
+ assert.equal(m.observeDecision(e.id,{status:'PRIORITY',atMs:now}),true);
+ assert.equal(m.observeDecision(e.id,{status:'PRIORITY',atMs:base}),true);
+ assert.equal(m.records.get(e.id).lastPriorityAtMs,now);
+ assert.equal(m.view(e.id).status,'PRIORITY');
+});
