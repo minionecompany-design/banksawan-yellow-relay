@@ -3,6 +3,7 @@
  * A timeframe-specific evidence evaluator is mandatory: this module does NOT
  * promote a 1m V3/V4 decision into a 5m/15m/1h decision.
  */
+import {validAnalysisEventId,validAnalysisBar} from './analysis-companion.js';
 export const V17_FRAMES=Object.freeze({'1m':60_000,'5m':300_000,'15m':900_000,'1h':3_600_000});
 export const V17_WINDOW_MS=120*60_000;
 export const V17_METHOD='YELLOW_V17_FOUR_TF_WATCH_ONLY';
@@ -16,7 +17,7 @@ export class YellowV17WatchLifecycle {
   }
   capture(event){
     const ms=V17_FRAMES[event?.timeframe],now=this.clock();
-    if(!ms||event?.signal!=='LONG_A'||!validTime(event.barClosedAtMs)||
+    if(!ms||!validAnalysisEventId(event?.id)||event?.signal!=='LONG_A'||!validTime(event.barClosedAtMs)||
        !validTime(event.detectedAtMs)||event.detectedAtMs<event.barClosedAtMs||
        event.detectedAtMs-event.barClosedAtMs>5*60_000||
        event.barClosedAtMs>now||!validPrice(event.price)||
@@ -35,7 +36,7 @@ export class YellowV17WatchLifecycle {
   /** Only an existing native closed candle may advance continuity. */
   onClosedBar(symbol,timeframe,bar){
     const step=V17_FRAMES[timeframe];
-    if(!step||!validTime(bar?.endMs))return 0;
+    if(!step||!validAnalysisBar(bar,step))return 0;
     let updated=0;
     for(const r of this.records.values()){
       if(r.event.symbol!==symbol||r.event.timeframe!==timeframe||r.invalid||
