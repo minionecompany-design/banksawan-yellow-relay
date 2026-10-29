@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {YellowV17WatchLifecycle,V17_FRAMES,V17_WINDOW_MS} from './yellow-v17-four-tf-watch-lifecycle.js';
 const base=1_800_000_000_000;
+const bar=endMs=>({endMs,open:0.05,high:0.051,low:0.049,close:0.05,volume:100});
 function event(tf,at=base){return {symbol:'APRUSDT',timeframe:tf,signal:'LONG_A',price:.05,
  barClosedAtMs:at,detectedAtMs:at,id:`APRUSDT:${tf}:${at}:LONG_A`};}
 for(const [tf,step] of Object.entries(V17_FRAMES)){
@@ -9,7 +10,7 @@ for(const [tf,step] of Object.entries(V17_FRAMES)){
   let now=base;const m=new YellowV17WatchLifecycle({clock:()=>now});
   const e=event(tf);assert.equal(m.capture(e),true);
   assert.equal(m.capture(e),false);
-  now+=step;assert.equal(m.onClosedBar('APRUSDT',tf,{endMs:now}),1);
+  now+=step;assert.equal(m.onClosedBar('APRUSDT',tf,bar(now)),1);
   now+=2*step;assert.equal(m.onClosedBar('APRUSDT',tf,{endMs:now}),0);
   assert.equal(m.view(e.id).status,'OFF');
  });
