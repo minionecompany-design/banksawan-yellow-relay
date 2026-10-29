@@ -1,0 +1,500 @@
+
+> banksawan-yellow-scanner@0.6.0-live-shadow test
+> node --test
+
+TAP version 13
+# Subtest: Android identity isolated from BR and HTTP disabled by default
+ok 1 - Android identity isolated from BR and HTTP disabled by default
+  ---
+  duration_ms: 6.753554
+  type: 'test'
+  ...
+# Subtest: Android has only HOME and UNIVERSE, 1K icon, Binance .P TradingView shortcut
+ok 2 - Android has only HOME and UNIVERSE, 1K icon, Binance .P TradingView shortcut
+  ---
+  duration_ms: 6.531835
+  type: 'test'
+  ...
+# Subtest: Android rejects offline simulation on configured HTTPS backend and labels live separately
+ok 3 - Android rejects offline simulation on configured HTTPS backend and labels live separately
+  ---
+  duration_ms: 4.838615
+  type: 'test'
+  ...
+# Subtest: Binance USD-M kline closeTime +1 maps precisely to completed candle end
+ok 4 - Binance USD-M kline closeTime +1 maps precisely to completed candle end
+  ---
+  duration_ms: 3.76087
+  type: 'test'
+  ...
+# Subtest: unfinished and future klines are rejected; scanner cannot pretend candle has closed
+ok 5 - unfinished and future klines are rejected; scanner cannot pretend candle has closed
+  ---
+  duration_ms: 2.427656
+  type: 'test'
+  ...
+# Subtest: gap/duplicate/order invalidates saved history
+ok 6 - gap/duplicate/order invalidates saved history
+  ---
+  duration_ms: 0.186689
+  type: 'test'
+  ...
+# Subtest: invalid OHLCV and invalid kline close are fail closed
+ok 7 - invalid OHLCV and invalid kline close are fail closed
+  ---
+  duration_ms: 0.157195
+  type: 'test'
+  ...
+# Subtest: exchangeInfo USDT perpetual proof and as-of ticker timestamp are mandatory
+ok 8 - exchangeInfo USDT perpetual proof and as-of ticker timestamp are mandatory
+  ---
+  duration_ms: 0.318466
+  type: 'test'
+  ...
+# Subtest: cross-TF saved closed candles must agree with underlying 1M
+ok 9 - cross-TF saved closed candles must agree with underlying 1M
+  ---
+  duration_ms: 86.752282
+  type: 'test'
+  ...
+# Subtest: one minute missing in complete bucket is a health failure
+ok 10 - one minute missing in complete bucket is a health failure
+  ---
+  duration_ms: 3.530412
+  type: 'test'
+  ...
+# Subtest: recorded fixture requires explicit as-of Binance ticker snapshots (no hindsight)
+ok 11 - recorded fixture requires explicit as-of Binance ticker snapshots (no hindsight)
+  ---
+  duration_ms: 542.000517
+  type: 'test'
+  ...
+# Subtest: bootstrap only closed candles, then append exactly one WS completed candle
+ok 12 - bootstrap only closed candles, then append exactly one WS completed candle
+  ---
+  duration_ms: 2.474681
+  type: 'test'
+  ...
+# Subtest: gap, unfinished candle and future candle must not enter evidence
+ok 13 - gap, unfinished candle and future candle must not enter evidence
+  ---
+  duration_ms: 3.317706
+  type: 'test'
+  ...
+# Subtest: FCM stays off with no credentials and performs zero HTTP requests
+ok 14 - FCM stays off with no credentials and performs zero HTTP requests
+  ---
+  duration_ms: 2.386809
+  type: 'test'
+  ...
+# Subtest: opt-in FCM never starts without a complete service account
+ok 15 - opt-in FCM never starts without a complete service account
+  ---
+  duration_ms: 0.599883
+  type: 'test'
+  ...
+# Subtest: FCM emits data-only LONG A push with bounded TTL; no other symbols
+ok 16 - FCM emits data-only LONG A push with bounded TTL; no other symbols
+  ---
+  duration_ms: 161.827967
+  type: 'test'
+  ...
+# Subtest: two TF events generate two events but only one HOME timer; survives restart
+ok 17 - two TF events generate two events but only one HOME timer; survives restart
+  ---
+  duration_ms: 9.063609
+  type: 'test'
+  ...
+# Subtest: future, late, wrong signal and price reject fail closed
+ok 18 - future, late, wrong signal and price reject fail closed
+  ---
+  duration_ms: 4.835925
+  type: 'test'
+  ...
+# Subtest: accept serializes concurrent claims exactly once
+ok 19 - accept serializes concurrent claims exactly once
+  ---
+  duration_ms: 4.806801
+  type: 'test'
+  ...
+# Subtest: live mode rejects merged COIN-M ticker data (st=2), accepts USD-M st=1 only
+ok 20 - live mode rejects merged COIN-M ticker data (st=2), accepts USD-M st=1 only
+  ---
+  duration_ms: 5.490725
+  type: 'test'
+  ...
+# Subtest: UNIVERSE includes all eligible but reports only covered subset
+ok 21 - UNIVERSE includes all eligible but reports only covered subset
+  ---
+  duration_ms: 4.9003
+  type: 'test'
+  ...
+# Subtest: socket failure hard-stops scanning; cannot silently fallback to REST
+ok 22 - socket failure hard-stops scanning; cannot silently fallback to REST
+  ---
+  duration_ms: 1.47812
+  type: 'test'
+  ...
+# Subtest: GET API read-only, simulation=false, health liveness independent of readiness
+ok 23 - GET API read-only, simulation=false, health liveness independent of readiness
+  ---
+  duration_ms: 66.479558
+  type: 'test'
+  ...
+# Subtest: HTTP 418 latches, persists across restart and sends no followup requests
+ok 24 - HTTP 418 latches, persists across restart and sends no followup requests
+  ---
+  duration_ms: 19.410418
+  type: 'test'
+  ...
+# Subtest: HTTP 429 latches, persists across restart and sends no followup requests
+ok 25 - HTTP 429 latches, persists across restart and sends no followup requests
+  ---
+  duration_ms: 5.212152
+  type: 'test'
+  ...
+# Subtest: HTTP 451 latches, persists across restart and sends no followup requests
+ok 26 - HTTP 451 latches, persists across restart and sends no followup requests
+  ---
+  duration_ms: 7.164712
+  type: 'test'
+  ...
+# Subtest: rejects URLs outside official futures REST hostname, not even one request
+ok 27 - rejects URLs outside official futures REST hostname, not even one request
+  ---
+  duration_ms: 10.281327
+  type: 'test'
+  ...
+# Subtest: remote IP request-weight above safety ceiling stops and persists
+ok 28 - remote IP request-weight above safety ceiling stops and persists
+  ---
+  duration_ms: 11.55876
+  type: 'test'
+  ...
+# Subtest: budget avoids burst by waiting, and no retries on server failure
+ok 29 - budget avoids burst by waiting, and no retries on server failure
+  ---
+  duration_ms: 3.020362
+  type: 'test'
+  ...
+# Subtest: production entrypoint fails closed without explicit live opt-in and volume
+ok 30 - production entrypoint fails closed without explicit live opt-in and volume
+  ---
+  duration_ms: 139.917488
+  type: 'test'
+  ...
+# Subtest: incomplete data fails closed
+ok 31 - incomplete data fails closed
+  ---
+  duration_ms: 3.513716
+  type: 'test'
+  ...
+# Subtest: Pine previous closed MTF: future or current timeframe forbidden
+ok 32 - Pine previous closed MTF: future or current timeframe forbidden
+  ---
+  duration_ms: 0.398836
+  type: 'test'
+  ...
+# Subtest: Pine previous confirmed MTF: stale also forbidden
+ok 33 - Pine previous confirmed MTF: stale also forbidden
+  ---
+  duration_ms: 2.95822
+  type: 'test'
+  ...
+# Subtest: reject open/future 1m candle
+ok 34 - reject open/future 1m candle
+  ---
+  duration_ms: 2.716875
+  type: 'test'
+  ...
+# Subtest: reject ticker symbol mismatch
+ok 35 - reject ticker symbol mismatch
+  ---
+  duration_ms: 0.693916
+  type: 'test'
+  ...
+# Subtest: filter is exactly Binance 24h +1% and price <10
+ok 36 - filter is exactly Binance 24h +1% and price <10
+  ---
+  duration_ms: 8.393672
+  type: 'test'
+  ...
+# Subtest: reject gap in 1m, and reject missing interval after valid first step
+ok 37 - reject gap in 1m, and reject missing interval after valid first step
+  ---
+  duration_ms: 1.895075
+  type: 'test'
+  ...
+# Subtest: stale 24h ticker is rejected
+ok 38 - stale 24h ticker is rejected
+  ---
+  duration_ms: 0.408833
+  type: 'test'
+  ...
+# Subtest: RSI constant Wilder sequence initializes to 50
+ok 39 - RSI constant Wilder sequence initializes to 50
+  ---
+  duration_ms: 0.419266
+  type: 'test'
+  ...
+# Subtest: state same-candle replay is idempotent
+ok 40 - state same-candle replay is idempotent
+  ---
+  duration_ms: 1.373404
+  type: 'test'
+  ...
+# Subtest: HOME is independent 24h per symbol, no extension by duplicates
+ok 41 - HOME is independent 24h per symbol, no extension by duplicates
+  ---
+  duration_ms: 0.397118
+  type: 'test'
+  ...
+# Subtest: universe requires Binance USD-M eligible status, price<10 and +1%
+ok 42 - universe requires Binance USD-M eligible status, price<10 and +1%
+  ---
+  duration_ms: 2.172475
+  type: 'test'
+  ...
+# Subtest: a fresh synthetic setup can produce LONG_A with all 4 timeframe gates (not market proof)
+ok 43 - a fresh synthetic setup can produce LONG_A with all 4 timeframe gates (not market proof)
+  ---
+  duration_ms: 4.547454
+  type: 'test'
+  ...
+# Subtest: reject unverified ticker source, contract type, or future value
+ok 44 - reject unverified ticker source, contract type, or future value
+  ---
+  duration_ms: 0.683954
+  type: 'test'
+  ...
+# Subtest: health and universe are explicitly simulated with zero Binance/FCM requests
+ok 45 - health and universe are explicitly simulated with zero Binance/FCM requests
+  ---
+  duration_ms: 67.941259
+  type: 'test'
+  ...
+# Subtest: offline replay upload disabled unless local secret explicitly configured
+ok 46 - offline replay upload disabled unless local secret explicitly configured
+  ---
+  duration_ms: 23.162623
+  type: 'test'
+  ...
+# Subtest: fresh 15m LONG A writes one HOME card; repeated replay does not duplicate, 24h expiration exact
+ok 47 - fresh 15m LONG A writes one HOME card; repeated replay does not duplicate, 24h expiration exact
+  ---
+  duration_ms: 31.805094
+  type: 'test'
+  ...
+# Subtest: payloads cannot impersonate event with wrong symbol, old event, malformed ID or threshold
+ok 48 - payloads cannot impersonate event with wrong symbol, old event, malformed ID or threshold
+  ---
+  duration_ms: 21.144935
+  type: 'test'
+  ...
+# Subtest: HOME persists after server restart, still marked simulation
+ok 49 - HOME persists after server restart, still marked simulation
+  ---
+  duration_ms: 16.158373
+  type: 'test'
+  ...
+# Subtest: offline HOME survives process-object restart for full 24h, never extends on another TF
+ok 50 - offline HOME survives process-object restart for full 24h, never extends on another TF
+  ---
+  duration_ms: 22.772052
+  type: 'test'
+  ...
+# Subtest: simultaneous same-ID offline ingest is serialized and never double-claims
+ok 51 - simultaneous same-ID offline ingest is serialized and never double-claims
+  ---
+  duration_ms: 35.091213
+  type: 'test'
+  ...
+# Subtest: corrupted offline journal fails closed rather than silently resetting HOME
+ok 52 - corrupted offline journal fails closed rather than silently resetting HOME
+  ---
+  duration_ms: 4.933419
+  type: 'test'
+  ...
+# Subtest: 15M LONG A notifies immediately while 1M, 5M and 1H did NOT signal
+ok 53 - 15M LONG A notifies immediately while 1M, 5M and 1H did NOT signal
+  ---
+  duration_ms: 13.609365
+  type: 'test'
+  ...
+# Subtest: independent 1m target can produce LONG A without other TF signal events
+ok 54 - independent 1m target can produce LONG A without other TF signal events
+  ---
+  duration_ms: 6.564187
+  type: 'test'
+  ...
+# Subtest: independent 5m target can produce LONG A without other TF signal events
+ok 55 - independent 5m target can produce LONG A without other TF signal events
+  ---
+  duration_ms: 5.10043
+  type: 'test'
+  ...
+# Subtest: independent 15m target can produce LONG A without other TF signal events
+ok 56 - independent 15m target can produce LONG A without other TF signal events
+  ---
+  duration_ms: 5.591632
+  type: 'test'
+  ...
+# Subtest: independent 1h target can produce LONG A without other TF signal events
+ok 57 - independent 1h target can produce LONG A without other TF signal events
+  ---
+  duration_ms: 1.329963
+  type: 'test'
+  ...
+# Subtest: same symbol can get separate 1M and 15M intents while HOME timer is not extended
+ok 58 - same symbol can get separate 1M and 15M intents while HOME timer is not extended
+  ---
+  duration_ms: 0.462178
+  type: 'test'
+  ...
+# Subtest: no event for <1% Binance, >=10 USDT, stale/future ticker
+ok 59 - no event for <1% Binance, >=10 USDT, stale/future ticker
+  ---
+  duration_ms: 2.497866
+  type: 'test'
+  ...
+# Subtest: priority +5% does not delay LONG A and operates in any lane
+ok 60 - priority +5% does not delay LONG A and operates in any lane
+  ---
+  duration_ms: 0.741893
+  type: 'test'
+  ...
+# Subtest: stale 5M context blocks 15M without conflating it with unconfirmed LONG A
+ok 61 - stale 5M context blocks 15M without conflating it with unconfirmed LONG A
+  ---
+  duration_ms: 0.49837
+  type: 'test'
+  ...
+# Subtest: each lane enforces own candle interval, idempotency and gaps
+ok 62 - each lane enforces own candle interval, idempotency and gaps
+  ---
+  duration_ms: 1.066381
+  type: 'test'
+  ...
+# Subtest: late events do not trigger delayed notifications or enter HOME
+ok 63 - late events do not trigger delayed notifications or enter HOME
+  ---
+  duration_ms: 1.725146
+  type: 'test'
+  ...
+# Subtest: parallel replay counts each TF separately and does not invent live delivery
+ok 64 - parallel replay counts each TF separately and does not invent live delivery
+  ---
+  duration_ms: 59.929507
+  type: 'test'
+  ...
+# Subtest: parallel replay requires sorted as-of tickers and independent candle chronologies
+ok 65 - parallel replay requires sorted as-of tickers and independent candle chronologies
+  ---
+  duration_ms: 1.884128
+  type: 'test'
+  ...
+# Subtest: historical replay cannot use a future ticker to claim valid evaluation
+ok 66 - historical replay cannot use a future ticker to claim valid evaluation
+  ---
+  duration_ms: 13.553638
+  type: 'test'
+  ...
+# Subtest: 15m historical Pine lower-5m uses first intrabar [1], realtime uses last intrabar [1]
+ok 67 - 15m historical Pine lower-5m uses first intrabar [1], realtime uses last intrabar [1]
+  ---
+  duration_ms: 1.758993
+  type: 'test'
+  ...
+# Subtest: 1h historical Pine lower TFs use first intrabar [1]; realtime is different
+ok 68 - 1h historical Pine lower TFs use first intrabar [1]; realtime is different
+  ---
+  duration_ms: 0.273332
+  type: 'test'
+  ...
+# Subtest: 1m context is identical for realtime and historical, when higher TFs are requested
+ok 69 - 1m context is identical for realtime and historical, when higher TFs are requested
+  ---
+  duration_ms: 0.196361
+  type: 'test'
+  ...
+# Subtest: historical lookahead mode is isolated and clearly labelled research, not a realtime claim
+ok 70 - historical lookahead mode is isolated and clearly labelled research, not a realtime claim
+  ---
+  duration_ms: 857.683846
+  type: 'test'
+  ...
+# Subtest: replay does not use a stale future/current ticker to invent LONG A
+ok 71 - replay does not use a stale future/current ticker to invent LONG A
+  ---
+  duration_ms: 6.569057
+  type: 'test'
+  ...
+# Subtest: replay demands as-of ticker chronology and historical inputs
+ok 72 - replay demands as-of ticker chronology and historical inputs
+  ---
+  duration_ms: 1.992209
+  type: 'test'
+  ...
+# Subtest: demo /api/home and /api/universe are explicitly SIMULATED and nonlive
+ok 73 - demo /api/home and /api/universe are explicitly SIMULATED and nonlive
+  ---
+  duration_ms: 51.352017
+  type: 'test'
+  ...
+# Subtest: demo has no mutation endpoint, no trading API, and serves provided 1K icon
+ok 74 - demo has no mutation endpoint, no trading API, and serves provided 1K icon
+  ---
+  duration_ms: 32.536376
+  type: 'test'
+  ...
+# Subtest: chronological, same-feed 1m/5m/15m/1h reconstruction produces a genuine synthetic LONG A
+ok 75 - chronological, same-feed 1m/5m/15m/1h reconstruction produces a genuine synthetic LONG A
+  ---
+  duration_ms: 554.126047
+  type: 'test'
+  ...
+# Subtest: chronological synthetic run at 0.99% cannot trigger LONG A
+ok 76 - chronological synthetic run at 0.99% cannot trigger LONG A
+  ---
+  duration_ms: 409.31465
+  type: 'test'
+  ...
+# Subtest: replaying twice is deterministic; another timeframe does not lengthen HOME lifetime
+ok 77 - replaying twice is deterministic; another timeframe does not lengthen HOME lifetime
+  ---
+  duration_ms: 656.597214
+  type: 'test'
+  ...
+# Subtest: true chronological state replay detects LONG A in 1m lane without manual state
+ok 78 - true chronological state replay detects LONG A in 1m lane without manual state
+  ---
+  duration_ms: 376.735056
+  type: 'test'
+  ...
+# Subtest: true chronological state replay detects LONG A in 5m lane without manual state
+ok 79 - true chronological state replay detects LONG A in 5m lane without manual state
+  ---
+  duration_ms: 322.137312
+  type: 'test'
+  ...
+# Subtest: true chronological state replay detects LONG A in 15m lane without manual state
+ok 80 - true chronological state replay detects LONG A in 15m lane without manual state
+  ---
+  duration_ms: 326.99444
+  type: 'test'
+  ...
+# Subtest: true chronological state replay detects LONG A in 1h lane without manual state
+ok 81 - true chronological state replay detects LONG A in 1h lane without manual state
+  ---
+  duration_ms: 928.638322
+  type: 'test'
+  ...
+1..81
+# tests 81
+# suites 0
+# pass 81
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4874.280793

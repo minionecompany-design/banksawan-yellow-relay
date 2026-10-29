@@ -1,0 +1,33 @@
+{
+  "checkedAtUtc": "2026-10-28T05:16:13.917996+00:00",
+  "apiStatus": {
+    "ok": true,
+    "covered": 50,
+    "eligible": 64,
+    "maxTracked": 50,
+    "tickerConnected": true,
+    "klineConnected": true,
+    "fcm": {
+      "enabled": true,
+      "attempted": 52,
+      "sent": 52,
+      "failed": 0
+    },
+    "analysisDelivery": {
+      "pending": 0,
+      "queued": 30109,
+      "deferred": 549,
+      "delivered": 30109,
+      "timedOut": 0,
+      "overflow": 0,
+      "rejected": 0
+    }
+  },
+  "sourceConfigCommit": "112023d50ad297eba36b9acd539450fc53ce2de3",
+  "deploymentId": "8ba1397d-d84d-436b-ae7d-b95c77ef79eb",
+  "deploymentStatus": "SUCCESS",
+  "stagedChanges": null,
+  "pendingWork": [],
+  "verification": "READ_ONLY_RAILWAY_MCP_AND_API_STATUS",
+  "mutationsPerformed": 0
+}

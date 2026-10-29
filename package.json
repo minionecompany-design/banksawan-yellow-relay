@@ -1,18 +1,14 @@
 {
-  "name": "banksawan-yellow-relay",
-  "version": "1.0.0",
-  "description": "BANKSAWAN YELLOW signal relay",
-  "main": "server.js",
+  "name": "banksawan-yellow-live-v6",
+  "private": true,
+  "version": "0.6.0",
+  "description": "Safe YELLOW live shadow service; legacy scanner not auto-started",
   "scripts": {
-    "start": "node server.js & node scanner.js",
-    "test": "node --test",
-    "fixtures": "node scripts/fetch-regression-fixtures.js"
+    "start": "node scanner/src/live-main.js",
+    "test": "cd scanner && npm test",
+    "test:live": "cd scanner && npm run test:live"
   },
   "engines": {
-    "node": ">=18"
-  },
-  "dependencies": {
-    "express": "^4.21.2",
-    "firebase-admin": "^13.0.2"
+    "node": ">=22"
   }
 }

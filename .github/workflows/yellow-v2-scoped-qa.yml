@@ -1,0 +1,481 @@
+name: YELLOW V2 scoped QA and approved APK release
+on:
+  push:
+    branches: [fix/yellow-v2-4tf-50-q10m-20261022, 'feat/yellow-analysis-companion-*', 'feat/yellow-home-entry-sl-tp-*', 'feat/yellow-v14-clean-home-lamps-*', 'feat/yellow-v15-entry-watch-*', 'feat/yellow-entry-v3-1m-only-*', 'feat/yellow-second-signal-1m-research-*', 'feat/yellow-v4-continuation-1m-offline-*', 'feat/yellow-v16-watch-only-1m-*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scanner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify scanner syntax
+        run: |
+          node --check scanner/src/entry-watch.js
+          node --check scanner/src/entry-readiness-v3.js
+          node --check scanner/src/second-signal-1m.js
+          node --check scanner/src/entry-continuation-v4.js
+          node --check scanner/src/second-signal-compositor-1m.js
+          node --check scanner/src/yellow-v16-watch-monitor.js
+          node --check scanner/src/entry-v4-release-gate.js
+          node --check scanner/src/forward-shadow-1m.js
+          node --check scanner/src/forward-shadow-journal.js
+          node --check scanner/scripts/collect-forward-shadow-1m.mjs
+          node --check scanner/scripts/summarize-forward-shadow-journal.mjs
+          node --check scanner/scripts/lib/forward-shadow-source.mjs
+          node --check scanner/scripts/lib/forward-shadow-subscription-budget.mjs
+          node --check scanner/scripts/lib/replay-continuation-v4.mjs
+          node --check scanner/scripts/compare-continuation-v4.mjs
+          node --check scanner/scripts/lib/replay-second-signal-1m.mjs
+          node --check scanner/scripts/compare-second-signal-1m.mjs
+          node --check scanner/scripts/lib/replay-readiness-v3.mjs
+          node --check scanner/scripts/compare-readiness-v3.mjs
+          node --check scanner/src/long-a.js
+          node --check scanner/src/live-market.js
+          node --check scanner/src/live-home-ledger.js
+          node --check scanner/src/live-fcm.js
+          node --check scanner/src/parallel-long-a.js
+          node --check scanner/src/analysis-companion.js
+          node --check scanner/src/analysis-companion-bridge.js
+          node --check scanner/src/analysis-companion-store.js
+          node --check scanner/scripts/audit-v2-api-contract.mjs
+          node --check scanner/scripts/lib/v2-api-contract.mjs
+      - name: Offline scanner regression (no Binance, Railway, FCM sends)
+        run: node --test --test-concurrency=4 scanner/test/*.test.js
+      - name: Forward shadow persistence and safety acceptance (SYNTHETIC, NO NETWORK)
+        run: |
+          node scanner/scripts/collect-forward-shadow-1m.mjs --plan
+          node scanner/scripts/prove-forward-shadow-1m.mjs "$RUNNER_TEMP/forward-shadow-evidence"
+          node scanner/scripts/summarize-forward-shadow-journal.mjs "$RUNNER_TEMP/forward-shadow-evidence/synthetic-shadow.ndjson" '' "$RUNNER_TEMP/forward-shadow-evidence/verified-wal-summary.json" > /dev/null
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';
+          const p=process.env.RUNNER_TEMP+'/forward-shadow-evidence/verified-wal-summary.json';
+          const a=JSON.parse(readFileSync(p,'utf8'));
+          assert.equal(a.journal.verified,true);
+          assert.equal(a.provenance,'SYNTHETIC_QA');
+          assert.equal(a.counts.acceptedLongA1m,1);
+          assert.equal(a.counts.observedGreenEvents,1);
+          assert.equal(a.canClaimWinRate,false);
+          assert.equal(a.releaseDecision,'NO_GO_LIVE');
+          console.log(JSON.stringify({walVerified:true,syntheticEvents:1,notRealMarket:true}));
+          NODE
+      - name: Preserve forward shadow synthetic proof (NOT market performance)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yellow-forward-shadow-synthetic-qa
+          path: ${{ runner.temp }}/forward-shadow-evidence
+          if-no-files-found: error
+          retention-days: 14
+      - name: Offline archived candle replay — ENTRY v3 LONG A 1M only
+        shell: bash
+        run: |
+          mkdir -p entry-v3-1m-evidence
+          node --max-old-space-size=2048 scanner/scripts/compare-readiness-v3.mjs docs/evidence/entry-v3-20261028/manifest.json > entry-v3-1m-evidence/replay.json
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const d=JSON.parse(readFileSync('entry-v3-1m-evidence/replay.json','utf8'));
+          assert.equal(d.productionEnabled,false);
+          assert.equal(d.summary.cases,46);
+          assert.equal(d.summary.oneMinuteCases,28);
+          assert.equal(d.summary.outOfScopeNon1m,18);
+          assert.deepEqual(d.summary.excludedByTf,{'5m':16,'15m':2});
+          const scoped=d.results.filter(x=>x.evaluationScope==='LONG_A_1M_ONLY');
+          const excluded=d.results.filter(x=>x.evaluationScope==='OUT_OF_SCOPE_NON_1M');
+          assert.equal(scoped.length,28);assert.equal(excluded.length,18);
+          assert.ok(scoped.every(x=>x.event.timeframe==='1m'&&
+             x.historicalGreen==='NOT_RECONSTRUCTED_NO_HISTORICAL_ELIGIBLE_QUOTES'));
+          assert.ok(excluded.every(x=>x.event.timeframe!=='1m'&&
+             x.candidate.confirmation===null&&x.baseline.confirmation===null&&
+             x.candidate.observation==='OUT_OF_SCOPE_NON_1M'));
+          for(const m of ['baseline','candidate'])
+            assert.equal(Object.values(d.summary.methods[m].counts).reduce((a,b)=>a+b,0),28);
+          const failures=d.results.filter(x=>x.event.timeframe==='1m'&&
+             x.candidate.paper?.status==='SL_BEFORE_TP1').length;
+          const successes=d.results.filter(x=>x.event.timeframe==='1m'&&
+             x.candidate.paper?.status==='TP1_BEFORE_SL').length;
+          const summary={source:'archived unchanged candles with SHA256 verification',
+            scope:'OFFLINE_LONG_A_1M_ONLY',cases:46,oneMinuteCases:scoped.length,
+            excludedNon1m:excluded.length,missing:d.summary.missingCases,
+            completeWatchWindows:d.summary.completeWatchWindows,
+            baseline:d.summary.methods.baseline,candidate:d.summary.methods.candidate,
+            outcomes:{slBeforeTp1:failures,tp1BeforeSl:successes},
+            warning:'NOT_A_PROSPECTIVE_WIN_RATE_OR_TRADE_EXECUTION'};
+          writeFileSync('entry-v3-1m-evidence/summary.json',JSON.stringify(summary,null,2)+'\n');
+          console.log(JSON.stringify(summary));
+          NODE
+      - name: Preserve archived 1M replay evidence for Work audit (offline, never deploy)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yellow-entry-v3-1m-research-evidence
+          path: entry-v3-1m-evidence
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Historical second-lamp replay — all archived LONG A (only 1M evaluated)
+        shell: bash
+        run: |
+          mkdir -p second-signal-1m-evidence
+          node --max-old-space-size=2048 scanner/scripts/compare-second-signal-1m.mjs docs/evidence/entry-v3-20261028/manifest.json > second-signal-1m-evidence/full-replay.json
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          const d=JSON.parse(readFileSync('second-signal-1m-evidence/full-replay.json','utf8'));
+          const q=d.summary;
+          assert.equal(q.mode,'OFFLINE_ARCHIVED_CANDLES_ONLY_NO_LIVE_ENTRY');
+          assert.equal(q.sourceCases,46);
+          assert.equal(q.oneMinuteCases,28);
+          assert.equal(q.excludedNon1m,18);
+          assert.deepEqual(q.excludedByTf,{'5m':16,'15m':2});
+          assert.equal(q.sixHourComplete+q.windowCensored,28);
+          assert.equal(q.frozen24hPercentAtASourceMissing,28);
+          assert.equal(q.colorsByClosedMinute.GREEN,0);
+          assert.equal(d.cases.filter(x=>x.scope==='LONG_A_1M_ONLY').length,28);
+          assert.equal(d.cases.filter(x=>x.scope==='OUT_OF_SCOPE_NON_1M').length,18);
+          assert.ok(d.cases.filter(x=>x.scope==='LONG_A_1M_ONLY').every(x=>
+            x.green==='NOT_RECONSTRUCTED_NO_HISTORICAL_QUOTE'));
+          assert.ok(q.redEvents>=0&&q.redEvents<=28);
+          assert.equal(q.roseTwentyPctAboveLongA,q.recordsRose20Pct.length);
+          assert.equal(q.redThenGainTenPctFromRedClose,q.recordsWithRedThen10Pct.length);
+          writeFileSync('second-signal-1m-evidence/summary.json',JSON.stringify(q,null,2)+'\n');
+          console.log(JSON.stringify(q));
+          NODE
+      - name: Preserve complete 1M second-signal evidence for Work (no LIVE deploy)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yellow-second-signal-1m-actual-candle-replay
+          path: second-signal-1m-evidence
+          if-no-files-found: warn
+          retention-days: 14
+      - name: V4 continuation vs V3 archived market candle replay (NO LIVE)
+        shell: bash
+        run: |
+          mkdir -p continuation-v4-evidence
+          node --max-old-space-size=2048 scanner/scripts/compare-continuation-v4.mjs docs/evidence/entry-v3-20261028/manifest.json > continuation-v4-evidence/v3-v4-full.json
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync} from 'node:fs';
+          import assert from 'node:assert/strict';
+          import {evaluateEntryV4Evidence} from './scanner/src/entry-v4-release-gate.js';
+          const d=JSON.parse(readFileSync('continuation-v4-evidence/v3-v4-full.json','utf8')),q=d.summary;
+          assert.equal(q.method,'V4_THREE_BAR_STAIRCASE_RESEARCH_OFFLINE');
+          assert.equal(q.cases,46);assert.equal(q.oneMinuteCases,28);
+          assert.equal(q.outOfScope,18);
+          assert.equal(q.completeWindows,15);
+          assert.equal(q.unifiedHistoricalGreenEvents,0);
+          assert.equal(q.unifiedStatusClosedMinutes.GREEN,0);
+          assert.equal(q.unifiedPriorityTransitionEvents,q.watchPriorityEvents);
+          assert.ok(q.unifiedRedEventCount>=0&&q.unifiedRedEventCount<=28);
+          assert.ok(d.records.filter(r=>r.scope==='LONG_A_1M_ONLY').every(r=>
+            r.historicalGreen==='NOT_RECONSTRUCTED_NO_HISTORICAL_QUOTE'));
+          for(const m of [q.baselineV3,q.candidateV4]){
+            assert.equal(Object.values(m.paperStatuses).reduce((a,b)=>a+b,0),28);
+            assert.ok(m.filledEvents<=m.confirmationEvents);
+          }
+          writeFileSync('continuation-v4-evidence/summary.json',JSON.stringify(q,null,2)+'\n');
+          const gate=evaluateEntryV4Evidence({archiveSummary:q});
+          assert.equal(gate.action,'NO_GO_LIVE');
+          assert.equal(gate.deploymentAuthorized,false);
+          assert.ok(gate.blockers.includes('PROSPECTIVE_COHORT_NOT_COLLECTED'));
+          writeFileSync('continuation-v4-evidence/release-gate.json',JSON.stringify(gate,null,2)+'\n');
+          console.log(JSON.stringify({archive:q,releaseGate:gate}));
+          NODE
+      - name: Preserve V3 vs V4 full cohort evidence for Work (NO LIVE)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yellow-continuation-v4-research-comparison
+          path: continuation-v4-evidence
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Android source policy contract
+        run: node --test scanner/test/v2-final-policy.test.js
+      - name: Original V2 signer and in-place upgrade policy (offline)
+        run: python3 -m unittest discover -s scripts -p 'test_verify_yellow*.py'
+  android-compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: ''
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Compile YELLOW Android candidate (NO APK distribution)
+        run: gradle -p android :app:assembleDebug --no-daemon --stacktrace
+      - name: Android behavior QA (Robolectric, no phone or real FCM)
+        run: gradle -p android :app:testDebugUnitTest --no-daemon --stacktrace
+      - name: Preserve Android test evidence (NO APK)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yellow-v2-android-unit-test-evidence
+          path: |
+            android/app/build/reports/tests/testDebugUnitTest
+            android/app/build/test-results/testDebugUnitTest
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Validate same package and planned update version
+        run: |
+          grep -q "applicationId 'id.banksawan.yellow'" android/app/build.gradle
+          grep -q 'versionCode 16' android/app/build.gradle
+          test -s android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Signing protection cannot be bypassed without permanent key
+        run: |
+          if gradle -p android :app:assembleRelease --no-daemon > "$RUNNER_TEMP/release-probe.log" 2>&1; then
+            echo 'Unsafe unsigned release accepted'; exit 1
+          fi
+          grep -q YELLOW_PERMANENT_SIGNING_REQUIRED "$RUNNER_TEMP/release-probe.log"
+
+  signed-release:
+    needs: [scanner, android-compile]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/yellow-v15-entry-watch-20261027' && contains(github.event.head_commit.message, '[yellow-release-v15]')
+    concurrency:
+      group: yellow-permanent-signed-apk
+      cancel-in-progress: false
+    name: Build permanently signed YELLOW APK; no deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      YELLOW_SOURCE_SHA: ${{ github.sha }}
+      YELLOW_API_BASE_URL: 'https://yellow-live-shadow-yc94-production.up.railway.app'
+      YELLOW_ALERTS_ENABLED: 'true'
+      YELLOW_RELEASE_SIGNING: 'true'
+      EXPECTED_FIREBASE_PROJECT_ID: ${{ secrets.YELLOW_FIREBASE_PROJECT_ID }}
+      YELLOW_FIREBASE_CONFIG_B64: ${{ secrets.YELLOW_FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}
+      YELLOW_SIGNING_KEYSTORE_B64: ${{ secrets.YELLOW_SIGNING_KEYSTORE_B64 }}
+      YELLOW_SIGNING_STORE_PASSWORD: ${{ secrets.YELLOW_SIGNING_STORE_PASSWORD }}
+      YELLOW_SIGNING_CERT_SHA256: ${{ secrets.YELLOW_SIGNING_CERT_SHA256 }}
+    steps:
+      - name: Require an exact reviewed source commit and all signing inputs
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os,re
+          if not re.fullmatch(r'[0-9a-fA-F]{40}',os.environ.get('YELLOW_SOURCE_SHA','')):
+              raise SystemExit('EXACT_SOURCE_SHA_REQUIRED')
+          for name in ['EXPECTED_FIREBASE_PROJECT_ID','YELLOW_FIREBASE_CONFIG_B64','YELLOW_SIGNING_KEYSTORE_B64','YELLOW_SIGNING_STORE_PASSWORD','YELLOW_SIGNING_CERT_SHA256']:
+              if not os.environ.get(name): raise SystemExit('MISSING_INPUT: '+name)
+          if not re.fullmatch(r'[0-9a-fA-F]{64}',os.environ['YELLOW_SIGNING_CERT_SHA256'].replace(':','').strip()):
+              raise SystemExit('INVALID_CERTIFICATE_FINGERPRINT')
+          PY
+      - name: Checkout exact source; never deploy or move a branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify source receipt and prepare protected temporary inputs
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$YELLOW_SOURCE_SHA"
+          git rev-parse HEAD > source-commit.txt
+          python3 - <<'PY'
+          import os,base64,pathlib
+          store=pathlib.Path(os.environ['RUNNER_TEMP'])/'yellow-permanent.p12'
+          store.write_bytes(base64.b64decode(os.environ['YELLOW_SIGNING_KEYSTORE_B64'],validate=True))
+          store.chmod(0o600)
+          config=pathlib.Path('android/app/google-services.json')
+          config.write_bytes(base64.b64decode(os.environ['YELLOW_FIREBASE_CONFIG_B64'],validate=True))
+          config.chmod(0o600)
+          with open(os.environ['GITHUB_ENV'],'a') as f: f.write('YELLOW_SIGNING_STORE_FILE='+str(store)+'\n')
+          PY
+          python3 scripts/verify-yellow-firebase.py android/app/google-services.json "$EXPECTED_FIREBASE_PROJECT_ID"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify private keystore matches the pinned public certificate
+        shell: bash
+        run: |
+          keytool -exportcert -keystore "$YELLOW_SIGNING_STORE_FILE" -storetype PKCS12 -alias yellow-permanent -storepass:env YELLOW_SIGNING_STORE_PASSWORD -file "$RUNNER_TEMP/yellow-public.cer"
+          python3 - <<'PY'
+          import os,pathlib,hashlib,hmac
+          digest=hashlib.sha256((pathlib.Path(os.environ['RUNNER_TEMP'])/'yellow-public.cer').read_bytes()).hexdigest()
+          expected=os.environ['YELLOW_SIGNING_CERT_SHA256'].replace(':','').strip().lower()
+          if expected != 'e01d7a096fe4c50736726baab406af91e0444d9fad462b787d17d937063e8e4f': raise SystemExit('ORIGINAL_V2_SIGNER_REQUIRED')
+          if not hmac.compare_digest(digest,expected): raise SystemExit('KEYSTORE_CERTIFICATE_MISMATCH')
+          pathlib.Path('signer-sha256.txt').write_text(digest.upper()+'\n')
+          print('YELLOW_KEYSTORE_CERTIFICATE_PASS')
+          PY
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: ''
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Build the one YELLOW release variant
+        run: gradle -p android :app:assembleRelease --no-daemon --stacktrace
+      - name: Verify LIVE, FCM, integrity, signer, version and release mode
+        shell: bash
+        run: |
+          CONFIG=android/app/build/generated/source/buildConfig/release/id/banksawan/yellow/BuildConfig.java
+          test -s "$CONFIG"
+          grep -Eq 'DEMO_MODE[[:space:]]*=[[:space:]]*false' "$CONFIG"
+          grep -Eq 'ALERTS_ENABLED[[:space:]]*=[[:space:]]*true' "$CONFIG"
+          grep -Eq 'FCM_ENABLED[[:space:]]*=[[:space:]]*true' "$CONFIG"
+          export YELLOW_APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          python3 scripts/verify-yellow-apk-signature.py android/app/build/outputs/apk/release/app-release.apk "$YELLOW_SIGNING_CERT_SHA256"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android/app/build/outputs/apk/release/app-release.apk > "$RUNNER_TEMP/yellow-release-badging.txt"
+          grep -q "package: name='id.banksawan.yellow'" "$RUNNER_TEMP/yellow-release-badging.txt"
+          if grep -q application-debuggable "$RUNNER_TEMP/yellow-release-badging.txt"; then exit 1; fi
+          python3 - <<'PY'
+          import os,pathlib,re
+          text=(pathlib.Path(os.environ['RUNNER_TEMP'])/'yellow-release-badging.txt').read_text()
+          match=re.search(r"versionCode='(\d+)'",text)
+          if not match or int(match.group(1))<=14: raise SystemExit('YELLOW_VERSION_NOT_NEWER_THAN_INSTALLED')
+          PY
+          sha256sum android/app/build/outputs/apk/release/app-release.apk > apk-sha256.txt
+      - name: Upload signed APK and public receipts only
+        uses: actions/upload-artifact@v4
+        with:
+          name: banksawan-yellow-v15-permanent-LIVE-FCM-release
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            source-commit.txt
+            apk-sha256.txt
+            signer-sha256.txt
+          if-no-files-found: error
+          retention-days: 14
+      - name: Remove temporary private key and Firebase configuration
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/yellow-permanent.p12" android/app/google-services.json
+
+  signed-release-v16:
+    needs: [scanner, android-compile]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/yellow-v16-watch-only-1m-20261028' && contains(github.event.head_commit.message, '[yellow-release-v16]')
+    concurrency:
+      group: yellow-permanent-signed-apk
+      cancel-in-progress: false
+    name: Build permanently signed YELLOW APK; no deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      YELLOW_SOURCE_SHA: ${{ github.sha }}
+      YELLOW_API_BASE_URL: 'https://yellow-live-shadow-yc94-production.up.railway.app'
+      YELLOW_ALERTS_ENABLED: 'true'
+      YELLOW_RELEASE_SIGNING: 'true'
+      EXPECTED_FIREBASE_PROJECT_ID: ${{ secrets.YELLOW_FIREBASE_PROJECT_ID }}
+      YELLOW_FIREBASE_CONFIG_B64: ${{ secrets.YELLOW_FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}
+      YELLOW_SIGNING_KEYSTORE_B64: ${{ secrets.YELLOW_SIGNING_KEYSTORE_B64 }}
+      YELLOW_SIGNING_STORE_PASSWORD: ${{ secrets.YELLOW_SIGNING_STORE_PASSWORD }}
+      YELLOW_SIGNING_CERT_SHA256: ${{ secrets.YELLOW_SIGNING_CERT_SHA256 }}
+    steps:
+      - name: Require an exact reviewed source commit and all signing inputs
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os,re
+          if not re.fullmatch(r'[0-9a-fA-F]{40}',os.environ.get('YELLOW_SOURCE_SHA','')):
+              raise SystemExit('EXACT_SOURCE_SHA_REQUIRED')
+          for name in ['EXPECTED_FIREBASE_PROJECT_ID','YELLOW_FIREBASE_CONFIG_B64','YELLOW_SIGNING_KEYSTORE_B64','YELLOW_SIGNING_STORE_PASSWORD','YELLOW_SIGNING_CERT_SHA256']:
+              if not os.environ.get(name): raise SystemExit('MISSING_INPUT: '+name)
+          if not re.fullmatch(r'[0-9a-fA-F]{64}',os.environ['YELLOW_SIGNING_CERT_SHA256'].replace(':','').strip()):
+              raise SystemExit('INVALID_CERTIFICATE_FINGERPRINT')
+          PY
+      - name: Checkout exact source; never deploy or move a branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify source receipt and prepare protected temporary inputs
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$YELLOW_SOURCE_SHA"
+          git rev-parse HEAD > source-commit.txt
+          python3 - <<'PY'
+          import os,base64,pathlib
+          store=pathlib.Path(os.environ['RUNNER_TEMP'])/'yellow-permanent.p12'
+          store.write_bytes(base64.b64decode(os.environ['YELLOW_SIGNING_KEYSTORE_B64'],validate=True))
+          store.chmod(0o600)
+          config=pathlib.Path('android/app/google-services.json')
+          config.write_bytes(base64.b64decode(os.environ['YELLOW_FIREBASE_CONFIG_B64'],validate=True))
+          config.chmod(0o600)
+          with open(os.environ['GITHUB_ENV'],'a') as f: f.write('YELLOW_SIGNING_STORE_FILE='+str(store)+'\n')
+          PY
+          python3 scripts/verify-yellow-firebase.py android/app/google-services.json "$EXPECTED_FIREBASE_PROJECT_ID"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify private keystore matches the pinned public certificate
+        shell: bash
+        run: |
+          keytool -exportcert -keystore "$YELLOW_SIGNING_STORE_FILE" -storetype PKCS12 -alias yellow-permanent -storepass:env YELLOW_SIGNING_STORE_PASSWORD -file "$RUNNER_TEMP/yellow-public.cer"
+          python3 - <<'PY'
+          import os,pathlib,hashlib,hmac
+          digest=hashlib.sha256((pathlib.Path(os.environ['RUNNER_TEMP'])/'yellow-public.cer').read_bytes()).hexdigest()
+          expected=os.environ['YELLOW_SIGNING_CERT_SHA256'].replace(':','').strip().lower()
+          if expected != 'e01d7a096fe4c50736726baab406af91e0444d9fad462b787d17d937063e8e4f': raise SystemExit('ORIGINAL_V2_SIGNER_REQUIRED')
+          if not hmac.compare_digest(digest,expected): raise SystemExit('KEYSTORE_CERTIFICATE_MISMATCH')
+          pathlib.Path('signer-sha256.txt').write_text(digest.upper()+'\n')
+          print('YELLOW_KEYSTORE_CERTIFICATE_PASS')
+          PY
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: ''
+      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Ensure exact V16 watch-only build and retain four TF LONG A
+        shell: bash
+        run: |
+          grep -q "versionCode 16" android/app/build.gradle
+          grep -q "versionName '0.16.0-v2-watch-only-1m'" android/app/build.gradle
+          grep -q "applicationId 'id.banksawan.yellow'" android/app/build.gradle
+          grep -q "YELLOW_V16_WATCH_ONLY_ENABLED" scanner/src/live-main.js
+          grep -q "entryAllowed:false" scanner/src/yellow-v16-watch-monitor.js
+          test -f scanner/src/parallel-long-a.js
+          test -f scanner/src/pine-v13-one-minute.js
+      - name: Build the one YELLOW release variant
+        run: gradle -p android :app:assembleRelease --no-daemon --stacktrace
+      - name: Verify LIVE, FCM, integrity, signer, version and release mode
+        shell: bash
+        run: |
+          CONFIG=android/app/build/generated/source/buildConfig/release/id/banksawan/yellow/BuildConfig.java
+          test -s "$CONFIG"
+          grep -Eq 'DEMO_MODE[[:space:]]*=[[:space:]]*false' "$CONFIG"
+          grep -Eq 'ALERTS_ENABLED[[:space:]]*=[[:space:]]*true' "$CONFIG"
+          grep -Eq 'FCM_ENABLED[[:space:]]*=[[:space:]]*true' "$CONFIG"
+          export YELLOW_APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          python3 scripts/verify-yellow-apk-signature.py android/app/build/outputs/apk/release/app-release.apk "$YELLOW_SIGNING_CERT_SHA256"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android/app/build/outputs/apk/release/app-release.apk > "$RUNNER_TEMP/yellow-release-badging.txt"
+          grep -q "package: name='id.banksawan.yellow'" "$RUNNER_TEMP/yellow-release-badging.txt"
+          if grep -q application-debuggable "$RUNNER_TEMP/yellow-release-badging.txt"; then exit 1; fi
+          python3 - <<'PY'
+          import os,pathlib,re
+          text=(pathlib.Path(os.environ['RUNNER_TEMP'])/'yellow-release-badging.txt').read_text()
+          match=re.search(r"versionCode='(\d+)'",text)
+          if not match or int(match.group(1))!=16: raise SystemExit('V16_EXACT_VERSION_REQUIRED')
+          PY
+          sha256sum android/app/build/outputs/apk/release/app-release.apk > apk-sha256.txt
+      - name: Upload signed APK and public receipts only
+        uses: actions/upload-artifact@v4
+        with:
+          name: banksawan-yellow-v16-permanent-LIVE-FCM-release
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            source-commit.txt
+            apk-sha256.txt
+            signer-sha256.txt
+          if-no-files-found: error
+          retention-days: 14
+      - name: Remove temporary private key and Firebase configuration
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/yellow-permanent.p12" android/app/google-services.json

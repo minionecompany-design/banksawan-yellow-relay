@@ -1,0 +1,78 @@
+name: YELLOW 1M forward-shadow one-shot pilot (NO LIVE WRITES)
+on:
+  push:
+    branches:
+      - feat/yellow-v4-continuation-1m-offline-20261028
+    paths:
+      - .github/workflows/yellow-forward-shadow-pilot.yml
+permissions:
+  contents: read
+jobs:
+  passive-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reject any production repository or incorrect source pin
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = 'feat/yellow-v4-continuation-1m-offline-20261028'
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain -- scanner)"
+          node --check scanner/scripts/collect-forward-shadow-1m.mjs
+          node scanner/scripts/collect-forward-shadow-1m.mjs --plan
+      - name: Passive public-feed observation, bounded to 4.2 minutes
+        id: collect
+        shell: bash
+        env:
+          SHADOW_DIR: ${{ runner.temp }}/yellow-forward-pilot
+        run: |
+          set -euo pipefail
+          mkdir -p "$SHADOW_DIR"
+          # Only the two allowlisted read-only production GETs and Binance public market WS.
+          # No account API keys, no trades, no APK, no Railway writes, no FCM.
+          node scanner/scripts/collect-forward-shadow-1m.mjs --collect "$SHADOW_DIR" "$GITHUB_SHA" 0.07 \
+            2>&1 | tee "$SHADOW_DIR/operator.log"
+      - name: Record pilot outcome, including failures or zero genuine LONG A
+        if: always()
+        shell: bash
+        env:
+          SHADOW_DIR: ${{ runner.temp }}/yellow-forward-pilot
+        run: |
+          mkdir -p "$SHADOW_DIR"
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync,existsSync} from 'node:fs';
+          const path=process.env.SHADOW_DIR+'/forward-receipt.json';
+          let details=null;
+          if(existsSync(path))try{details=JSON.parse(readFileSync(path,'utf8'));}catch(e){details={parseError:e.message};}
+          const facts={
+            kind:'EPHEMERAL_PROSPECTIVE_CONNECTIVITY_PILOT_NOT_ENTRY_CERTIFICATION',
+            sourceCommit:process.env.GITHUB_SHA,
+            releaseDecision:'NO_GO_LIVE',
+            productionWrites:0,
+            notificationsSent:0,
+            receiptExists:existsSync(path),
+            recordedEvents:details?.report?.cohortEvents??null,
+            completeSixHourEvents:details?.report?.completeSixHourEvents??null,
+            failed:details?.failed??null,
+            limitations:['4.2_MINUTES_CANNOT_PROVE_SIX_HOUR_COVERAGE',
+              'RUNNER_STORAGE_EPHEMERAL_ONLY',
+              'NOT_A_CONTINUOUS_24H_HOST',
+              'PUBLIC_FEED_NETWORK_ACCESS_NOT_GUARANTEED']
+          };
+          writeFileSync(process.env.SHADOW_DIR+'/pilot-result.json',JSON.stringify(facts,null,2)+'\n');
+          console.log(JSON.stringify(facts));
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: yellow-forward-shadow-pilot-readonly
+          path: ${{ runner.temp }}/yellow-forward-pilot/
+          if-no-files-found: error
+          retention-days: 14

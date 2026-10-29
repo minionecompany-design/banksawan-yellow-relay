@@ -1,0 +1,1720 @@
+{
+  "status": {
+    "ok": true,
+    "mode": "LIVE_SHADOW",
+    "exchange": "BINANCE_USDM_PERPETUAL",
+    "tickerConnected": true,
+    "klineConnected": true,
+    "eligible": 49,
+    "covered": 48,
+    "allocatedScanSlots": 50,
+    "bootstrapInProgress": 0,
+    "coverageRatio": 0.9795918367346939,
+    "feedGeneration": 0,
+    "wsRecovering": false,
+    "wsRecoveryAttempts": 0,
+    "maxTracked": 50,
+    "cooldownSymbols": 0,
+    "eventsEmitted": 0,
+    "lastClosedCandleMs": 1793071800000,
+    "coverageComplete": false,
+    "uncoveredEligible": 1,
+    "laneRecovery": [
+      {
+        "symbol": "QUSDT",
+        "resumed": [],
+        "cold": [
+          "1m",
+          "5m",
+          "15m",
+          "1h"
+        ]
+      },
+      {
+        "symbol": "DOODUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "BULLAUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "JCTUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "TAGUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "SYNUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "BANKUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "SOONUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "CHIPUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "USUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "KATUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "PARTIUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "GRVTUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "BEATUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "LIGHTUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "PLAYUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "LABUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "BEAMXUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "GTCUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "ARIAUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "TOSHIUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "INUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "BIRBUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "INITUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "IOSTUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "TREEUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "ETHFIUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "WUSDT",
+        "resumed": [],
+        "cold": [
+          "1m",
+          "5m",
+          "15m",
+          "1h"
+        ]
+      },
+      {
+        "symbol": "BRUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "TRUMPUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "STRKUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "FARTCOINUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "UNIUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "PHAUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "INJUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "ENAUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "JTOUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "SANDUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "CTUSDT",
+        "resumed": [],
+        "cold": [
+          "1m",
+          "5m",
+          "15m",
+          "1h"
+        ]
+      },
+      {
+        "symbol": "POLUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "PONSUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "XRPUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "DOGEUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "ERAUSDT",
+        "resumed": [
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m",
+          "1h"
+        ]
+      },
+      {
+        "symbol": "BABYUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "AINUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "AGTUSDT",
+        "resumed": [
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m",
+          "1h"
+        ]
+      },
+      {
+        "symbol": "ETCUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "ALTUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      },
+      {
+        "symbol": "ONDOUSDT",
+        "resumed": [
+          "1h",
+          "1m"
+        ],
+        "cold": [
+          "5m",
+          "15m"
+        ]
+      }
+    ],
+    "pineOneMinute": [
+      {
+        "symbol": "QUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1793017680000
+      },
+      {
+        "symbol": "DOODUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792940220000
+      },
+      {
+        "symbol": "BULLAUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792801560000
+      },
+      {
+        "symbol": "JCTUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792799280000
+      },
+      {
+        "symbol": "TAGUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792864080000
+      },
+      {
+        "symbol": "SYNUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1793015580000
+      },
+      {
+        "symbol": "BANKUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792963560000
+      },
+      {
+        "symbol": "SOONUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792959780000
+      },
+      {
+        "symbol": "CHIPUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792824300000
+      },
+      {
+        "symbol": "USUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792997820000
+      },
+      {
+        "symbol": "KATUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792955100000
+      },
+      {
+        "symbol": "PARTIUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792982940000
+      },
+      {
+        "symbol": "GRVTUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792991640000
+      },
+      {
+        "symbol": "BEATUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792976220000
+      },
+      {
+        "symbol": "LIGHTUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792951080000
+      },
+      {
+        "symbol": "PLAYUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792962060000
+      },
+      {
+        "symbol": "LABUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1793040060000
+      },
+      {
+        "symbol": "BEAMXUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792947540000
+      },
+      {
+        "symbol": "GTCUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1793015760000
+      },
+      {
+        "symbol": "ARIAUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792818360000
+      },
+      {
+        "symbol": "TOSHIUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1793031060000
+      },
+      {
+        "symbol": "INUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792967160000
+      },
+      {
+        "symbol": "BIRBUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1793015820000
+      },
+      {
+        "symbol": "INITUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792801560000
+      },
+      {
+        "symbol": "IOSTUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792835160000
+      },
+      {
+        "symbol": "TREEUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792969860000
+      },
+      {
+        "symbol": "ETHFIUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792899360000
+      },
+      {
+        "symbol": "WUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1793048760000
+      },
+      {
+        "symbol": "BRUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792909620000
+      },
+      {
+        "symbol": "TRUMPUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792962360000
+      },
+      {
+        "symbol": "STRKUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792978260000
+      },
+      {
+        "symbol": "FARTCOINUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792897560000
+      },
+      {
+        "symbol": "UNIUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792897560000
+      },
+      {
+        "symbol": "PHAUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792905960000
+      },
+      {
+        "symbol": "INJUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792835220000
+      },
+      {
+        "symbol": "ENAUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792860300000
+      },
+      {
+        "symbol": "JTOUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792977660000
+      },
+      {
+        "symbol": "SANDUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1793002140000
+      },
+      {
+        "symbol": "CTUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1793018760000
+      },
+      {
+        "symbol": "POLUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792977660000
+      },
+      {
+        "symbol": "PONSUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792896360000
+      },
+      {
+        "symbol": "XRPUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1793021760000
+      },
+      {
+        "symbol": "DOGEUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1793021760000
+      },
+      {
+        "symbol": "ERAUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792909800000
+      },
+      {
+        "symbol": "BABYUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792889760000
+      },
+      {
+        "symbol": "AINUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792969860000
+      },
+      {
+        "symbol": "AGTUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792972260000
+      },
+      {
+        "symbol": "ETCUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1793001960000
+      },
+      {
+        "symbol": "ALTUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792950600000
+      },
+      {
+        "symbol": "ONDOUSDT",
+        "synchronized": true,
+        "anchorEndMs": 1792906560000
+      }
+    ],
+    "requestGuard": {
+      "calls": 211,
+      "weight": 650,
+      "statusCounts": {
+        "200": 211
+      },
+      "circuitOpen": false,
+      "circuitReason": null,
+      "remotePaused": false,
+      "remotePauseUntilMs": 1793071767898,
+      "remoteLastObservedWeight": 22,
+      "remotePauses": 3
+    },
+    "fcm": {
+      "enabled": true,
+      "attempted": 0,
+      "sent": 0,
+      "failed": 0
+    },
+    "researchEvidence": {
+      "enabled": true,
+      "initialized": true,
+      "accepted": 0,
+      "updated": 1,
+      "persisted": 1,
+      "rejected": 0,
+      "storageFailures": 0,
+      "lastFault": null,
+      "pendingRecords": 240
+    },
+    "haltReason": "",
+    "analysisCompanion": {
+      "enabled": true,
+      "initialized": true,
+      "method": "YELLOW_COMPANION_V1",
+      "pendingJobs": 0,
+      "retainedRecords": 0,
+      "captured": 0,
+      "duplicates": 0,
+      "rejected": 0,
+      "droppedJobs": 0,
+      "evicted": 0,
+      "persisted": 0,
+      "failures": 0,
+      "lastFault": null
+    },
+    "lastTickerDataAtMs": 1793071815260,
+    "lastKlineDataAtMs": 1793071815558,
+    "lastFaults": [
+      {
+        "at": 1793070772296,
+        "reason": "STARTUP_REST_DEFERRED"
+      },
+      {
+        "at": 1793071061915,
+        "reason": "BOOTSTRAP_REST_DEFERRED_GTCUSDT"
+      },
+      {
+        "at": 1793071080133,
+        "reason": "SAFE_REBOOTSTRAP_AINUSDT_PENDING_CANDLE_TIMEOUT_1m"
+      },
+      {
+        "at": 1793071677900,
+        "reason": "BOOTSTRAP_REST_DEFERRED_ETCUSDT"
+      }
+    ]
+  },
+  "universe": {
+    "universe": [
+      {
+        "symbol": "QUSDT",
+        "price": 0.213964,
+        "binance24hChangePct": 295.256,
+        "quoteVolume24h": 748094134.842525,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071815216,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "AINUSDT",
+        "price": 0.07278,
+        "binance24hChangePct": 90.823,
+        "quoteVolume24h": 106340158.69632,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071815193,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "DOODUSDT",
+        "price": 0.002451,
+        "binance24hChangePct": 75.825,
+        "quoteVolume24h": 483362810.8641225,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071815206,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "BULLAUSDT",
+        "price": 0.15091,
+        "binance24hChangePct": 65.562,
+        "quoteVolume24h": 262966268.912669,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071815039,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "TAGUSDT",
+        "price": 0.000726,
+        "binance24hChangePct": 48.527,
+        "quoteVolume24h": 34086414.2527872,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071815209,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "JCTUSDT",
+        "price": 0.007706,
+        "binance24hChangePct": 47.061,
+        "quoteVolume24h": 266370822.918858,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071815185,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "SYNUSDT",
+        "price": 0.19377,
+        "binance24hChangePct": 22.337,
+        "quoteVolume24h": 14481051.93059,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071814400,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "USUSDT",
+        "price": 0.005511,
+        "binance24hChangePct": 21.871,
+        "quoteVolume24h": 23356958.812963,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071815133,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "BANKUSDT",
+        "price": 0.02745,
+        "binance24hChangePct": 17.66,
+        "quoteVolume24h": 72283922.59272,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071815006,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "CHIPUSDT",
+        "price": 0.0508,
+        "binance24hChangePct": 17.105,
+        "quoteVolume24h": 75120888.72829,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071814910,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "LIGHTUSDT",
+        "price": 0.2725,
+        "binance24hChangePct": 16.205,
+        "quoteVolume24h": 23070850.0058,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071814735,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "SOONUSDT",
+        "price": 0.3087,
+        "binance24hChangePct": 15.531,
+        "quoteVolume24h": 28824730.4818,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071805742,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "PARTIUSDT",
+        "price": 0.03816,
+        "binance24hChangePct": 14.905,
+        "quoteVolume24h": 13415506.91286,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071814593,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "GRVTUSDT",
+        "price": 0.2098,
+        "binance24hChangePct": 14.332,
+        "quoteVolume24h": 10469320.2043,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071812759,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "KATUSDT",
+        "price": 0.004524,
+        "binance24hChangePct": 14.07,
+        "quoteVolume24h": 43826328.24006,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071812805,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "BEATUSDT",
+        "price": 0.07464,
+        "binance24hChangePct": 13.677,
+        "quoteVolume24h": 41212362.39677,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071812566,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "PLAYUSDT",
+        "price": 0.01677,
+        "binance24hChangePct": 10.256,
+        "quoteVolume24h": 12351648.42468,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071810839,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "LABUSDT",
+        "price": 0.04072,
+        "binance24hChangePct": 10.203,
+        "quoteVolume24h": 11282190.69008,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071815054,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "BEAMXUSDT",
+        "price": 0.003304,
+        "binance24hChangePct": 9.223,
+        "quoteVolume24h": 19898175.085311,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071811964,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "ARIAUSDT",
+        "price": 0.08716,
+        "binance24hChangePct": 8.597,
+        "quoteVolume24h": 88523873.22399,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071814993,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "INUSDT",
+        "price": 0.02958,
+        "binance24hChangePct": 7.956,
+        "quoteVolume24h": 11539618.76543,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071810356,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "TOSHIUSDT",
+        "price": 0.0001121,
+        "binance24hChangePct": 7.685,
+        "quoteVolume24h": 10230038.9000258,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071811596,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "BIRBUSDT",
+        "price": 0.07563,
+        "binance24hChangePct": 7.475,
+        "quoteVolume24h": 41176265.80612,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071813359,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "INITUSDT",
+        "price": 0.1529,
+        "binance24hChangePct": 7.298,
+        "quoteVolume24h": 16712293.05618,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071814927,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "GTCUSDT",
+        "price": 0.24172,
+        "binance24hChangePct": 6.772,
+        "quoteVolume24h": 23380804.550486,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071813828,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "IOSTUSDT",
+        "price": 0.0008014,
+        "binance24hChangePct": 6.047,
+        "quoteVolume24h": 21909493.1902679,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071814347,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "TREEUSDT",
+        "price": 0.0376,
+        "binance24hChangePct": 5.204,
+        "quoteVolume24h": 11001014.53394,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071810001,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "ETHFIUSDT",
+        "price": 0.6439,
+        "binance24hChangePct": 5.024,
+        "quoteVolume24h": 22978001.39853,
+        "priority": "HIGH",
+        "tickerObservedAtMs": 1793071814210,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "WUSDT",
+        "price": 0.012242,
+        "binance24hChangePct": 4.472,
+        "quoteVolume24h": 10698221.2478052,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071811687,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "TRUMPUSDT",
+        "price": 1.688,
+        "binance24hChangePct": 3.686,
+        "quoteVolume24h": 55817988.95485,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071814729,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "STRKUSDT",
+        "price": 0.04629,
+        "binance24hChangePct": 3.349,
+        "quoteVolume24h": 52075823.406911,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071812175,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "BRUSDT",
+        "price": 0.5011,
+        "binance24hChangePct": 3.341,
+        "quoteVolume24h": 35621656.97118,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071813337,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "FARTCOINUSDT",
+        "price": 0.1273,
+        "binance24hChangePct": 3.077,
+        "quoteVolume24h": 19757018.69595,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071811678,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "UNIUSDT",
+        "price": 7.016,
+        "binance24hChangePct": 2.738,
+        "quoteVolume24h": 137893807.511,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071811693,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "INJUSDT",
+        "price": 7.861,
+        "binance24hChangePct": 2.544,
+        "quoteVolume24h": 69679165.4123,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071814276,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "ENAUSDT",
+        "price": 0.20698,
+        "binance24hChangePct": 2.096,
+        "quoteVolume24h": 313770532.71003,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071814741,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "JTOUSDT",
+        "price": 0.4252,
+        "binance24hChangePct": 2.089,
+        "quoteVolume24h": 10758390.1021,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071811951,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "PHAUSDT",
+        "price": 0.0491,
+        "binance24hChangePct": 1.973,
+        "quoteVolume24h": 15037924.86436,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071812287,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "PONSUSDT",
+        "price": 0.2391,
+        "binance24hChangePct": 1.831,
+        "quoteVolume24h": 20775256.6677,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071811692,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "AGTUSDT",
+        "price": 0.05912,
+        "binance24hChangePct": 1.808,
+        "quoteVolume24h": 29456915.331702,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071815206,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "BABYUSDT",
+        "price": 0.0139,
+        "binance24hChangePct": 1.757,
+        "quoteVolume24h": 27548110.37972,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071812907,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "POLUSDT",
+        "price": 0.08972,
+        "binance24hChangePct": 1.562,
+        "quoteVolume24h": 11719376.55625,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071814204,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "SANDUSDT",
+        "price": 0.04769,
+        "binance24hChangePct": 1.403,
+        "quoteVolume24h": 19101704.73264,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071815045,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "XRPUSDT",
+        "price": 1.2979,
+        "binance24hChangePct": 1.367,
+        "quoteVolume24h": 517785219.6046,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071813788,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "DOGEUSDT",
+        "price": 0.07734,
+        "binance24hChangePct": 1.323,
+        "quoteVolume24h": 209803045.72886,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071811686,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "ETCUSDT",
+        "price": 7.52,
+        "binance24hChangePct": 1.184,
+        "quoteVolume24h": 18117039.652,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071806444,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "ALTUSDT",
+        "price": 0.006365,
+        "binance24hChangePct": 1.048,
+        "quoteVolume24h": 14056976.584218,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071814138,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "ONDOUSDT",
+        "price": 0.406,
+        "binance24hChangePct": 1.02,
+        "quoteVolume24h": 64332423.04394,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071814723,
+        "stale": false,
+        "coverage": "SCANNING"
+      },
+      {
+        "symbol": "1000PEPEUSDT",
+        "price": 0.0043034,
+        "binance24hChangePct": 1.009,
+        "quoteVolume24h": 254116268.9149228,
+        "priority": "STANDARD",
+        "tickerObservedAtMs": 1793071813484,
+        "stale": false,
+        "coverage": "QUEUED"
+      }
+    ],
+    "simulation": false,
+    "mode": "LIVE_SHADOW",
+    "generatedAtMs": 1793071815597,
+    "lastTickerDataAtMs": 1793071815260,
+    "coverage": {
+      "covered": 48,
+      "eligible": 49,
+      "maxTracked": 50,
+      "allocatedScanSlots": 50
+    }
+  },
+  "home": {
+    "home": [
+      {
+        "id": "SOONUSDT:1m:1793068980000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "SOONUSDT",
+        "timeframe": "1m",
+        "price": 0.3089,
+        "binance24hChangePct": 11.315,
+        "quoteVolume24h": 29831029.9565,
+        "priority": "HIGH",
+        "barClosedAtMs": 1793068980000,
+        "detectedAtMs": 1793068981083,
+        "expiresAtMs": 1793069280000,
+        "firstSeenMs": 1793068981083,
+        "homeExpiresMs": 1793104981083,
+        "analysisCaptured": false
+      },
+      {
+        "id": "ETHFIUSDT:5m:1793059500000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "ETHFIUSDT",
+        "timeframe": "5m",
+        "price": 0.6538,
+        "binance24hChangePct": 4.591,
+        "quoteVolume24h": 23903884.70505,
+        "priority": "STANDARD",
+        "barClosedAtMs": 1793059500000,
+        "detectedAtMs": 1793059503154,
+        "expiresAtMs": 1793059800000,
+        "firstSeenMs": 1793059503154,
+        "homeExpiresMs": 1793095503154,
+        "analysisCaptured": false
+      },
+      {
+        "id": "1000XECUSDT:15m:1793057400000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "1000XECUSDT",
+        "timeframe": "15m",
+        "price": 0.00707,
+        "binance24hChangePct": 7.137,
+        "quoteVolume24h": 10771760.65803,
+        "priority": "HIGH",
+        "barClosedAtMs": 1793057400000,
+        "detectedAtMs": 1793057400622,
+        "expiresAtMs": 1793057700000,
+        "firstSeenMs": 1793057400622,
+        "homeExpiresMs": 1793093400622,
+        "analysisCaptured": false
+      },
+      {
+        "id": "PLAYUSDT:1m:1793057340000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "PLAYUSDT",
+        "timeframe": "1m",
+        "price": 0.01681,
+        "binance24hChangePct": 11.769,
+        "quoteVolume24h": 11711406.45746,
+        "priority": "HIGH",
+        "barClosedAtMs": 1793057340000,
+        "detectedAtMs": 1793057340296,
+        "expiresAtMs": 1793057640000,
+        "firstSeenMs": 1793057340296,
+        "homeExpiresMs": 1793093340296,
+        "analysisCaptured": false
+      },
+      {
+        "id": "AINUSDT:1m:1793053140000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "AINUSDT",
+        "timeframe": "1m",
+        "price": 0.07383,
+        "binance24hChangePct": 93.983,
+        "quoteVolume24h": 82061076.23056,
+        "priority": "HIGH",
+        "barClosedAtMs": 1793053140000,
+        "detectedAtMs": 1793053140059,
+        "expiresAtMs": 1793053440000,
+        "firstSeenMs": 1793053140059,
+        "homeExpiresMs": 1793089140059,
+        "analysisCaptured": false
+      },
+      {
+        "id": "PARTIUSDT:1m:1793046960000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "PARTIUSDT",
+        "timeframe": "1m",
+        "price": 0.03804,
+        "binance24hChangePct": 15.483,
+        "quoteVolume24h": 11203352.03853,
+        "priority": "HIGH",
+        "barClosedAtMs": 1793046960000,
+        "detectedAtMs": 1793046961516,
+        "expiresAtMs": 1793047260000,
+        "firstSeenMs": 1793046961516,
+        "homeExpiresMs": 1793082961516,
+        "analysisCaptured": false
+      },
+      {
+        "id": "BEATUSDT:1m:1793041620000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "BEATUSDT",
+        "timeframe": "1m",
+        "price": 0.08098,
+        "binance24hChangePct": 21.446,
+        "quoteVolume24h": 34605949.44045,
+        "priority": "HIGH",
+        "barClosedAtMs": 1793041620000,
+        "detectedAtMs": 1793041620343,
+        "expiresAtMs": 1793041920000,
+        "firstSeenMs": 1793041620343,
+        "homeExpiresMs": 1793077620343,
+        "analysisCaptured": false
+      },
+      {
+        "id": "AINUSDT:5m:1793040000000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "AINUSDT",
+        "timeframe": "5m",
+        "price": 0.05211,
+        "binance24hChangePct": 36.951,
+        "quoteVolume24h": 55206488.98046,
+        "priority": "HIGH",
+        "barClosedAtMs": 1793040000000,
+        "detectedAtMs": 1793040000265,
+        "expiresAtMs": 1793040300000,
+        "firstSeenMs": 1793040000265,
+        "homeExpiresMs": 1793076000265,
+        "analysisCaptured": false
+      },
+      {
+        "id": "PONSUSDT:1m:1793038020000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "PONSUSDT",
+        "timeframe": "1m",
+        "price": 0.2506,
+        "binance24hChangePct": 3.426,
+        "quoteVolume24h": 22425258.415,
+        "priority": "STANDARD",
+        "barClosedAtMs": 1793038020000,
+        "detectedAtMs": 1793038020133,
+        "expiresAtMs": 1793038320000,
+        "firstSeenMs": 1793038020133,
+        "homeExpiresMs": 1793074020133,
+        "analysisCaptured": false
+      },
+      {
+        "id": "TRUMPUSDT:5m:1793037900000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "TRUMPUSDT",
+        "timeframe": "5m",
+        "price": 1.704,
+        "binance24hChangePct": 2.097,
+        "quoteVolume24h": 57348902.88339,
+        "priority": "STANDARD",
+        "barClosedAtMs": 1793037900000,
+        "detectedAtMs": 1793037900907,
+        "expiresAtMs": 1793038200000,
+        "firstSeenMs": 1793037900907,
+        "homeExpiresMs": 1793073900907,
+        "analysisCaptured": false
+      },
+      {
+        "id": "RENDERUSDT:5m:1793037600000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "RENDERUSDT",
+        "timeframe": "5m",
+        "price": 1.738,
+        "binance24hChangePct": 1.047,
+        "quoteVolume24h": 19739521.4209,
+        "priority": "STANDARD",
+        "barClosedAtMs": 1793037600000,
+        "detectedAtMs": 1793037600414,
+        "expiresAtMs": 1793037900000,
+        "firstSeenMs": 1793037600414,
+        "homeExpiresMs": 1793073600414,
+        "analysisCaptured": false
+      },
+      {
+        "id": "ONDOUSDT:1m:1793037480000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "ONDOUSDT",
+        "timeframe": "1m",
+        "price": 0.4179,
+        "binance24hChangePct": 1.605,
+        "quoteVolume24h": 65968957.35609,
+        "priority": "STANDARD",
+        "barClosedAtMs": 1793037480000,
+        "detectedAtMs": 1793037481980,
+        "expiresAtMs": 1793037780000,
+        "firstSeenMs": 1793037481980,
+        "homeExpiresMs": 1793073481980,
+        "analysisCaptured": false
+      },
+      {
+        "id": "UNIUSDT:1m:1793037480000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "UNIUSDT",
+        "timeframe": "1m",
+        "price": 7.118,
+        "binance24hChangePct": 2.476,
+        "quoteVolume24h": 151791880.763,
+        "priority": "STANDARD",
+        "barClosedAtMs": 1793037480000,
+        "detectedAtMs": 1793037480826,
+        "expiresAtMs": 1793037780000,
+        "firstSeenMs": 1793037480826,
+        "homeExpiresMs": 1793073480826,
+        "analysisCaptured": false
+      },
+      {
+        "id": "POLUSDT:1m:1793037480000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "POLUSDT",
+        "timeframe": "1m",
+        "price": 0.09125,
+        "binance24hChangePct": 1.547,
+        "quoteVolume24h": 11461663.71479,
+        "priority": "STANDARD",
+        "barClosedAtMs": 1793037480000,
+        "detectedAtMs": 1793037480577,
+        "expiresAtMs": 1793037780000,
+        "firstSeenMs": 1793037480577,
+        "homeExpiresMs": 1793073480577,
+        "analysisCaptured": false
+      },
+      {
+        "id": "INJUSDT:1m:1793036520000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "INJUSDT",
+        "timeframe": "1m",
+        "price": 7.963,
+        "binance24hChangePct": 1.53,
+        "quoteVolume24h": 90944816.967,
+        "priority": "STANDARD",
+        "barClosedAtMs": 1793036520000,
+        "detectedAtMs": 1793036520250,
+        "expiresAtMs": 1793036820000,
+        "firstSeenMs": 1793036520250,
+        "homeExpiresMs": 1793072520250,
+        "analysisCaptured": false
+      },
+      {
+        "id": "RENDERUSDT:1m:1793036460000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "RENDERUSDT",
+        "timeframe": "1m",
+        "price": 1.74,
+        "binance24hChangePct": 1.754,
+        "quoteVolume24h": 19654888.6026,
+        "priority": "STANDARD",
+        "barClosedAtMs": 1793036460000,
+        "detectedAtMs": 1793036463050,
+        "expiresAtMs": 1793036760000,
+        "firstSeenMs": 1793036463050,
+        "homeExpiresMs": 1793072463050,
+        "analysisCaptured": false
+      },
+      {
+        "id": "ASTERUSDT:1m:1793036220000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "ASTERUSDT",
+        "timeframe": "1m",
+        "price": 0.7169,
+        "binance24hChangePct": 2.268,
+        "quoteVolume24h": 27334153.5223,
+        "priority": "STANDARD",
+        "barClosedAtMs": 1793036220000,
+        "detectedAtMs": 1793036221669,
+        "expiresAtMs": 1793036520000,
+        "firstSeenMs": 1793036221669,
+        "homeExpiresMs": 1793072221669,
+        "analysisCaptured": false
+      },
+      {
+        "id": "ETHFIUSDT:1m:1793036160000:LONG_A",
+        "signal": "LONG_A",
+        "symbol": "ETHFIUSDT",
+        "timeframe": "1m",
+        "price": 0.6527,
+        "binance24hChangePct": 3.406,
+        "quoteVolume24h": 23617451.01253,
+        "priority": "STANDARD",
+        "barClosedAtMs": 1793036160000,
+        "detectedAtMs": 1793036160180,
+        "expiresAtMs": 1793036460000,
+        "firstSeenMs": 1793036160180,
+        "homeExpiresMs": 1793072160180,
+        "analysisCaptured": false
+      }
+    ],
+    "simulation": false,
+    "mode": "LIVE_SHADOW",
+    "analysisAvailable": true
+  },
+  "events": {
+    "events": [],
+    "simulation": false,
+    "mode": "LIVE_SHADOW"
+  },
+  "health": {
+    "ok": true,
+    "mode": "LIVE_SHADOW",
+    "circuitOpen": false
+  },
+  "analysisSummary": {
+    "summary": {
+      "sampleSize": 0,
+      "counts": {},
+      "tp1BeforeSlRate": null,
+      "decisiveSampleSize": 0,
+      "pricedExitSampleSize": 0,
+      "meanNetReturnPct": null,
+      "ambiguousExcluded": 0,
+      "simulation": true,
+      "interpretation": "TP1_VS_SL_PAPER_ONLY_NOT_LIVE_WIN_RATE",
+      "retentionHours": 24,
+      "capacity": 500,
+      "evicted": 0,
+      "rejected": 0,
+      "droppedJobs": 0
+    },
+    "simulation": false,
+    "mode": "LIVE_SHADOW"
+  },
+  "capturedAtMs": 1793071815764
+}

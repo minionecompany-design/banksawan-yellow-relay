@@ -1,0 +1,110 @@
+[
+  {
+    "barEndMs": 1793064900000,
+    "bar": {
+      "endMs": 1793064900000,
+      "open": 0.06351,
+      "high": 0.06422,
+      "low": 0.06279,
+      "close": 0.06419,
+      "volume": 1576900,
+      "quoteVolume": 100337.44216,
+      "trades": 3881,
+      "takerBuyBase": 933193,
+      "takerBuyQuote": 59376.30857
+    },
+    "state": "PULLBACK",
+    "reason": "MENUNGGU_KONFIRMASI_PULIH",
+    "observedLow": 0.0608,
+    "lowAtMs": 1793064600000,
+    "previous3High": 0.0644,
+    "ma7": 0.06370142857142858,
+    "relativeVolume": 0.6833651780610699,
+    "hypotheticalStop": 0.06046061564683181,
+    "hypotheticalRiskPct": 5.809914867063688,
+    "frames": [
+      {
+        "tf": "1m",
+        "trend": "DOWN",
+        "close": 0.06419,
+        "ma7": 0.06370142857142858,
+        "ma25": 0.06705559999999998
+      },
+      {
+        "tf": "5m",
+        "trend": "MIXED",
+        "close": 0.06419,
+        "ma7": 0.06763,
+        "ma25": 0.06992000000000001
+      },
+      {
+        "tf": "15m",
+        "trend": "UP",
+        "close": 0.0633,
+        "ma7": 0.06967142857142858,
+        "ma25": 0.06655960000000001
+      },
+      {
+        "tf": "1h",
+        "trend": "UP",
+        "close": 0.07177,
+        "ma7": 0.06483714285714286,
+        "ma25": 0.04867000000000001
+      }
+    ]
+  },
+  {
+    "barEndMs": 1793065440000,
+    "bar": {
+      "endMs": 1793065440000,
+      "open": 0.06337,
+      "high": 0.06537,
+      "low": 0.06324,
+      "close": 0.06385,
+      "volume": 4894535,
+      "quoteVolume": 314806.25845,
+      "trades": 6990,
+      "takerBuyBase": 2703412,
+      "takerBuyQuote": 173838.83754
+    },
+    "state": "PULLBACK",
+    "reason": "TREN_PENDUKUNG_BELUM_SESUAI",
+    "observedLow": 0.0608,
+    "lowAtMs": 1793064600000,
+    "previous3High": 0.06344,
+    "ma7": 0.06300857142857144,
+    "relativeVolume": 1.9038308755245028,
+    "hypotheticalStop": 0.06046315931751886,
+    "hypotheticalRiskPct": 5.304370685170149,
+    "frames": [
+      {
+        "tf": "1m",
+        "trend": "DOWN",
+        "close": 0.06385,
+        "ma7": 0.06300857142857144,
+        "ma25": 0.0646136
+      },
+      {
+        "tf": "5m",
+        "trend": "DOWN",
+        "close": 0.06278,
+        "ma7": 0.06634142857142857,
+        "ma25": 0.06965079999999998
+      },
+      {
+        "tf": "15m",
+        "trend": "UP",
+        "close": 0.0633,
+        "ma7": 0.06967142857142858,
+        "ma25": 0.06655960000000001
+      },
+      {
+        "tf": "1h",
+        "trend": "UP",
+        "close": 0.07177,
+        "ma7": 0.06483714285714286,
+        "ma25": 0.04867000000000001
+      }
+    ]
+  }
+]

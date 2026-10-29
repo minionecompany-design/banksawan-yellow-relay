@@ -1,0 +1,126 @@
+name: YELLOW read-only 1M observation until 20:00 WIB (28 Oct)
+on:
+  push:
+    branches:
+      - feat/yellow-v4-continuation-1m-offline-20261028
+    paths:
+      - .github/workflows/yellow-forward-until-2000-wib-20261028.yml
+permissions:
+  contents: read
+concurrency:
+  group: yellow-1m-forward-until-2000-wib-20261028
+  cancel-in-progress: false
+jobs:
+  observe-until-2000:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - name: Checkout isolated research source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify locked branch and no trading/FCM action
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = 'feat/yellow-v4-continuation-1m-offline-20261028'
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain -- scanner)"
+          node --check scanner/scripts/collect-forward-shadow-1m.mjs
+          node --check scanner/scripts/summarize-forward-shadow-journal.mjs
+          node --check scanner/scripts/lib/forward-shadow-subscription-budget.mjs
+          node scanner/scripts/collect-forward-shadow-1m.mjs --plan
+      - name: Observe newly arriving LONG A 1M only until exactly 20:00 Asia/Jakarta
+        id: observe
+        shell: bash
+        env:
+          OBS_DIR: ${{ runner.temp }}/yellow-shadow-until-2000
+          CUTOFF_ISO: '2026-10-28T20:00:00+07:00'
+        run: |
+          set -euo pipefail
+          mkdir -p "$OBS_DIR"
+          # Compute the run duration only AFTER the runner has started,
+          # avoiding an earlier time budget being used after a long queue.
+          REMAINING_HOURS="$(node -e '
+            const deadline=Date.parse(process.env.CUTOFF_ISO);
+            const delta=deadline-Date.now();
+            if(!Number.isFinite(deadline)||delta<=5000){
+              console.error("DEADLINE_ALREADY_REACHED_NO_NETWORK");
+              process.exit(2);
+            }
+            const hours=(delta/3600000);
+            if(hours>5.75)throw Error("DURATION_OVER_SAFETY_BUDGET");
+            console.log(hours.toFixed(12));
+          ')"
+          echo "Source: $GITHUB_SHA"
+          echo "Observation cutoff: $CUTOFF_ISO"
+          echo "Hours left from runner start: $REMAINING_HOURS"
+          # Zero Binance REST, no account credentials, no deploy, no push,
+          # no APK/FCM. Collector stops itself at the deadline and writes WAL.
+          node scanner/scripts/collect-forward-shadow-1m.mjs \
+            --collect "$OBS_DIR" "$GITHUB_SHA" "$REMAINING_HOURS" \
+            2>&1 | tee "$OBS_DIR/operator.log"
+      - name: Verify WAL, preserve all winners/losers/missing data
+        if: always()
+        shell: bash
+        env:
+          OBS_DIR: ${{ runner.temp }}/yellow-shadow-until-2000
+        run: |
+          mkdir -p "$OBS_DIR"
+          if test -s "$OBS_DIR/forward-shadow.ndjson" && test -s "$OBS_DIR/forward-receipt.json"; then
+            node scanner/scripts/summarize-forward-shadow-journal.mjs \
+              "$OBS_DIR/forward-shadow.ndjson" \
+              "$OBS_DIR/forward-receipt.json" \
+              "$OBS_DIR/verified-per-candidate.json" > "$OBS_DIR/verification-stdout.json"
+          fi
+          node --input-type=module <<'NODE'
+          import {existsSync,readFileSync,writeFileSync} from 'node:fs';
+          const dir=process.env.OBS_DIR;
+          function read(file){
+            try{return JSON.parse(readFileSync(dir+'/'+file,'utf8'));}
+            catch{return null;}
+          }
+          const journal=read('forward-receipt.json');
+          const audit=read('verified-per-candidate.json');
+          const counts=audit?.counts??{};
+          const summary={
+            task:'YELLOW_LONG_A_1M_FORWARD_OBSERVATION_UNTIL_2000_WIB',
+            requestedStop:'2026-10-28T20:00:00+07:00',
+            sourceCommit:process.env.GITHUB_SHA,
+            status:journal?.failed?'COLLECTOR_FAILED':journal?'COLLECTOR_RECEIPT_PRESENT':'MISSING_COLLECTOR_RECEIPT',
+            journalVerified:audit?.journal?.verified===true,
+            longA1m:counts.acceptedLongA1m??null,
+            otherTfExcluded:counts.excluded??null,
+            independentEpisodes:counts.independentEpisodes??null,
+            completeSixHourEvents:counts.completeSixHourEvents??null,
+            watchPriority:counts.watchPriorities??null,
+            red:counts.redEvents??null,
+            green:counts.observedGreenEvents??null,
+            coverageIssues:counts.coverageIssues??null,
+            observationsAreLiveResearchNotAPK:true,
+            productionWrites:0,notificationsSent:0,tradingOrdersSent:0,
+            deploymentAuthorized:false,releaseDecision:'NO_GO_LIVE_ENTRY',
+            caveats:[
+              'NO_GUARANTEE_ANY_NEW_LONG_A_1M_DURING_SESSION',
+              '6H_WINDOW_FOR_LATE_EVENTS_EXTENDS_BEYOND_2000_AND_IS_CENSORED',
+              'READ_ONLY_SHADOW_NOT_ANDROID_UI',
+              'PAPER_LTP_NOT_AN_EXECUTABLE_ORDER_PRICE',
+              'GITHUB_ACTIONS_RUNNER_MINUTES_AND_LIMITS_APPLY',
+              'WAL_HASH_INTEGRITY_IS_NOT_INDEPENDENT_PROOF_OF_MARKET_ORIGIN',
+              'IF_RUN_ABORTS_OR_NETWORK_FAILS_IT_MUST_NOT_BE_RETRIED_TO_BACKFILL'
+            ]
+          };
+          writeFileSync(dir+'/stop-2000-report.json',JSON.stringify(summary,null,2)+'\n');
+          console.log(JSON.stringify(summary));
+          NODE
+      - name: Archive original evidence even on errors or zero new signals
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yellow-shadow-to-2000-wib-20261028
+          path: ${{ runner.temp }}/yellow-shadow-until-2000/
+          if-no-files-found: error
+          retention-days: 14

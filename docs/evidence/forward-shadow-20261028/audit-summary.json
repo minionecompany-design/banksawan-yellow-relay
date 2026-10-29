@@ -1,0 +1,363 @@
+{
+  "auditedBaseCommit": "9513be09ecbb4ef15c7a3d7b9dfa02c07891be4a",
+  "recordedAtUtc": "2026-10-28T05:19:33.797459+00:00",
+  "researchOnly": true,
+  "productionEnabled": false,
+  "prospectiveMarketEvents": 0,
+  "localChecks": {
+    "nodePassed": 316,
+    "nodeFailed": 0,
+    "pythonSignerSecurityPassed": 15,
+    "android": "PENDING_NEW_GITHUB_ACTIONS_RUN",
+    "fcmSendsByThisResearch": 0
+  },
+  "archiveSummary": {
+    "method": "V4_THREE_BAR_STAIRCASE_RESEARCH_OFFLINE",
+    "cases": 46,
+    "oneMinuteCases": 28,
+    "outOfScope": 18,
+    "completeWindows": 15,
+    "missingCases": [
+      {
+        "eventId": "NOMUSDT:1m:1793084820000:LONG_A",
+        "symbol": "NOMUSDT",
+        "reason": "SYMBOL_NOT_BUFFERED"
+      },
+      {
+        "eventId": "NOMUSDT:5m:1793082900000:LONG_A",
+        "symbol": "NOMUSDT",
+        "reason": "SYMBOL_NOT_BUFFERED"
+      },
+      {
+        "eventId": "INJUSDT:5m:1793127900000:LONG_A",
+        "symbol": "INJUSDT",
+        "reason": "NO_BUFFER_OR_INSUFFICIENT_INITIAL_HISTORY"
+      }
+    ],
+    "baselineV3": {
+      "confirmationEvents": 1,
+      "paths": {
+        "PULLBACK": 1
+      },
+      "confirmationBeforeRecordedPeak": 1,
+      "filledEvents": 0,
+      "pricedExits": 0,
+      "tp1BeforeSl": 0,
+      "slBeforeTp1": 0,
+      "meanNetPct": null,
+      "paperStatuses": {
+        "NO_PLAN": 27,
+        "NOT_ENTERED": 1
+      }
+    },
+    "candidateV4": {
+      "confirmationEvents": 0,
+      "paths": {},
+      "confirmationBeforeRecordedPeak": 0,
+      "filledEvents": 0,
+      "pricedExits": 0,
+      "tp1BeforeSl": 0,
+      "slBeforeTp1": 0,
+      "meanNetPct": null,
+      "paperStatuses": {
+        "NO_PLAN": 28
+      }
+    },
+    "diagnosticReasonsV4": {
+      "WAIT_STAIR_STEP_BREAKOUT": 7721,
+      "RESISTANCE_ROOM": 23,
+      "WATCH_WINDOW_ENDED": 15,
+      "UNKNOWN_OVERHEAD_RESISTANCE": 8,
+      "SUPPORTING_TF_NOT_READY": 6,
+      "RISK_DISTANCE": 7
+    },
+    "structuralPatternEvents": 18,
+    "unifiedStatusClosedMinutes": {
+      "YELLOW": 7746,
+      "RED": 19,
+      "OFF": 15,
+      "GREEN": 0
+    },
+    "unifiedRedEventCount": 5,
+    "unifiedHistoricalGreenEvents": 0,
+    "unifiedPriorityTransitionEvents": 3,
+    "watchPriorityEvents": 3,
+    "watchPriorityFollowThrough5Pct": 2,
+    "watchPriorityAfterMinutes": [
+      {
+        "eventId": "REZUSDT:1m:1793087640000:LONG_A",
+        "afterMinutes": 292,
+        "returnSinceAPct": 8.62882,
+        "followingHighPct": 0.15094,
+        "windowComplete": false
+      },
+      {
+        "eventId": "AINUSDT:1m:1793080560000:LONG_A",
+        "afterMinutes": 112,
+        "returnSinceAPct": 11.11111,
+        "followingHighPct": 18.9441,
+        "windowComplete": true
+      },
+      {
+        "eventId": "EVAAUSDT:1m:1793121060000:LONG_A",
+        "afterMinutes": 36,
+        "returnSinceAPct": 5.3557,
+        "followingHighPct": 23.51892,
+        "windowComplete": true
+      }
+    ],
+    "structuralPatternDetails": [
+      {
+        "eventId": "AINUSDT:1m:1793053140000:LONG_A",
+        "firstPatternAtMs": 1793074140000,
+        "patterns": 1,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      },
+      {
+        "eventId": "HUMAUSDT:1m:1793093820000:LONG_A",
+        "firstPatternAtMs": 1793097240000,
+        "patterns": 4,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      },
+      {
+        "eventId": "REZUSDT:1m:1793087640000:LONG_A",
+        "firstPatternAtMs": 1793093880000,
+        "patterns": 3,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      },
+      {
+        "eventId": "BRUSDT:1m:1793086860000:LONG_A",
+        "firstPatternAtMs": 1793090100000,
+        "patterns": 2,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      },
+      {
+        "eventId": "BEATUSDT:1m:1793081160000:LONG_A",
+        "firstPatternAtMs": 1793089200000,
+        "patterns": 2,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      },
+      {
+        "eventId": "AINUSDT:1m:1793080560000:LONG_A",
+        "firstPatternAtMs": 1793087280000,
+        "patterns": 3,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      },
+      {
+        "eventId": "GRASSUSDT:1m:1793135760000:LONG_A",
+        "firstPatternAtMs": 1793140740000,
+        "patterns": 1,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      },
+      {
+        "eventId": "BEATUSDT:1m:1793135280000:LONG_A",
+        "firstPatternAtMs": 1793136900000,
+        "patterns": 1,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      },
+      {
+        "eventId": "BABYUSDT:1m:1793130360000:LONG_A",
+        "firstPatternAtMs": 1793135340000,
+        "patterns": 1,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      },
+      {
+        "eventId": "LSKUSDT:1m:1793126220000:LONG_A",
+        "firstPatternAtMs": 1793128140000,
+        "patterns": 1,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      },
+      {
+        "eventId": "HUMAUSDT:1m:1793123820000:LONG_A",
+        "firstPatternAtMs": 1793124360000,
+        "patterns": 1,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      },
+      {
+        "eventId": "EVAAUSDT:1m:1793121060000:LONG_A",
+        "firstPatternAtMs": 1793123220000,
+        "patterns": 7,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      },
+      {
+        "eventId": "ETHFIUSDT:1m:1793117760000:LONG_A",
+        "firstPatternAtMs": 1793130180000,
+        "patterns": 4,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      },
+      {
+        "eventId": "NEARUSDT:1m:1793117160000:LONG_A",
+        "firstPatternAtMs": 1793120280000,
+        "patterns": 3,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      },
+      {
+        "eventId": "XRPUSDT:1m:1793114520000:LONG_A",
+        "firstPatternAtMs": 1793117820000,
+        "patterns": 3,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      },
+      {
+        "eventId": "JCTUSDT:1m:1793113020000:LONG_A",
+        "firstPatternAtMs": 1793113260000,
+        "patterns": 1,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      },
+      {
+        "eventId": "LABUSDT:1m:1793110260000:LONG_A",
+        "firstPatternAtMs": 1793113080000,
+        "patterns": 2,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      },
+      {
+        "eventId": "PONSUSDT:1m:1793108460000:LONG_A",
+        "firstPatternAtMs": 1793123520000,
+        "patterns": 4,
+        "firstRiskGateAtMs": null,
+        "confirm": false
+      }
+    ],
+    "rose20Pct": [
+      "AINUSDT:1m:1793080560000:LONG_A",
+      "EVAAUSDT:1m:1793121060000:LONG_A"
+    ],
+    "rose20PctWithoutV4Confirmation": [
+      "AINUSDT:1m:1793080560000:LONG_A",
+      "EVAAUSDT:1m:1793121060000:LONG_A"
+    ],
+    "v4ConfirmationEvents": [],
+    "caveats": [
+      "ALL_ARCHIVED_CASES_IN_SAMPLE_NOT_BLIND",
+      "SHA256_VERIFIED_SAVED_CANDLES",
+      "NO_FRESH_HISTORICAL_TICKER_GREEN_RECONSTRUCTED",
+      "SYNTHETIC_PAPER_NEXT_FULL_MINUTE_OPEN_14BPS",
+      "CENSORED_WINDOWS",
+      "NATIVE_HTF_DELIVERY_AT_CLOSE_ASSUMED",
+      "CORRELATED_SYMBOL_EPISODES",
+      "NO_ORDER_BOOK_SLIPPAGE",
+      "POTENTIAL_THRESHOLD_OVERFITTING_DO_NOT_DEPLOY"
+    ]
+  },
+  "baselineV15V3": {
+    "cases": 46,
+    "oneMinuteCases": 28,
+    "outOfScopeNon1m": 18,
+    "excludedByTf": {
+      "5m": 16,
+      "15m": 2
+    },
+    "completeWatchWindows": 15,
+    "missingCases": [
+      {
+        "eventId": "NOMUSDT:1m:1793084820000:LONG_A",
+        "symbol": "NOMUSDT",
+        "reason": "SYMBOL_NOT_BUFFERED"
+      },
+      {
+        "eventId": "NOMUSDT:5m:1793082900000:LONG_A",
+        "symbol": "NOMUSDT",
+        "reason": "SYMBOL_NOT_BUFFERED"
+      },
+      {
+        "eventId": "INJUSDT:5m:1793127900000:LONG_A",
+        "symbol": "INJUSDT",
+        "reason": "NO_BUFFER_OR_INSUFFICIENT_INITIAL_HISTORY"
+      }
+    ],
+    "methods": {
+      "baseline": {
+        "counts": {
+          "NO_CONFIRMATION": 15,
+          "WATCH_CENSORED": 13
+        },
+        "candleConfirmations": 0,
+        "uniqueConfirmationMoments": 0,
+        "paths": {},
+        "pricedPaperExits": 0,
+        "meanPaperNetReturnPct": null,
+        "paperCensored": 0
+      },
+      "candidate": {
+        "counts": {
+          "NO_CONFIRMATION": 14,
+          "WATCH_CENSORED": 13,
+          "NOT_ENTERED": 1
+        },
+        "candleConfirmations": 1,
+        "uniqueConfirmationMoments": 1,
+        "paths": {
+          "PULLBACK": 1
+        },
+        "pricedPaperExits": 0,
+        "meanPaperNetReturnPct": null,
+        "paperCensored": 0
+      }
+    }
+  },
+  "artifacts": {
+    "archive-v3-v4-full.json.gz": {
+      "rawSha256": "01971299f711043e8726f2b76665adf385f147d14375b3f4c327f761d7478e32",
+      "rawBytes": 115870
+    },
+    "baseline-v15-v3-full.json.gz": {
+      "rawSha256": "69d249c1d4bd595edd9c395777f6e685fcf650025acd2ed155047595ec7d4032",
+      "rawBytes": 155740
+    },
+    "node-tests-local.log.gz": {
+      "rawSha256": "e01c9b3cb725fe499187213c0a992812db7213ddcfb1a1c5c18b117cf712876a",
+      "rawBytes": 29876
+    },
+    "synthetic-acceptance-local.json.gz": {
+      "rawSha256": "1002eeea580938890c20161c9f20f75712ab0f881caaa8179e87855f22233b3f",
+      "rawBytes": 14171
+    },
+    "synthetic-journal-local.ndjson.gz": {
+      "rawSha256": "401cf82a24e8a052bf7b36c1ec7d230e38f927393ef6c3be4c8900d9b8375fa1",
+      "rawBytes": 105031
+    }
+  },
+  "researchFilesSha256": {
+    ".github/workflows/yellow-v2-scoped-qa.yml": "79302f292b1e535cdab37f9c242284d7636fa234e72a5edadaa5a0b5a92931ef",
+    "scanner/scripts/collect-forward-shadow-1m.mjs": "3d3af004b2ad27cccec6d247b9105e42b2e2ac03996c0efbc668f4b0951b5340",
+    "scanner/scripts/lib/forward-shadow-source.mjs": "18c39d163295ca9cef712fae4ac5011f0da4ddf1f3794984c0aec52e0f37a806",
+    "scanner/scripts/lib/replay-continuation-v4.mjs": "cadc87860133d2514b6bbcfb2c9cc8e6c1b62640386755acba18212035c80e77",
+    "scanner/scripts/prove-forward-shadow-1m.mjs": "b68cbc53d9fc2021ecb24324d8fef8c1827ee2a1fad86988181b50aafeaaa6a0",
+    "scanner/src/entry-continuation-v4.js": "0544fa7b02792d5d5d8fd44bcf3673ab1847abb1e64591a66b65f4d6586fd341",
+    "scanner/src/entry-v4-release-gate.js": "bfc1e84daf4e33d68df68205f1b4d82bc995ba9006b7ed3fe909efd7742708c8",
+    "scanner/src/forward-shadow-1m.js": "a4481d57c781b216e70598812b2f320fb59b2aaa6db4bec915727ebb602bae77",
+    "scanner/src/forward-shadow-journal.js": "cb271e89765d02830695e4ab029d48c7b44f3bd8641a3fff276d463b8e97dd48",
+    "scanner/src/second-signal-compositor-1m.js": "61330d3ca428885ca4f45f2887ed7d193670aad8fd4869d9c86031a471f5d733",
+    "scanner/test/entry-v4-release-gate.test.js": "52bac2f22aa174996784f917da090f9346e4f308efa26581c7b7c19b015cb8f3",
+    "scanner/test/fixtures/forward-shadow.mjs": "8c0a6f1c9776a05b58f1f0aa094ec90cabceddc09831358f03b8d49f8fd6f479",
+    "scanner/test/forward-shadow-1m.test.js": "dd5db107574d085367d4cb24ed904a64ba1b1ae7121834beb8d146c6f3926294",
+    "scanner/test/forward-shadow-journal.test.js": "293ff1a4e5ea5ce231a01ba14f7a43b2da28f0cc84e1a2be63844b9839653f99",
+    "scanner/test/forward-shadow-source.test.js": "f3f888c177438e93816dbac704444469e3c62ff61d45d63b7fc839cb8db1268c"
+  },
+  "decision": "NO_GO_LIVE",
+  "remaining": [
+    "INDEPENDENT_FORWARD_MARKET_COHORT",
+    "CONTINUOUS_OBSERVER_HOST_AND_PUBLIC_WS_CONNECTIVITY",
+    "EXECUTABLE_SPREAD_SLIPPAGE_AND_COST_AUDIT",
+    "PRODUCTION_INTEGRATION_ANDROID_FCM_RESTART_QA",
+    "REVIEWED_IMPROVEMENT_VS_BASELINE",
+    "EXPLICIT_OWNER_RELEASE_APPROVAL"
+  ],
+  "syntheticEvidenceWarning": "SYNTHETIC_QA_ONLY; local sourceDirty=true explicitly retained; not a prospective cohort"
+}

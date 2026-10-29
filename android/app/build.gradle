@@ -1,0 +1,96 @@
+plugins { id 'com.android.application' }
+
+if (file('google-services.json').exists()) {
+    apply plugin: 'com.google.gms.google-services'
+}
+
+def permanentSigning = System.getenv('YELLOW_RELEASE_SIGNING') == 'true'
+def releaseRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
+if (releaseRequested && !permanentSigning) {
+    throw new GradleException('YELLOW_PERMANENT_SIGNING_REQUIRED: release must never use an ephemeral debug key')
+}
+gradle.taskGraph.whenReady { graph ->
+    if (!permanentSigning && graph.allTasks.any { it.name.toLowerCase().contains('release') }) {
+        throw new GradleException('YELLOW_PERMANENT_SIGNING_REQUIRED: release task graph requires the permanent signer')
+    }
+}
+if (permanentSigning) {
+    ['YELLOW_SIGNING_STORE_FILE', 'YELLOW_SIGNING_STORE_PASSWORD'].each { name ->
+        if (!System.getenv(name)) throw new GradleException('YELLOW_SIGNING_INPUT_MISSING: ' + name)
+    }
+    if (!file(System.getenv('YELLOW_SIGNING_STORE_FILE')).isFile()) {
+        throw new GradleException('YELLOW_SIGNING_STORE_NOT_FOUND')
+    }
+}
+
+android {
+    namespace 'id.banksawan.yellow'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'id.banksawan.yellow'
+        minSdk 26
+        targetSdk 35
+        versionCode 16
+        versionName '0.16.0-v2-watch-only-1m'
+        // Safe defaults: demo only, no production URL, no Binance requests.
+        // CI can override YELLOW_API_BASE_URL after a secure backend exists.
+        def suppliedUrl = System.getenv('YELLOW_API_BASE_URL') ?: ''
+        if (suppliedUrl && !suppliedUrl.startsWith('https://')) {
+            throw new GradleException('YELLOW_API_BASE_URL must use HTTPS')
+        }
+        buildConfigField 'String', 'API_BASE_URL', '"' + suppliedUrl + '"'
+        buildConfigField 'boolean', 'DEMO_MODE', suppliedUrl ? 'false' : 'true'
+        // Foreground real-signal notifications opt in at build time; background FCM stays OFF.
+        // Neither the existence of a Firebase file nor a live URL activates alerts.
+        def allowAlerts = System.getenv('YELLOW_ALERTS_ENABLED') == 'true'
+        buildConfigField 'boolean', 'ALERTS_ENABLED', allowAlerts ? 'true' : 'false'
+        buildConfigField 'boolean', 'FCM_ENABLED', (allowAlerts && file('google-services.json').exists()) ? 'true' : 'false'
+    }
+    buildFeatures { buildConfig true }
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+            all {
+                jvmArgs '--add-opens=java.base/java.lang=ALL-UNNAMED',
+                    '--add-opens=java.base/java.util=ALL-UNNAMED',
+                    '--add-opens=java.base/java.io=ALL-UNNAMED',
+                    '--add-opens=java.base/java.net=ALL-UNNAMED',
+                    '--add-opens=java.base/java.security=ALL-UNNAMED',
+                    '--add-opens=java.base/java.text=ALL-UNNAMED',
+                    '--add-opens=java.base/jdk.internal.access=ALL-UNNAMED',
+                    '--add-opens=java.desktop/java.awt.font=ALL-UNNAMED',
+                    '--add-opens=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED'
+            }
+        }
+    }
+    signingConfigs {
+        if (permanentSigning) {
+            yellowPermanent {
+                storeFile file(System.getenv('YELLOW_SIGNING_STORE_FILE'))
+                storeType 'PKCS12'
+                storePassword System.getenv('YELLOW_SIGNING_STORE_PASSWORD')
+                keyAlias 'yellow-permanent'
+                keyPassword System.getenv('YELLOW_SIGNING_STORE_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (permanentSigning) signingConfig signingConfigs.yellowPermanent
+            debuggable false
+            minifyEnabled false
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// Android compiles both paths; Firebase initializes only when a YELLOW config
+// is provided at build time. The debug APK without config remains offline.
+dependencies {
+    implementation 'com.google.firebase:firebase-messaging:25.0.0'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.17'
+}

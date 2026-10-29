@@ -1,0 +1,103 @@
+{
+  "simulation": false,
+  "mode": "LIVE_SHADOW",
+  "analysis": {
+    "schemaVersion": 1,
+    "method": "YELLOW_COMPANION_V1",
+    "mode": "RESEARCH_ONLY",
+    "eventId": "TESTUSDT:1m:1793016000000:LONG_A",
+    "symbol": "TESTUSDT",
+    "timeframe": "1m",
+    "signalAtMs": 1793016000000,
+    "capturedAtMs": 1793016004000,
+    "expiresAtMs": 1793016900000,
+    "availability": "READY",
+    "frames": [
+      {
+        "timeframe": "1m",
+        "availability": "READY",
+        "candleEndMs": 1793016000000,
+        "close": 0.5338,
+        "ma7": 0.5331999999999999,
+        "ma25": 0.5314,
+        "ma99": 0.524,
+        "trend": "UP",
+        "relativeVolume": 2,
+        "atr14": 0.0006999999999999243
+      },
+      {
+        "timeframe": "5m",
+        "availability": "READY",
+        "candleEndMs": 1793016000000,
+        "close": 0.5338,
+        "ma7": 0.5331999999999999,
+        "ma25": 0.5314,
+        "ma99": 0.524,
+        "trend": "UP",
+        "relativeVolume": 2,
+        "atr14": 0.0006999999999999243
+      },
+      {
+        "timeframe": "15m",
+        "availability": "READY",
+        "candleEndMs": 1793016000000,
+        "close": 0.5338,
+        "ma7": 0.5331999999999999,
+        "ma25": 0.5314,
+        "ma99": 0.524,
+        "trend": "UP",
+        "relativeVolume": 2,
+        "atr14": 0.0006999999999999243
+      },
+      {
+        "timeframe": "1h",
+        "availability": "READY",
+        "candleEndMs": 1793016000000,
+        "close": 0.5338,
+        "ma7": 0.5331999999999999,
+        "ma25": 0.5314,
+        "ma99": 0.524,
+        "trend": "UP",
+        "relativeVolume": 2,
+        "atr14": 0.0006999999999999243
+      }
+    ],
+    "levels": {
+      "support": 0.5294000000000001,
+      "resistance": 0.5338999999999999,
+      "rangeHigh": 0.5338999999999999,
+      "rangeLow": 0.5294000000000001,
+      "interaction": "INSIDE_RANGE",
+      "breakoutLevel": null
+    },
+    "plan": {
+      "referenceEntry": 0.5338,
+      "entryLow": 0.53373,
+      "entryHigh": 0.5339750000000001,
+      "stopLoss": 0.532425,
+      "tp1": 0.5351750000000001,
+      "tp2": 0.5365500000000001,
+      "tp3": 0.5379250000000001,
+      "riskPct": 0.25758711127763484,
+      "roomToResistanceR": 0.07272727272718317
+    },
+    "warnings": [
+      "RESISTANCE_WITHIN_1R"
+    ],
+    "paper": {
+      "status": "WAITING_ENTRY",
+      "entryAtMs": 1793016060000,
+      "deadlineMs": 1793023260000,
+      "lastBarEndMs": 1793016060000,
+      "entryPrice": null,
+      "exitPrice": null,
+      "endedAtMs": null,
+      "mfePct": 0,
+      "maePct": 0,
+      "grossReturnPct": null,
+      "netReturnPct": null,
+      "costBps": 14
+    },
+    "scenarioExpired": false
+  }
+}

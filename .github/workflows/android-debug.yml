@@ -1,0 +1,114 @@
+name: BANKSAWAN YELLOW V8 LIVE + Firebase background pilot
+
+# Retired distributor: the main-branch signed controller is the only release path.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-live-shadow-apk:
+    if: ${{ false }}
+    name: Build V8 LIVE foreground alerts (existing, no Firebase)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      YELLOW_API_BASE_URL: 'https://yellow-live-shadow-yc94-production.up.railway.app'
+      YELLOW_ALERTS_ENABLED: 'true'
+    steps:
+      - name: Checkout YELLOW branch
+        uses: actions/checkout@v4
+      - name: Verify YELLOW-only URL and foreground alerts
+        run: |
+          test "$YELLOW_API_BASE_URL" = 'https://yellow-live-shadow-yc94-production.up.railway.app'
+          test "$YELLOW_ALERTS_ENABLED" = 'true'
+          test ! -f android/app/google-services.json
+          echo 'YELLOW LIVE foreground only. Firebase background disabled in this build.'
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: ''
+      - name: Install Android SDK 35
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Build V8 sound proof APK
+        run: gradle -p android :app:assembleDebug --no-daemon --stacktrace
+      - name: Verify debug APK
+        run: test -s android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Upload V8 sound proof APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: banksawan-yellow-v8-SOUND-PROOF-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  build-firebase-background-pilot:
+    # Explicit human-controlled repo variable. Does not run by default.
+    if: ${{ false }}
+    name: Build optional YELLOW-only Firebase background APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      YELLOW_API_BASE_URL: 'https://yellow-live-shadow-yc94-production.up.railway.app'
+      YELLOW_ALERTS_ENABLED: 'true'
+      EXPECTED_FIREBASE_PROJECT_ID: ${{ secrets.YELLOW_FIREBASE_PROJECT_ID }}
+      YELLOW_FIREBASE_CONFIG_B64: ${{ secrets.YELLOW_FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}
+    steps:
+      - name: Checkout YELLOW branch
+        uses: actions/checkout@v4
+      - name: Validate FCM opt-in and package/project match (no secret output)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$EXPECTED_FIREBASE_PROJECT_ID" || { echo 'Missing YELLOW_FIREBASE_PROJECT_ID repository secret'; exit 1; }
+          test -n "$YELLOW_FIREBASE_CONFIG_B64" || { echo 'Missing YELLOW_FIREBASE_GOOGLE_SERVICES_JSON_BASE64 encrypted secret'; exit 1; }
+          printf '%s' "$YELLOW_FIREBASE_CONFIG_B64" | base64 --decode > android/app/google-services.json
+          python3 scripts/verify-yellow-firebase.py android/app/google-services.json "$EXPECTED_FIREBASE_PROJECT_ID"
+          echo 'Firebase config matches independent YELLOW Android package and expected project.'
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: ''
+      - name: Install Android SDK 35
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Build YELLOW-only FCM debug APK
+        run: gradle -p android :app:assembleDebug --no-daemon --stacktrace
+      - name: Assert live mode and FCM enabled in generated BuildConfig
+        shell: bash
+        run: |
+          set -euo pipefail
+          CONFIG=android/app/build/generated/source/buildConfig/debug/id/banksawan/yellow/BuildConfig.java
+          test -s "$CONFIG"
+          grep -Eq 'FCM_ENABLED[[:space:]]*=[[:space:]]*true' "$CONFIG"
+          grep -Eq 'ALERTS_ENABLED[[:space:]]*=[[:space:]]*true' "$CONFIG"
+          grep -Eq 'DEMO_MODE[[:space:]]*=[[:space:]]*false' "$CONFIG"
+          test -s android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Upload YELLOW FCM background pilot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: banksawan-yellow-v8-FCM-BACKGROUND-PILOT-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Remove temporary Firebase config
+        if: always()
+        run: rm -f android/app/google-services.json

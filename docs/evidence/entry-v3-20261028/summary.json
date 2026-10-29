@@ -1,0 +1,65 @@
+{
+  "method": "V3_OFFLINE_NOT_PRODUCTION",
+  "summary": {
+    "cases": 46,
+    "completeWatchWindows": 20,
+    "missingCases": [
+      {
+        "eventId": "NOMUSDT:1m:1793084820000:LONG_A",
+        "symbol": "NOMUSDT",
+        "reason": "SYMBOL_NOT_BUFFERED"
+      },
+      {
+        "eventId": "NOMUSDT:5m:1793082900000:LONG_A",
+        "symbol": "NOMUSDT",
+        "reason": "SYMBOL_NOT_BUFFERED"
+      },
+      {
+        "eventId": "INJUSDT:5m:1793127900000:LONG_A",
+        "symbol": "INJUSDT",
+        "reason": "NO_BUFFER_OR_INSUFFICIENT_INITIAL_HISTORY"
+      }
+    ],
+    "methods": {
+      "baseline": {
+        "counts": {
+          "NO_CONFIRMATION": 20,
+          "WATCH_CENSORED": 26
+        },
+        "candleConfirmations": 0,
+        "uniqueConfirmationMoments": 0,
+        "paths": {},
+        "pricedPaperExits": 0,
+        "meanPaperNetReturnPct": null,
+        "paperCensored": 0
+      },
+      "candidate": {
+        "counts": {
+          "NO_CONFIRMATION": 18,
+          "WATCH_CENSORED": 22,
+          "NOT_ENTERED": 3,
+          "OPEN": 1,
+          "SL_BEFORE_TP1": 2
+        },
+        "candleConfirmations": 6,
+        "uniqueConfirmationMoments": 5,
+        "paths": {
+          "PULLBACK": 6
+        },
+        "pricedPaperExits": 2,
+        "meanPaperNetReturnPct": -1.8574473480103593,
+        "paperCensored": 1
+      }
+    }
+  },
+  "caveats": [
+    "ALL_SAVED_CASES_NOT_JUST_WINNERS",
+    "KNOWN_CASES_NOT_OUT_OF_SAMPLE",
+    "NATIVE_HTF_DELIVERY_ASSUMED_AT_CLOSE",
+    "NO_HISTORICAL_GREEN_OR_EXECUTION",
+    "NEXT_FULL_MINUTE_OPEN_14BPS_ASSUMED_COST",
+    "CORRELATED_TF_EVENTS",
+    "CENSORED_WINDOWS_EXPLICIT"
+  ],
+  "resultSha256": "1c37c2b2a318096b60bc1a777a41d0143827f0a66b77f7d3001b9a3192c9d228"
+}

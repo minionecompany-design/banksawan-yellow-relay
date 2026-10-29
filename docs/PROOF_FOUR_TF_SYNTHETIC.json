@@ -1,0 +1,239 @@
+{
+  "title": "BANKSAWAN YELLOW V2 four-lane replay proof",
+  "version": 3,
+  "dataOrigin": "DETERMINISTIC_SYNTHETIC_CANDLES — NOT BINANCE MARKET DATA",
+  "sourceOf24hPct": "MOCK_BINANCE_USDM_TICKER — 2.5% IN ALL POSITIVE SCENARIOS",
+  "contextMode": "CAUSAL_REALTIME",
+  "proofScope": "Candle-to-LongA-to-offline notification intent, initial empty state",
+  "notProven": [
+    "TradingView/Pine real historical parity",
+    "live Binance data reliability",
+    "FCM delivery",
+    "Android install",
+    "trading profitability",
+    "production READY"
+  ],
+  "scenarios": [
+    {
+      "expectedTimeframe": "1m",
+      "minutesOfSynthetic1mHistory": 7400,
+      "completedCandles": {
+        "oneMinute": 7400,
+        "fiveMinute": 1480,
+        "fifteenMinute": 493,
+        "oneHour": 123
+      },
+      "positiveLongA": {
+        "id": "TESTUSDT:1m:1792062060000:LONG_A",
+        "symbol": "TESTUSDT",
+        "timeframe": "1m",
+        "signal": "LONG_A",
+        "barClosedAtMs": 1792062060000,
+        "price": 0.05732188894425686,
+        "binance24hChangePct": 2.5,
+        "priority": "STANDARD",
+        "source": "BINANCE_USDM_24H+LOCAL_PARALLEL_MTF_EVALUATOR",
+        "status": "RESEARCH_ONLY"
+      },
+      "positiveLongAUtc": "2026-10-15T11:01:00.000Z",
+      "signalCounts": {
+        "1m": 1,
+        "5m": 0,
+        "15m": 0,
+        "1h": 0
+      },
+      "selectedNotificationIntent": {
+        "eventId": "TESTUSDT:1m:1792062060000:LONG_A",
+        "symbol": "TESTUSDT",
+        "timeframe": "1m",
+        "signal": "LONG_A",
+        "barClosedAtMs": 1792062060000,
+        "expiresAtMs": 1792062360000,
+        "status": "OFFLINE_INTENT_ONLY"
+      },
+      "warmupOrDataNotReadyEvents": 8649,
+      "validEvaluations": {
+        "1m": 660,
+        "5m": 132,
+        "15m": 44,
+        "1h": 11
+      },
+      "pineHistoricalComparison": {
+        "signalCounts": {
+          "1m": 1,
+          "5m": 0,
+          "15m": 0,
+          "1h": 0
+        },
+        "note": "Offline theoretical mode; NOT a TradingView parity result"
+      }
+    },
+    {
+      "expectedTimeframe": "5m",
+      "minutesOfSynthetic1mHistory": 7400,
+      "completedCandles": {
+        "oneMinute": 7400,
+        "fiveMinute": 1480,
+        "fifteenMinute": 493,
+        "oneHour": 123
+      },
+      "positiveLongA": {
+        "id": "TESTUSDT:5m:1792057500000:LONG_A",
+        "symbol": "TESTUSDT",
+        "timeframe": "5m",
+        "signal": "LONG_A",
+        "barClosedAtMs": 1792057500000,
+        "price": 0.05717640722621947,
+        "binance24hChangePct": 2.5,
+        "priority": "STANDARD",
+        "source": "BINANCE_USDM_24H+LOCAL_PARALLEL_MTF_EVALUATOR",
+        "status": "RESEARCH_ONLY"
+      },
+      "positiveLongAUtc": "2026-10-15T09:45:00.000Z",
+      "signalCounts": {
+        "1m": 0,
+        "5m": 1,
+        "15m": 0,
+        "1h": 0
+      },
+      "selectedNotificationIntent": {
+        "eventId": "TESTUSDT:5m:1792057500000:LONG_A",
+        "symbol": "TESTUSDT",
+        "timeframe": "5m",
+        "signal": "LONG_A",
+        "barClosedAtMs": 1792057500000,
+        "expiresAtMs": 1792057800000,
+        "status": "OFFLINE_INTENT_ONLY"
+      },
+      "warmupOrDataNotReadyEvents": 8649,
+      "validEvaluations": {
+        "1m": 660,
+        "5m": 132,
+        "15m": 44,
+        "1h": 11
+      },
+      "pineHistoricalComparison": {
+        "signalCounts": {
+          "1m": 0,
+          "5m": 1,
+          "15m": 0,
+          "1h": 0
+        },
+        "note": "Offline theoretical mode; NOT a TradingView parity result"
+      }
+    },
+    {
+      "expectedTimeframe": "15m",
+      "minutesOfSynthetic1mHistory": 7600,
+      "completedCandles": {
+        "oneMinute": 7600,
+        "fiveMinute": 1520,
+        "fifteenMinute": 506,
+        "oneHour": 126
+      },
+      "positiveLongA": {
+        "id": "TESTUSDT:15m:1792050300000:LONG_A",
+        "symbol": "TESTUSDT",
+        "timeframe": "15m",
+        "signal": "LONG_A",
+        "barClosedAtMs": 1792050300000,
+        "price": 0.05722418231490293,
+        "binance24hChangePct": 2.5,
+        "priority": "STANDARD",
+        "source": "BINANCE_USDM_24H+LOCAL_PARALLEL_MTF_EVALUATOR",
+        "status": "RESEARCH_ONLY"
+      },
+      "positiveLongAUtc": "2026-10-15T07:45:00.000Z",
+      "signalCounts": {
+        "1m": 0,
+        "5m": 0,
+        "15m": 1,
+        "1h": 0
+      },
+      "selectedNotificationIntent": {
+        "eventId": "TESTUSDT:15m:1792050300000:LONG_A",
+        "symbol": "TESTUSDT",
+        "timeframe": "15m",
+        "signal": "LONG_A",
+        "barClosedAtMs": 1792050300000,
+        "expiresAtMs": 1792050600000,
+        "status": "OFFLINE_INTENT_ONLY"
+      },
+      "warmupOrDataNotReadyEvents": 8674,
+      "validEvaluations": {
+        "1m": 840,
+        "5m": 168,
+        "15m": 56,
+        "1h": 14
+      },
+      "pineHistoricalComparison": {
+        "signalCounts": {
+          "1m": 0,
+          "5m": 0,
+          "15m": 1,
+          "1h": 0
+        },
+        "note": "Offline theoretical mode; NOT a TradingView parity result"
+      }
+    },
+    {
+      "expectedTimeframe": "1h",
+      "minutesOfSynthetic1mHistory": 16000,
+      "completedCandles": {
+        "oneMinute": 16000,
+        "fiveMinute": 3200,
+        "fifteenMinute": 1066,
+        "oneHour": 266
+      },
+      "positiveLongA": {
+        "id": "TESTUSDT:1h:1791990000000:LONG_A",
+        "symbol": "TESTUSDT",
+        "timeframe": "1h",
+        "signal": "LONG_A",
+        "barClosedAtMs": 1791990000000,
+        "price": 0.06370853378366828,
+        "binance24hChangePct": 2.5,
+        "priority": "STANDARD",
+        "source": "BINANCE_USDM_24H+LOCAL_PARALLEL_MTF_EVALUATOR",
+        "status": "RESEARCH_ONLY"
+      },
+      "positiveLongAUtc": "2026-10-14T15:00:00.000Z",
+      "signalCounts": {
+        "1m": 0,
+        "5m": 0,
+        "15m": 0,
+        "1h": 1
+      },
+      "selectedNotificationIntent": {
+        "eventId": "TESTUSDT:1h:1791990000000:LONG_A",
+        "symbol": "TESTUSDT",
+        "timeframe": "1h",
+        "signal": "LONG_A",
+        "barClosedAtMs": 1791990000000,
+        "expiresAtMs": 1791990300000,
+        "status": "OFFLINE_INTENT_ONLY"
+      },
+      "warmupOrDataNotReadyEvents": 8674,
+      "validEvaluations": {
+        "1m": 9240,
+        "5m": 1848,
+        "15m": 616,
+        "1h": 154
+      },
+      "pineHistoricalComparison": {
+        "signalCounts": {
+          "1m": 0,
+          "5m": 0,
+          "15m": 0,
+          "1h": 1
+        },
+        "note": "Offline theoretical mode; NOT a TradingView parity result"
+      }
+    }
+  ],
+  "negativeFilter": {
+    "binance24hChangePct": 0.99,
+    "longAEvents": 0,
+    "blockedByBinance24hFilter": 847
+  }
+}

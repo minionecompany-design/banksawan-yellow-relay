@@ -1,0 +1,11 @@
+{
+  "scope": "Offline injected WebSocket message to localhost HTTP API response; NOT Railway or physical Android latency",
+  "samples": 30,
+  "minMs": 0.5959900000000005,
+  "medianMs": 1.875270999999998,
+  "p95Ms": 3.2800510000000003,
+  "maxMs": 18.175596999999996,
+  "binanceRequests": 0,
+  "androidPollMs": 5000,
+  "physicalAndroidMeasured": false
+}

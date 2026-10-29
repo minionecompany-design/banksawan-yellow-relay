@@ -1,0 +1,36 @@
+name: YELLOW Scanner Offline Safety Tests
+
+on:
+  push:
+    branches:
+      - yellow-long-a-v2-20261015
+    paths:
+      - 'scanner/**'
+      - '.github/workflows/yellow-scanner-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-scanner-tests:
+    name: Scanner offline regression (no Binance / no Railway)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      YELLOW_LIVE_ENABLED: 'false'
+      YELLOW_DATA_DIR: ''
+    steps:
+      - name: Checkout independent YELLOW branch
+        uses: actions/checkout@v4
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks for scoped fix
+        run: |
+          node --check scanner/src/live-request-guard.js
+          node --check scanner/src/live-market.js
+          node --check scanner/scripts/review-remote-weight-latch.js
+      - name: Run complete scanner offline regression tests
+        run: node --test scanner/test/*.test.js

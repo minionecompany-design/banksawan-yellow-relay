@@ -1,0 +1,206 @@
+
+> banksawan-yellow-scanner@0.1.0-offline-foundation test
+> node --test
+
+TAP version 13
+# Subtest: incomplete data fails closed
+ok 1 - incomplete data fails closed
+  ---
+  duration_ms: 7.403549
+  type: 'test'
+  ...
+# Subtest: Pine previous closed MTF: future or current timeframe forbidden
+ok 2 - Pine previous closed MTF: future or current timeframe forbidden
+  ---
+  duration_ms: 0.643932
+  type: 'test'
+  ...
+# Subtest: Pine previous confirmed MTF: stale also forbidden
+ok 3 - Pine previous confirmed MTF: stale also forbidden
+  ---
+  duration_ms: 2.205607
+  type: 'test'
+  ...
+# Subtest: reject open/future 1m candle
+ok 4 - reject open/future 1m candle
+  ---
+  duration_ms: 0.326394
+  type: 'test'
+  ...
+# Subtest: reject ticker symbol mismatch
+ok 5 - reject ticker symbol mismatch
+  ---
+  duration_ms: 0.398555
+  type: 'test'
+  ...
+# Subtest: filter is exactly Binance 24h +1% and price <10
+ok 6 - filter is exactly Binance 24h +1% and price <10
+  ---
+  duration_ms: 6.941476
+  type: 'test'
+  ...
+# Subtest: reject gap in 1m, and reject missing interval after valid first step
+ok 7 - reject gap in 1m, and reject missing interval after valid first step
+  ---
+  duration_ms: 3.255101
+  type: 'test'
+  ...
+# Subtest: stale 24h ticker is rejected
+ok 8 - stale 24h ticker is rejected
+  ---
+  duration_ms: 0.491512
+  type: 'test'
+  ...
+# Subtest: RSI constant Wilder sequence initializes to 50
+ok 9 - RSI constant Wilder sequence initializes to 50
+  ---
+  duration_ms: 1.041813
+  type: 'test'
+  ...
+# Subtest: state same-candle replay is idempotent
+ok 10 - state same-candle replay is idempotent
+  ---
+  duration_ms: 1.227576
+  type: 'test'
+  ...
+# Subtest: HOME is independent 24h per symbol, no extension by duplicates
+ok 11 - HOME is independent 24h per symbol, no extension by duplicates
+  ---
+  duration_ms: 0.74254
+  type: 'test'
+  ...
+# Subtest: universe requires Binance USD-M eligible status, price<10 and +1%
+ok 12 - universe requires Binance USD-M eligible status, price<10 and +1%
+  ---
+  duration_ms: 1.385437
+  type: 'test'
+  ...
+# Subtest: a fresh synthetic setup can produce LONG_A with all 4 timeframe gates (not market proof)
+ok 13 - a fresh synthetic setup can produce LONG_A with all 4 timeframe gates (not market proof)
+  ---
+  duration_ms: 2.617696
+  type: 'test'
+  ...
+# Subtest: reject unverified ticker source, contract type, or future value
+ok 14 - reject unverified ticker source, contract type, or future value
+  ---
+  duration_ms: 0.716923
+  type: 'test'
+  ...
+# Subtest: 15M LONG A notifies immediately while 1M, 5M and 1H did NOT signal
+ok 15 - 15M LONG A notifies immediately while 1M, 5M and 1H did NOT signal
+  ---
+  duration_ms: 7.942031
+  type: 'test'
+  ...
+# Subtest: independent 1m target can produce LONG A without other TF signal events
+ok 16 - independent 1m target can produce LONG A without other TF signal events
+  ---
+  duration_ms: 6.388762
+  type: 'test'
+  ...
+# Subtest: independent 5m target can produce LONG A without other TF signal events
+ok 17 - independent 5m target can produce LONG A without other TF signal events
+  ---
+  duration_ms: 3.030812
+  type: 'test'
+  ...
+# Subtest: independent 15m target can produce LONG A without other TF signal events
+ok 18 - independent 15m target can produce LONG A without other TF signal events
+  ---
+  duration_ms: 2.390966
+  type: 'test'
+  ...
+# Subtest: independent 1h target can produce LONG A without other TF signal events
+ok 19 - independent 1h target can produce LONG A without other TF signal events
+  ---
+  duration_ms: 3.794823
+  type: 'test'
+  ...
+# Subtest: same symbol can get separate 1M and 15M intents while HOME timer is not extended
+ok 20 - same symbol can get separate 1M and 15M intents while HOME timer is not extended
+  ---
+  duration_ms: 0.57083
+  type: 'test'
+  ...
+# Subtest: no event for <1% Binance, >=10 USDT, stale/future ticker
+ok 21 - no event for <1% Binance, >=10 USDT, stale/future ticker
+  ---
+  duration_ms: 2.014459
+  type: 'test'
+  ...
+# Subtest: priority +5% does not delay LONG A and operates in any lane
+ok 22 - priority +5% does not delay LONG A and operates in any lane
+  ---
+  duration_ms: 3.432467
+  type: 'test'
+  ...
+# Subtest: stale 5M context blocks 15M without conflating it with unconfirmed LONG A
+ok 23 - stale 5M context blocks 15M without conflating it with unconfirmed LONG A
+  ---
+  duration_ms: 0.988617
+  type: 'test'
+  ...
+# Subtest: each lane enforces own candle interval, idempotency and gaps
+ok 24 - each lane enforces own candle interval, idempotency and gaps
+  ---
+  duration_ms: 0.763243
+  type: 'test'
+  ...
+# Subtest: late events do not trigger delayed notifications or enter HOME
+ok 25 - late events do not trigger delayed notifications or enter HOME
+  ---
+  duration_ms: 0.192435
+  type: 'test'
+  ...
+# Subtest: parallel replay counts each TF separately and does not invent live delivery
+ok 26 - parallel replay counts each TF separately and does not invent live delivery
+  ---
+  duration_ms: 41.353655
+  type: 'test'
+  ...
+# Subtest: parallel replay requires sorted as-of tickers and independent candle chronologies
+ok 27 - parallel replay requires sorted as-of tickers and independent candle chronologies
+  ---
+  duration_ms: 1.088993
+  type: 'test'
+  ...
+# Subtest: historical replay cannot use a future ticker to claim valid evaluation
+ok 28 - historical replay cannot use a future ticker to claim valid evaluation
+  ---
+  duration_ms: 12.916203
+  type: 'test'
+  ...
+# Subtest: replay does not use a stale future/current ticker to invent LONG A
+ok 29 - replay does not use a stale future/current ticker to invent LONG A
+  ---
+  duration_ms: 7.714052
+  type: 'test'
+  ...
+# Subtest: replay demands as-of ticker chronology and historical inputs
+ok 30 - replay demands as-of ticker chronology and historical inputs
+  ---
+  duration_ms: 0.735396
+  type: 'test'
+  ...
+# Subtest: demo /api/home and /api/universe are explicitly SIMULATED and nonlive
+ok 31 - demo /api/home and /api/universe are explicitly SIMULATED and nonlive
+  ---
+  duration_ms: 35.878154
+  type: 'test'
+  ...
+# Subtest: demo has no mutation endpoint, no trading API, and serves provided 1K icon
+ok 32 - demo has no mutation endpoint, no trading API, and serves provided 1K icon
+  ---
+  duration_ms: 20.923764
+  type: 'test'
+  ...
+1..32
+# tests 32
+# suites 0
+# pass 32
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 337.047223
