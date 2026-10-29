@@ -61,7 +61,7 @@ export class YellowV17WatchLifecycle {
     if(status==='AVOID'&&r.riskAtMs===null)r.riskAtMs=atMs;
     if(status==='PRIORITY'&&r.riskAtMs===null){
       if(r.priorityAtMs===null)r.priorityAtMs=atMs;
-      r.lastPriorityAtMs=atMs;
+      r.lastPriorityAtMs=Math.max(r.lastPriorityAtMs??0,atMs);
     }
     r.reason=String(reason??'EVIDENCE_RECORDED').slice(0,80);return true;
   }
