@@ -41,7 +41,8 @@ export class YellowV17WatchLifecycle {
     for(const r of this.records.values()){
       if(r.event.symbol!==symbol||r.event.timeframe!==timeframe||r.invalid||
          bar.endMs<=r.lastBarEndMs)continue;
-      if(bar.endMs!==r.lastBarEndMs+step||bar.endMs>this.clock()||
+      if(this.clock()>=r.event.barClosedAtMs+V17_WINDOW_MS||
+         bar.endMs!==r.lastBarEndMs+step||bar.endMs>this.clock()||
          bar.endMs>r.event.barClosedAtMs+V17_WINDOW_MS){
         r.invalid=true;r.reason='NATIVE_DATA_GAP';continue;
       }
