@@ -70,3 +70,11 @@ test('out-of-order PRIORITY cannot shorten the last fresh priority timestamp',()
  assert.equal(m.records.get(e.id).lastPriorityAtMs,now);
  assert.equal(m.view(e.id).status,'PRIORITY');
 });
+
+test('late native bar after watch deadline cannot resurrect 1h episode',()=>{
+ let now=base;const m=new YellowV17WatchLifecycle({clock:()=>now});
+ const e=event('1h');assert.equal(m.capture(e),true);
+ now=base+V17_WINDOW_MS+60_000;
+ assert.equal(m.onClosedBar('APRUSDT','1h',bar(base+3_600_000)),0);
+ assert.equal(m.view(e.id).status,'OFF');
+});
