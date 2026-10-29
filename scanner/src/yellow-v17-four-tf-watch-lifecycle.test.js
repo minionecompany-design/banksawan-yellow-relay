@@ -11,7 +11,7 @@ for(const [tf,step] of Object.entries(V17_FRAMES)){
   const e=event(tf);assert.equal(m.capture(e),true);
   assert.equal(m.capture(e),false);
   now+=step;assert.equal(m.onClosedBar('APRUSDT',tf,bar(now)),1);
-  now+=2*step;assert.equal(m.onClosedBar('APRUSDT',tf,{endMs:now}),0);
+  now+=2*step;assert.equal(m.onClosedBar('APRUSDT',tf,bar(now)),0);
   assert.equal(m.view(e.id).status,'OFF');
  });
 }
@@ -39,4 +39,18 @@ test('invalid TF, future bar and malformed event fail closed',()=>{
  assert.equal(m.capture(event('3m')),false);
  assert.equal(m.capture(event('1m',now+60_000)),false);
  assert.equal(m.capture({...event('1m'),id:'forged'}),false);
+});
+
+test('no decision can be recorded after two-hour window',()=>{
+ let now=base;const m=new YellowV17WatchLifecycle({clock:()=>now});
+ const e=event('1h');assert.equal(m.capture(e),true);
+ now+=V17_WINDOW_MS;
+ assert.equal(m.observeDecision(e.id,{status:'PRIORITY',atMs:base+60_000}),false);
+ assert.equal(m.view(e.id).status,'OFF');
+});
+test('malformed candle cannot advance a lane',()=>{
+ let now=base;const m=new YellowV17WatchLifecycle({clock:()=>now});
+ const e=event('5m');m.capture(e);now+=300_000;
+ assert.equal(m.onClosedBar('APRUSDT','5m',{endMs:now}),0);
+ assert.equal(m.records.get(e.id).lastBarEndMs,base);
 });
