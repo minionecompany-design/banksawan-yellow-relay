@@ -55,6 +55,7 @@ export class YellowV17WatchLifecycle {
     const r=this.records.get(eventId),now=this.clock();
     if(!r||r.invalid||!validTime(atMs)||atMs>now||
        atMs<r.event.barClosedAtMs||atMs>=r.event.barClosedAtMs+V17_WINDOW_MS||
+       now>=r.event.barClosedAtMs+V17_WINDOW_MS||
        !['WAIT','PRIORITY','AVOID'].includes(status))return false;
     if(status==='AVOID'&&r.riskAtMs===null)r.riskAtMs=atMs;
     if(status==='PRIORITY'&&r.riskAtMs===null){
@@ -68,7 +69,7 @@ export class YellowV17WatchLifecycle {
     if(!r)return null;
     const end=r.event.barClosedAtMs+V17_WINDOW_MS;
     const stale=!validTime(now)||now<r.event.barClosedAtMs||
-      now-r.lastBarEndMs>=Math.min(90_000,V17_FRAMES[r.event.timeframe]+30_000);
+      now-r.lastBarEndMs>=V17_FRAMES[r.event.timeframe]+90_000;
     let status='WAIT',reason=r.reason;
     if(now>=end){status='OFF';reason='WATCH_WINDOW_ENDED';}
     else if(r.invalid||stale){status='OFF';reason=r.invalid?'NATIVE_DATA_GAP':'STALE_CANDLE';}
