@@ -7,6 +7,7 @@ import {createLiveApi} from './live-api.js';
 import {YellowFcm} from './live-fcm.js';
 import {QualityCaptureBridgeV1} from './quality-capture-bridge-v1.js';
 import {AnalysisCompanionBridge} from './analysis-companion-bridge.js';
+import {V16ObservationBridge} from './v16-observation-bridge.js';
 import {YellowV16WatchMonitor} from './yellow-v16-watch-monitor.js';
 const enabled=process.env.YELLOW_LIVE_ENABLED==='true';
 const dataDir=process.env.YELLOW_DATA_DIR;
@@ -29,10 +30,13 @@ if(analysis)await analysis.initialize();
 // Shares EXISTING native candles and tickers; no Binance/API connections added.
 const monitor1m=process.env.YELLOW_V16_WATCH_ONLY_ENABLED==='true'
   ?new YellowV16WatchMonitor():null;
+// Default OFF. Existing mounted volume only; no production activation here.
+const observation=monitor1m&&process.env.YELLOW_V16_FORWARD_OBSERVATION_ENABLED==='true'
+  ?new V16ObservationBridge({dataDir}):null;
 const market=new YellowLiveMarket({dataDir,maxTracked:Number(process.env.YELLOW_MAX_TRACKED||50),
   passiveEvidence:research,
   analysisCompanion:analysis,
-  monitor1m,
+  monitor1m,observation,
   sendEvent:async event=>{
     const delivery=await fcm.send(event);
     if(fcm.enabled)console.log('YELLOW_FCM',event.id,delivery.sent?'SENT':delivery.reason);
@@ -46,6 +50,6 @@ const haltWatch=setInterval(()=>{if(!market.isHalted)return;
   clearInterval(haltWatch);server.close(()=>{process.exitCode=1;});
 },5000);
 server.listen(port,'0.0.0.0',()=>console.log('YELLOW LIVE SHADOW API active on port',port));
-process.on('SIGTERM',()=>{clearInterval(haltWatch);market.stop();void analysis?.flush();server.close();});
+process.on('SIGTERM',()=>{clearInterval(haltWatch);market.stop();observation?.close();void analysis?.flush();server.close();});
 try{await market.start();}catch(e){console.error('YELLOW LIVE STARTUP FAILED:',e.message);
   clearInterval(haltWatch);server.close(()=>{process.exitCode=1;});}

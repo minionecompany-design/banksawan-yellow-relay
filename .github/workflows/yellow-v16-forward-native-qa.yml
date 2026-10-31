@@ -1,0 +1,52 @@
+name: V16 native forward observation offline QA (NO DEPLOY OR APK)
+on:
+  push:
+    branches: [feat/yellow-v16-forward-native-20261031]
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Scanner regression, baseline parity, worker failure and persistent journal QA
+        run: node --test --test-concurrency=4 scanner/test/*.test.js | tee scanner-tests.txt
+      - name: Existing security signer tests (no keys and no APK creation)
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
+      - name: Synthetic durable journal and independently verified candidate report
+        run: |
+          node scanner/scripts/prove-v16-observation.mjs "$RUNNER_TEMP/v16-synthetic"
+          node scanner/scripts/report-v16-observation.mjs "$RUNNER_TEMP/v16-synthetic" > synthetic-candidate-report.json
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';import fs from 'node:fs';
+          const d=JSON.parse(fs.readFileSync('synthetic-candidate-report.json'));
+          assert.equal(d.integrityVerified,true);assert.equal(d.candidates.length,1);
+          assert.equal(d.candidates[0].provenance,'SYNTHETIC_QA');
+          assert.equal(d.candidates[0].outcome,'OBSERVED');
+          assert.equal(d.candidates[0].observedBars,120);
+          JS
+      - name: Separate archived candle replay (no historical quote reconstruction)
+        run: |
+          node scanner/scripts/replay-v16-observation.mjs > archived-v16-replay.json
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';import fs from 'node:fs';
+          const d=JSON.parse(fs.readFileSync('archived-v16-replay.json'));
+          assert.equal(d.cases,28);assert.equal(d.prospectiveEvents,0);
+          assert.ok(d.results.every(r=>r.quoteCoverage==='UNAVAILABLE'&&!r.canAssessActualV16LiveDecisions));
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v16-observation-offline-evidence
+          path: |
+            scanner-tests.txt
+            archived-v16-replay.json
+            synthetic-candidate-report.json
+            ${{ runner.temp }}/v16-synthetic
+          retention-days: 14

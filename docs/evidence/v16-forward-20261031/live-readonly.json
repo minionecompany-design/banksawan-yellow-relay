@@ -1,0 +1,58 @@
+{
+  "auditAtUtc": "2026-10-31T08:11:18.948248+00:00",
+  "source": "READ_ONLY_PRODUCTION_API",
+  "status": {
+    "ok": true,
+    "mode": "LIVE_SHADOW",
+    "tickerConnected": true,
+    "klineConnected": true,
+    "maxTracked": 50,
+    "eligible": 52,
+    "covered": 46,
+    "allocatedScanSlots": 50,
+    "monitor1m": {
+      "enabled": true,
+      "mode": "WATCH_ONLY",
+      "method": "YELLOW_V16_WATCH_ONLY_1M",
+      "active": 4,
+      "accepted": 75,
+      "excluded": 35,
+      "candleUpdates": 20657,
+      "duplicate": 0,
+      "errors": 0,
+      "expired": 71,
+      "resets": 0
+    },
+    "fcm": {
+      "enabled": true,
+      "attempted": 110,
+      "sent": 110,
+      "failed": 0
+    },
+    "requestGuard": {
+      "calls": 2589,
+      "weight": 21796,
+      "statusCounts": {
+        "200": 2589
+      },
+      "circuitOpen": false,
+      "circuitReason": null,
+      "remotePaused": false,
+      "remotePauseUntilMs": 1793430866217,
+      "remoteLastObservedWeight": 80,
+      "remotePauses": 57
+    },
+    "analysisDelivery": {
+      "pending": 0,
+      "queued": 33860,
+      "deferred": 493,
+      "delivered": 33860,
+      "timedOut": 0,
+      "overflow": 0,
+      "rejected": 0
+    },
+    "lastTickerDataAtMs": 1793434278558,
+    "lastKlineDataAtMs": 1793434278750,
+    "lastClosedCandleMs": 1793434260000
+  }
+}
