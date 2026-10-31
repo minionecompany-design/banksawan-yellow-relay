@@ -1,0 +1,64 @@
+{
+  "provenance": "SYNTHETIC_QA",
+  "prospectiveEvents": 0,
+  "integrityVerified": true,
+  "segments": [
+    {
+      "name": "2026-10-26.ndjson",
+      "finalHash": "17e5696cf8254349a4ff0ca910068e6c74a821237fd83ad7a139ff5c993e6a59",
+      "rows": 844
+    }
+  ],
+  "candidate": {
+    "eventId": "QUSDT:1m:1793016000000:LONG_A",
+    "event": {
+      "id": "QUSDT:1m:1793016000000:LONG_A",
+      "symbol": "QUSDT",
+      "timeframe": "1m",
+      "price": 1,
+      "barClosedAtMs": 1793016000000,
+      "detectedAtMs": 1793016004000
+    },
+    "longAWib": "2026-10-26T19:00:00.000+07:00",
+    "observedBars": 120,
+    "observedTickers": 480,
+    "transitions": [
+      {
+        "sequence": 2,
+        "previous": "388a5d2f014858cbc407081eca38cd0a986071b8ee60f2e113173e1a183c1aaa",
+        "receivedAtMs": 1793016005000,
+        "provenance": "SYNTHETIC_QA",
+        "type": "STATE",
+        "eventId": "QUSDT:1m:1793016000000:LONG_A",
+        "status": "WAIT",
+        "reason": "WAIT_CONFIRMATION",
+        "observationStatus": "WAIT",
+        "dataQuality": "AVAILABLE",
+        "price": 1,
+        "priceAtMs": 1793016000000,
+        "priceChangeSinceAPct": 0,
+        "monitorCheckedAtMs": 1793016005000,
+        "decisionSource": "PASSIVE_V16_MIRROR",
+        "entryAllowed": false,
+        "hash": "91241e5888b9889df96cdcbc0acbf140be1bc53bd4d6c0446e43249efdfd7d37"
+      }
+    ],
+    "finish": {
+      "sequence": 843,
+      "previous": "954f544a01099c31608847723268406df091cac647e1d695afd4e546aa7f20a3",
+      "receivedAtMs": 1793023201000,
+      "provenance": "SYNTHETIC_QA",
+      "type": "FINISH",
+      "eventId": "QUSDT:1m:1793016000000:LONG_A",
+      "outcome": "OBSERVED",
+      "reason": "WINDOW_ENDED",
+      "bars": 120,
+      "mfePct": 2.0000000000000018,
+      "maePct": -1.0000000000000009,
+      "extremaScope": "OBSERVED_NATIVE_PRICES_ONLY",
+      "gaps": 0,
+      "hash": "17e5696cf8254349a4ff0ca910068e6c74a821237fd83ad7a139ff5c993e6a59"
+    },
+    "outcome": "OBSERVED"
+  }
+}
