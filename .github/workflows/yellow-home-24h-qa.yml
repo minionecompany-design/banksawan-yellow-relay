@@ -1,0 +1,34 @@
+name: YELLOW HOME 24H offline QA (NO DEPLOY / NO APK)
+on:
+  push:
+    branches: [feat/yellow-home-24h-aria-audit-20261102]
+  pull_request:
+    branches: [feat/yellow-v16-forward-native-20261031]
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      YELLOW_LIVE_ENABLED: 'false'
+      YELLOW_DATA_DIR: ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check HOME ledger and release-critical modules
+        run: |
+          node --check scanner/src/live-home-ledger.js
+          node --check scanner/src/live-market.js
+          node --check scanner/src/live-fcm.js
+          node --check scanner/src/live-api.js
+          node --check scanner/test/live-home-ledger.test.js
+          node --check scanner/test/live-v10-regression.test.js
+      - name: Complete scanner offline regression (no Binance calls or FCM)
+        run: node --test --test-concurrency=4 scanner/test/*.test.js
+      - name: Existing signing / source integrity Python tests
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
