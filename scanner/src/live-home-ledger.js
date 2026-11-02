@@ -4,7 +4,7 @@
 import {readFile,writeFile,rename,mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {productEligible} from './long-a.js';
-const MAX_AGE=5*60_000, HOME_TTL=10*60*60_000, CLAIM_TTL=24*60*60_000;
+const MAX_AGE=5*60_000, HOME_TTL=24*60*60_000, CLAIM_TTL=24*60*60_000;
 const frames=new Set(['1m','5m','15m','1h']);
 export class LiveHomeLedger {
   constructor({filename,clock=()=>Date.now()}={}){if(!filename)throw new Error('PERSISTENT_LEDGER_REQUIRED');
