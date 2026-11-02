@@ -33,8 +33,8 @@ test('same-symbol 5m, 1m, 1h two hours later and new 5m produce four independent
  assert.equal((await accept(event('5m',now))).reason,'DUPLICATE');
  const restored=new LiveHomeLedger({filename:file,clock:()=>now});await restored.restore();
  assert.equal((await restored.accept(event('5m',now))).reason,'DUPLICATE');
- now=BASE+10*H;assert.equal(restored.home().length,3);
- assert.equal(restored.home().every(x=>x.homeExpiresMs===x.firstSeenMs+10*H),true);
+ now=BASE+24*H;assert.equal(restored.home().length,3);
+ assert.equal(restored.home().every(x=>x.homeExpiresMs===x.firstSeenMs+24*H),true);
  const anchors=restored.home().map(x=>x.homeExpiresMs);restored.home();assert.deepEqual(restored.home().map(x=>x.homeExpiresMs),anchors);
 });
 test('more than 20 independent events persist; non-LONG A never enters HOME',async()=>{
