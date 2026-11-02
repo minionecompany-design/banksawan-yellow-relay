@@ -15,7 +15,7 @@ export class LiveHomeLedger {
     }catch(e){if(e.code!=='ENOENT')throw e;}this.#prune();}
   #prune(){const now=this.clock();
     // Preserve existing expiry anchors; never revive expired or invent missing events.
-    // New events receive their own ten-hour timer in accept().
+    // New events receive their own 24-hour timer in accept().
     this.doc.home=this.doc.home.map(x=>({...x,
       homeExpiresMs:Math.min(x.homeExpiresMs,x.firstSeenMs+HOME_TTL)}))
       .filter(x=>Number.isSafeInteger(x.homeExpiresMs)&&x.homeExpiresMs>now&&productEligible(x));
